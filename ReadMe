@@ -2,8 +2,9 @@ load lại databse
 npx prisma generate  
 đồng bộ file data vs database thực tế
 npx prisma db push
-xoa het data cu 
+xoa het data cu
 npx prisma db push --force-reset
+npx ts-node prisma/seed.ts # thêm dữ liệu mẫu
 
 build file js sau đó up lên server thư mục dist và prisma nếu có thay đổi database
 npx tsc 
@@ -13,3 +14,7 @@ pm2 list
 pm2 restart BanCuLi
 pm2 stop BanCuLi
 pm2 delete BanCuLi
+
+API:
+GET /api/items - Danh sách vật phẩm
+GET /api/players/:id/inventory - Túi đồ người chơi

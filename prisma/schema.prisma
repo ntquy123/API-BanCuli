@@ -28,6 +28,7 @@ model Player {
   TalentPoint  Int?
   IdAccount    String
   roomUsers   RoomUser[]
+  playerItems PlayerItem[]
 }
 
 
@@ -51,4 +52,29 @@ model RoomUser {
   player  Player  @relation(fields: [userId], references: [id]) // Quan hệ với bảng Player
   room    Room    @relation(fields: [roomId], references: [id]) // Quan hệ với bảng Room
    @@unique([roomId, userId]) // Đảm bảo mỗi người dùng chỉ có thể tham gia một phòng một lần
+}
+
+model Item {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String
+  level       Int
+  typeGid     Int     @map("Type_Gid")
+  price       Int
+  isLevelUp   Boolean @map("is_Level_Up")
+  isOpen      Boolean
+  locationGid Int     @map("Location_Gid")
+  playerItems PlayerItem[]
+}
+
+model PlayerItem {
+  id       Int  @id @default(autoincrement())
+  playerId Int
+  itemId   Int
+  quantity Int  @default(1)
+
+  player Player @relation(fields: [playerId], references: [id])
+  item   Item   @relation(fields: [itemId], references: [id])
+
+  @@unique([playerId, itemId])
 }
