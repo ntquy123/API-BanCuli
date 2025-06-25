@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
+import { RequestHandler } from 'express';
 import * as RoomService from '../services/roomService';
 
-export const createRoom = async (req: Request, res: Response) => {
+export const createRoom: RequestHandler = async (req, res) => {
   try {
     const { roomName, userId } = req.body;
     // Gọi service để tạo hoặc cập nhật room
@@ -15,7 +15,7 @@ export const createRoom = async (req: Request, res: Response) => {
   }
 };
 
-export const getRooms = async (_: Request, res: Response) => {
+export const getRooms: RequestHandler = async (_req, res) => {
   try {
     const rooms = await RoomService.getActiveRooms();
     res.json(rooms);
@@ -24,7 +24,7 @@ export const getRooms = async (_: Request, res: Response) => {
   }
 };
 
-export const deleteRoom = async (req: Request, res: Response) => {
+export const deleteRoom: RequestHandler = async (req, res) => {
   try {
     const roomId = Number(req.params.roomId);
     if (isNaN(roomId)) {
@@ -37,7 +37,7 @@ export const deleteRoom = async (req: Request, res: Response) => {
   }
 };
 
-export const leaveRoom = async (req: Request, res: Response) => {
+export const leaveRoom: RequestHandler = async (req, res) => {
   try {
   
       // Lấy dữ liệu từ body
@@ -58,7 +58,7 @@ export const leaveRoom = async (req: Request, res: Response) => {
   }
 };
 
-export const joinRoom = async (req: Request, res: Response) => {
+export const joinRoom: RequestHandler = async (req, res) => {
   try {
      // Lấy dữ liệu từ body
      const { roomId, userId } = req.body;
@@ -77,7 +77,7 @@ export const joinRoom = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserRoomsController = async (req: Request, res: Response) => {
+export const getUserRoomsController: RequestHandler = async (req, res) => {
   try {
     const roomId = Number(req.query.roomId);   
 
