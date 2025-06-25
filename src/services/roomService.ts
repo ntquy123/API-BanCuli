@@ -87,7 +87,8 @@ export const createRoom = async (data: { roomName: string, userId: number }) => 
       data: {
         roomName,
         maxPlayers: 2,
-        currentPlayers: userId,
+        // Bắt đầu phòng với 1 người chơi
+        currentPlayers: 1,
         port: 27015, // Giá trị mặc định, có thể thay đổi sau này
       },
     });
@@ -129,6 +130,12 @@ export const joinRoom = async (roomId: number, userId: number) => {
           userId: userId,
         },
       });
+
+      // Tăng số lượng người chơi hiện tại của phòng
+      await prisma.room.update({
+        where: { id: roomId },
+        data: { currentPlayers: { increment: 1 } },
+      });
     }
 
     return { message: 'User joined the room successfully' };
@@ -148,13 +155,14 @@ export const joinRoom = async (roomId: number, userId: number) => {
       },
     });
 
-    // Kiểm tra còn ai trong phòng không
-    const remainingUsers = await prisma.roomUser.count({
-      where: { roomId: roomId },
+    // Giảm số lượng người chơi hiện tại
+    const room = await prisma.room.update({
+      where: { id: roomId },
+      data: { currentPlayers: { decrement: 1 } },
     });
 
     // Nếu không còn ai thì xóa phòng
-    if (remainingUsers === 0) {
+    if (room.currentPlayers === 0) {
       await prisma.room.delete({
         where: { id: roomId },
       });
