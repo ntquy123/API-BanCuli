@@ -1,6 +1,5 @@
 import express from 'express';
 import * as RoomController from '../controllers/roomController';
-import { spawn, exec } from 'child_process';
 
 const router = express.Router();
 
