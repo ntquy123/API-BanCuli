@@ -1,0 +1,15 @@
+load lại databse 
+npx prisma generate  
+đồng bộ file data vs database thực tế
+npx prisma db push
+xoa het data cu 
+npx prisma db push --force-reset
+
+build file js sau đó up lên server thư mục dist và prisma nếu có thay đổi database
+npx tsc 
+
+quản lý pm2
+pm2 list
+pm2 restart BanCuLi
+pm2 stop BanCuLi
+pm2 delete BanCuLi

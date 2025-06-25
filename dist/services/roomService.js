@@ -1,0 +1,181 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getUserRooms = exports.getActiveRooms = exports.deleteRoom = exports.leaveRoom = exports.joinRoom = exports.createRoom = void 0;
+const prismaClient_1 = __importDefault(require("../models/prismaClient")); // Import Prisma Client
+const child_process_1 = require("child_process"); // Import exec từ child_process
+const util_1 = __importDefault(require("util")); // Để sử dụng exec dưới dạng Promise
+const execPromise = util_1.default.promisify(child_process_1.exec); // Chuyển exec thành Promise
+const PORT_RANGE_START = 27015;
+const PORT_RANGE_END = 27100;
+async function getAvailablePort() {
+    const usedPorts = await prismaClient_1.default.room.findMany({ select: { port: true } });
+    const usedSet = new Set(usedPorts.map(r => r.port));
+    for (let port = PORT_RANGE_START; port <= PORT_RANGE_END; port++) {
+        if (!usedSet.has(port)) {
+            return port;
+        }
+    }
+    return null;
+}
+// export const createOrUpdateRoomDFS = async (data: { roomName: string }) => {
+//   const { roomName } = data;
+//   if (!roomName) {
+//     throw new Error('roomName is required');
+//   }
+//   try {
+//     // 🔍 Tìm port chưa dùng
+//     const port = await getAvailablePort();
+//     if (!port) throw new Error('No available port');
+//     // 1️⃣ Upsert vào database
+//     const room = await prisma.room.upsert({
+//       where: { roomName },
+//       update: {
+//         currentPlayers: 1,
+//         port, // cập nhật port nếu phòng đã tồn tại
+//       },
+//       create: {
+//         roomName,
+//         maxPlayers: 4,
+//         currentPlayers: 1,
+//         port,
+//       },
+//     });
+//     const roomId = room.id;
+//     // 2️⃣ Gọi pm2 start bằng room ID và port
+//     const command = `pm2 start ./BanCuLiServer.x86_64 --name ${roomId} -- -batchmode -nographics --roomName=${roomId} --port=${port}`;
+//     const { stdout, stderr } = await execPromise(command, { cwd: '/home/deploy/server' });
+//     if (stderr) {
+//       console.error(`❌ Không start được server room ID ${roomId}:`, stderr);
+//       throw new Error('Failed to start room');
+//     }
+//     console.log(`✅ Phòng ${room.roomName} [ID: ${roomId}] đã được tạo và chạy bằng pm2 trên port ${port}`);
+//     return {
+//       message: `Room created and server started`,
+//       roomId,
+//       roomName: room.roomName,
+//       port,
+//       output: stdout,
+//     };
+//   } catch (err) {
+//     console.error('💥 Lỗi khi tạo phòng:', err);
+//     throw new Error('Something went wrong creating room');
+//   }
+// };
+const createRoom = async (data) => {
+    const { roomName, userId } = data;
+    if (!roomName) {
+        throw new Error('roomName is required');
+    }
+    try {
+        // Tạo phòng mới
+        const room = await prismaClient_1.default.room.create({
+            data: {
+                roomName,
+                maxPlayers: 2,
+                currentPlayers: userId,
+                port: 27015, // Giá trị mặc định, có thể thay đổi sau này
+            },
+        });
+        const roomIdCreated = room.id;
+        // Thêm người dùng vào phòng
+        const roomUser = await prismaClient_1.default.roomUser.create({
+            data: {
+                roomId: roomIdCreated,
+                userId: userId,
+                joinedAt: new Date(),
+            },
+        });
+        return {
+            message: `Room created`,
+            roomId: roomIdCreated,
+            roomName: room.roomName,
+            port: 27015,
+        };
+    }
+    catch (err) {
+        console.error('💥 Lỗi khi tạo phòng:', err);
+        throw new Error(err.message || 'Something went wrong creating room');
+    }
+};
+exports.createRoom = createRoom;
+const joinRoom = async (roomId, userId) => {
+    try {
+        // Kiểm tra xem người dùng đã tham gia phòng chưa
+        const existing = await prismaClient_1.default.roomUser.findFirst({
+            where: { roomId: roomId, userId: userId },
+        });
+        // Nếu chưa tham gia, thêm người dùng vào phòng
+        if (!existing) {
+            await prismaClient_1.default.roomUser.create({
+                data: {
+                    roomId: roomId,
+                    userId: userId,
+                },
+            });
+        }
+        return { message: 'User joined the room successfully' };
+    }
+    catch (err) {
+        console.error('💥 Lỗi khi vào phòng:', err);
+        throw new Error('Lỗi khi vào phòng');
+    }
+};
+exports.joinRoom = joinRoom;
+const leaveRoom = async (roomId, userId) => {
+    try {
+        // Xóa người dùng khỏi phòng
+        await prismaClient_1.default.roomUser.deleteMany({
+            where: {
+                roomId: roomId,
+                userId: userId,
+            },
+        });
+        // Kiểm tra còn ai trong phòng không
+        const remainingUsers = await prismaClient_1.default.roomUser.count({
+            where: { roomId: roomId },
+        });
+        // Nếu không còn ai thì xóa phòng
+        if (remainingUsers === 0) {
+            await prismaClient_1.default.room.delete({
+                where: { id: roomId },
+            });
+            return { message: 'User left the room and room deleted' };
+        }
+        return { message: 'User left the room successfully' };
+    }
+    catch (err) {
+        console.error('❌ Lỗi khi rời phòng:', err);
+        throw new Error('Lỗi khi rời phòng');
+    }
+};
+exports.leaveRoom = leaveRoom;
+const deleteRoom = async (roomId) => {
+    return prismaClient_1.default.room.delete({
+        where: { id: roomId },
+    });
+};
+exports.deleteRoom = deleteRoom;
+const getActiveRooms = async () => {
+    return prismaClient_1.default.room.findMany();
+};
+exports.getActiveRooms = getActiveRooms;
+const getUserRooms = async (roomId) => {
+    try {
+        // Truy vấn danh sách người dùng trong phòng
+        const users = await prismaClient_1.default.roomUser.findMany({
+            where: { roomId: roomId },
+            include: {
+                player: true, // Giả sử bạn đã định nghĩa quan hệ giữa roomUser và player trong schema.prisma
+            },
+        });
+        return users;
+    }
+    catch (err) {
+        console.error('❌ Lỗi khi lấy danh sách người dùng trong phòng:', err);
+        throw new Error('Không thể lấy danh sách người dùng trong phòng');
+    }
+};
+exports.getUserRooms = getUserRooms;

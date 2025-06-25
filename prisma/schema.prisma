@@ -1,0 +1,54 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Player {
+  id            Int     @id @default(autoincrement())
+  PlayerName   String?
+  Level         Int?
+  Exp           Int?
+  Ball          Int?
+  Body          Int?
+  Shirt         Int?
+  Pant          Int?
+  RingBall      Int?
+  Money         Int?
+  Hair          Int?
+  TalentPoint  Int?
+  IdAccount    String
+  roomUsers   RoomUser[]
+}
+
+
+// SYSTEM
+model Room {
+  id              Int      @id @default(autoincrement())
+  roomName        String    
+  port            Int     
+  maxPlayers      Int
+  currentPlayers  Int     @unique
+  roomUsers   RoomUser[]
+}
+
+model RoomUser {
+  id      Int    @id @default(autoincrement())
+  roomId  Int
+  userId  Int
+  joinedAt DateTime @default(now())
+
+
+  player  Player  @relation(fields: [userId], references: [id]) // Quan hệ với bảng Player
+  room    Room    @relation(fields: [roomId], references: [id]) // Quan hệ với bảng Room
+   @@unique([roomId, userId]) // Đảm bảo mỗi người dùng chỉ có thể tham gia một phòng một lần
+}
