@@ -1,4 +1,10 @@
 node_modules
-dist
+dist/
+generated/
+
 # Keep environment variables out of version control
 .env
+
+# Build archives
+BanCuLi.zip
+*.zip
