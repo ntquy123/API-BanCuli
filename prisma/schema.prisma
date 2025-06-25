@@ -37,7 +37,7 @@ model Room {
   roomName        String    
   port            Int     
   maxPlayers      Int
-  currentPlayers  Int     @unique
+  currentPlayers  Int
   roomUsers   RoomUser[]
 }
 
