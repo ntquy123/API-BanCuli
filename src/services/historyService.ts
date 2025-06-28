@@ -2,7 +2,7 @@ import prisma from '../models/prismaClient';
 
 export interface HistoryData {
   playerId: number;
-  transno: number; 
+  transno: bigint;
   isWin?: boolean;
   turnOrder?: number;
   typeMatchGid?: number;

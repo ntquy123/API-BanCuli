@@ -8,7 +8,7 @@ export const overGame = async (req: Request, res: Response) => {
       res.status(400).json({ message: 'Request body must be an array' });
       return;
     }
-const generateTransno = (): number => {
+const generateTransno = (): bigint => {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -17,7 +17,7 @@ const generateTransno = (): number => {
   const minute = String(now.getMinutes()).padStart(2, '0');
   const second = String(now.getSeconds()).padStart(2, '0');
   const milli = String(now.getMilliseconds()).padStart(3, '0');
-  return Number(`${year}${month}${day}${hour}${minute}${second}${milli}`);
+  return BigInt(`${year}${month}${day}${hour}${minute}${second}${milli}`);
 };
     for (const entry of req.body) {
       const {

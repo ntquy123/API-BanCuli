@@ -82,7 +82,7 @@ model PlayerItem {
 
 model History {
   playerId     Int
-  transno      Int
+  transno      BigInt
   isWin        Boolean?
   turnOrder    Int?
   typeMatchGid Int?
