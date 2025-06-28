@@ -2,8 +2,13 @@ import prisma from '../models/prismaClient';
 
 export interface HistoryData {
   playerId: number;
-  opponentId: number;
-  isWin: boolean;
+  opponentId?: number;
+  isWin?: boolean;
+  turnOrder?: number;
+  typeMatchGid?: number;
+  statusWin?: number;
+  mapGame?: string;
+  maxPlayer?: number;
   rounds?: number;
   marbBet?: number;
   marblesWon?: number;
@@ -35,6 +40,11 @@ export const createHistory = async (data: HistoryData) => {
       seq,
       opponentId: data.opponentId,
       isWin: data.isWin,
+      turnOrder: data.turnOrder,
+      typeMatchGid: data.typeMatchGid,
+      statusWin: data.statusWin,
+      mapGame: data.mapGame,
+      maxPlayer: data.maxPlayer,
       rounds: data.rounds,
       marbBet: data.marbBet,
       marblesWon: data.marblesWon,

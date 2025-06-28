@@ -84,8 +84,13 @@ model History {
   playerId     Int
   transdate    Int
   seq          Int
-  opponentId   Int
-  isWin        Boolean
+  opponentId   Int?
+  isWin        Boolean?
+  turnOrder    Int?
+  typeMatchGid Int?
+  statusWin    Int?
+  mapGame      String?
+  maxPlayer    Int?
   rounds       Int
   marbBet      Int
   marblesWon   Int

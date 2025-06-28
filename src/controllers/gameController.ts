@@ -4,43 +4,51 @@ import { updatePlayerStats } from '../services/playerService';
 
 export const overGame = async (req: Request, res: Response) => {
   try {
-    const {
-      playerId,
-      opponentId,
-      isWin,
-      rounds,
-      marbBet,
-      marblesWon,
-      marblesLost,
-      expGained,
-      ball,
-      description,
-    } = req.body;
-
-    if (typeof playerId !== 'number' || typeof opponentId !== 'number') {
-      res.status(400).json({ message: 'Invalid playerId or opponentId' });
+    if (!Array.isArray(req.body)) {
+      res.status(400).json({ message: 'Request body must be an array' });
       return;
     }
 
-    const isWinBool = typeof isWin === 'boolean' ? isWin : isWin === 'yes';
-    const exp = typeof expGained === 'number' ? expGained : 0;
-    const ballDelta = typeof ball === 'number' ? ball : 0;
+    for (const entry of req.body) {
+      const {
+        playerId,
+        tunrOrder,
+        typeMatchGid,
+        StatusWin,
+        rounds,
+        MapGame,
+        MaxPlayer,
+        marbBet,
+        marblesWon,
+        marblesLost,
+        expGained,
+        description,
+      } = entry;
 
-    await updatePlayerStats(playerId, exp, ballDelta);
+      if (typeof playerId !== 'number') {
+        continue;
+      }
 
-    await createHistory({
-      playerId,
-      opponentId,
-      isWin: isWinBool,
-      rounds,
-      marbBet,
-      marblesWon,
-      marblesLost,
-      expGained: exp,
-      description,
-    });
+      const exp = typeof expGained === 'number' ? expGained : 0;
+      await updatePlayerStats(playerId, exp, 0);
 
-    res.json({ message: 'Game result recorded' });
+      await createHistory({
+        playerId,
+        turnOrder: tunrOrder,
+        typeMatchGid,
+        statusWin: StatusWin,
+        mapGame: MapGame,
+        maxPlayer: MaxPlayer,
+        rounds,
+        marbBet,
+        marblesWon,
+        marblesLost,
+        expGained: exp,
+        description,
+      });
+    }
+
+    res.json({ message: 'Game results recorded' });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
