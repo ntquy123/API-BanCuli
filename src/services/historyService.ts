@@ -3,7 +3,6 @@ import prisma from '../models/prismaClient';
 export interface HistoryData {
   playerId: number;
   transno: bigint;
-  isWin?: boolean;
   turnOrder?: number;
   typeMatchGid?: number;
   statusWin?: number;
@@ -26,7 +25,6 @@ export const createHistory = async (data: HistoryData) => {
     data: {
       playerId: data.playerId,
       transno: data.transno,
-      isWin: data.isWin,
       turnOrder: data.turnOrder,
       typeMatchGid: data.typeMatchGid,
       statusWin: data.statusWin,

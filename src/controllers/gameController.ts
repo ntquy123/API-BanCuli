@@ -19,6 +19,7 @@ const generateTransno = (): bigint => {
   const milli = String(now.getMilliseconds()).padStart(3, '0');
   return BigInt(`${year}${month}${day}${hour}${minute}${second}${milli}`);
 };
+    const transno = generateTransno();
     for (const entry of req.body) {
       const {
         playerId,
@@ -42,7 +43,7 @@ const generateTransno = (): bigint => {
       const exp = typeof expGained === 'number' ? expGained : 0;
       const marblesActual = marblesWon > 0 ? marblesWon : -marblesLost;
       await updatePlayerStats(playerId, exp, marblesActual);
-      const transno = generateTransno();
+
       await createHistory({
         playerId,
         transno,
