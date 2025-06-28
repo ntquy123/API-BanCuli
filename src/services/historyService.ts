@@ -1,6 +1,6 @@
 import prisma from '../models/prismaClient';
 
-interface HistoryData {
+export interface HistoryData {
   playerId: number;
   opponentId: number;
   isWin: boolean;
@@ -11,9 +11,6 @@ interface HistoryData {
   description?: string;
 }
 
-export const createHistory = async (data: HistoryData) => {
-  const last = await prisma.history.findFirst({
-    where: { playerId: data.playerId },
 const getTodayTransdate = (): number => {
   const now = new Date();
   const year = now.getFullYear();

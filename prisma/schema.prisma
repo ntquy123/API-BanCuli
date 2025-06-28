@@ -29,6 +29,7 @@ model Player {
   IdAccount    String
   roomUsers   RoomUser[]
   playerItems PlayerItem[]
+  histories   History[]
 }
 
 
