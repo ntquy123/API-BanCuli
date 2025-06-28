@@ -86,10 +86,11 @@ model History {
   seq          Int
   opponentId   Int
   isWin        Boolean
-  rounds       Int?
-  marblesWon   Int?
-  marblesLost  Int?
-  expGained    Int?
+  rounds       Int
+  marbBet      Int
+  marblesWon   Int
+  marblesLost  Int
+  expGained    Int
   description  String?
   createdAt    DateTime @default(now())
   

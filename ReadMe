@@ -1,8 +1,9 @@
-load lại databse 
-npx prisma generate  
+1.load lại databse khi thêm table hoặc cột mới chỉ cần 2 lệnh sau:
+1.1 npx prisma generate  
 đồng bộ file data vs database thực tế
-npx prisma db push
-xoa het data cu
+1.2 npx prisma db push
+1.3 đóng ứng dụng và mở lại
+2.xoa het data cu cho case muốn rest tất cả
 npx prisma db push --force-reset
 npx ts-node prisma/seed.ts # thêm dữ liệu mẫu
 

@@ -5,6 +5,7 @@ export interface HistoryData {
   opponentId: number;
   isWin: boolean;
   rounds?: number;
+  marbBet?: number;
   marblesWon?: number;
   marblesLost?: number;
   expGained?: number;
@@ -35,6 +36,7 @@ export const createHistory = async (data: HistoryData) => {
       opponentId: data.opponentId,
       isWin: data.isWin,
       rounds: data.rounds,
+      marbBet: data.marbBet,
       marblesWon: data.marblesWon,
       marblesLost: data.marblesLost,
       expGained: data.expGained,
