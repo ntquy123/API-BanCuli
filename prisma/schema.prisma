@@ -81,6 +81,7 @@ model PlayerItem {
 
 model History {
   playerId     Int
+  transdate    Int
   seq          Int
   opponentId   Int
   isWin        Boolean
@@ -90,8 +91,7 @@ model History {
   expGained    Int?
   description  String?
   createdAt    DateTime @default(now())
-
+  
   player Player @relation(fields: [playerId], references: [id])
-
-  @@id([playerId, seq])
+  @@id([playerId, transdate, seq])
 }
