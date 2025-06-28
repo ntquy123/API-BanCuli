@@ -78,3 +78,20 @@ model PlayerItem {
 
   @@unique([playerId, itemId])
 }
+
+model History {
+  playerId     Int
+  seq          Int
+  opponentId   Int
+  isWin        Boolean
+  rounds       Int?
+  marblesWon   Int?
+  marblesLost  Int?
+  expGained    Int?
+  description  String?
+  createdAt    DateTime @default(now())
+
+  player Player @relation(fields: [playerId], references: [id])
+
+  @@id([playerId, seq])
+}

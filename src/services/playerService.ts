@@ -18,4 +18,18 @@ export const getPlayerByListId = async (ids: number[]) => {
   });
 };
 
+export const updatePlayerStats = async (
+  playerId: number,
+  expGain: number,
+  ballDelta: number
+) => {
+  return prisma.player.update({
+    where: { id: playerId },
+    data: {
+      Exp: { increment: expGain },
+      RingBall: { increment: ballDelta },
+    },
+  });
+};
+
 
