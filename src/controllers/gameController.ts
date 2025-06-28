@@ -8,7 +8,17 @@ export const overGame = async (req: Request, res: Response) => {
       res.status(400).json({ message: 'Request body must be an array' });
       return;
     }
-
+const generateTransno = (): number => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hour = String(now.getHours()).padStart(2, '0');
+  const minute = String(now.getMinutes()).padStart(2, '0');
+  const second = String(now.getSeconds()).padStart(2, '0');
+  const milli = String(now.getMilliseconds()).padStart(3, '0');
+  return Number(`${year}${month}${day}${hour}${minute}${second}${milli}`);
+};
     for (const entry of req.body) {
       const {
         playerId,
@@ -31,9 +41,10 @@ export const overGame = async (req: Request, res: Response) => {
 
       const exp = typeof expGained === 'number' ? expGained : 0;
       await updatePlayerStats(playerId, exp, 0);
-
+      const transno = generateTransno();
       await createHistory({
         playerId,
+        transno,
         turnOrder: tunrOrder,
         typeMatchGid,
         statusWin: StatusWin,
