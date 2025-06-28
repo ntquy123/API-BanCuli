@@ -40,7 +40,8 @@ const generateTransno = (): number => {
       }
 
       const exp = typeof expGained === 'number' ? expGained : 0;
-      await updatePlayerStats(playerId, exp, 0);
+      const marblesActual = marblesWon > 0 ? marblesWon : -marblesLost;
+      await updatePlayerStats(playerId, exp, marblesActual);
       const transno = generateTransno();
       await createHistory({
         playerId,
