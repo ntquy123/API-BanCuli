@@ -28,6 +28,12 @@ export const levelUpEffect = async (req: Request, res: Response) => {
     const updated = await levelUpEffectPlayer(playerId, effectId);
     res.json(updated);
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+ 
+    if (error.message === 'Không còn điểm TalentPoint để tăng cấp') {
+      res.status(400).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: error.message });
+    }
+ 
   }
 };
