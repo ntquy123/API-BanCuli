@@ -99,3 +99,29 @@ model History {
   player Player @relation(fields: [playerId], references: [id])
   @@id([playerId, transno])
 }
+
+model SysMasGeneral {
+  id          Int     @id @default(autoincrement()) @map("ID")
+  code        String  @map("CODE")
+  description String? @map("DESCRIPTION")
+
+  @@map("SYS_MAS_GENERAL")
+}
+
+model SysMasLanguage {
+  id      Int    @id @default(autoincrement()) @map("ID")
+  langKey String @map("LANG_KEY")
+  langVal String @map("LANG_VAL")
+
+  @@map("SYS_MAS_LANGUAGE")
+}
+
+model EffectPlayer {
+  id       Int    @id @default(autoincrement()) @map("ID")
+  playerId Int    @map("PLAYER_ID")
+  effectId Int    @map("EFFECT_ID")
+  player   Player @relation(fields: [playerId], references: [id])
+
+  @@map("EFFECT_PLAYER")
+}
+
