@@ -16,6 +16,25 @@ async function main() {
     });
   }
 
+  const generals = [
+    { genCode: 11000001, genName: 'power_skill', genParent: 0 },
+    { genCode: 11000002, genName: 'cham_cat', genParent: 0 }
+  ];
+
+  for (const data of generals) {
+    await (prisma as any).sysMasGeneral.upsert({
+      where: { genCode: data.genCode },
+      update: {},
+      create: data
+    });
+  }
+
+  await (prisma as any).sysMasLanguage.upsert({
+    where: { code: 'power_skill' },
+    update: {},
+    create: { code: 'power_skill', vietnamText: 'Sức mạnh', englishText: 'Power' }
+  });
+
   const player = await prisma.player.findFirst();
   if (player) {
     const firstItem = await prisma.item.findFirst();
@@ -26,6 +45,13 @@ async function main() {
         create: { playerId: player.id, itemId: firstItem.id, quantity: 1 }
       });
     }
+
+    await (prisma as any).effectPlayer.create({
+      data: {
+        playerId: player.id,
+        effectName: 'power_skill'
+      }
+    });
   }
 }
 
