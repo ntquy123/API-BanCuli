@@ -30,6 +30,7 @@ model Player {
   roomUsers   RoomUser[]
   playerItems PlayerItem[]
   histories   History[]
+  effectPlayers EffectPlayer[] 
 }
 
 
@@ -81,8 +82,8 @@ model PlayerItem {
 }
 
 model History {
-  playerId     Int
-  transno      BigInt
+  playerId     Int 
+  transno      BigInt  
   turnOrder    Int?
   typeMatchGid Int?
   statusWin    Int?
@@ -101,35 +102,32 @@ model History {
 }
 
 model SysMasGeneral {
-  id          Int     @id @default(autoincrement()) @map("ID")
-  code        String  @map("CODE")
-  description String? @map("DESCRIPTION")
-
-  @@map("SYS_MAS_GENERAL")
+  GenCode          Int     @id
+  GenName         String   
+  description     String?  
+  
+  effectPlayers EffectPlayer[] 
 }
 
 model SysMasLanguage {
-  id           Int    @id @default(autoincrement()) @map("ID")
-  code         String @map("CODE")
-  vietnamText  String @map("VIETNAM_TEXT")
-  englishText  String @map("ENGLISH_TEXT")
-
-  @@map("SYS_MAS_LANGUAGE")
+  code         String  @id 
+  vietnamText  String  
+  englishText  String  
 }
 
 model EffectPlayer {
-  id       Int    @id @default(autoincrement()) @map("ID")
-  playerId Int    @map("PLAYER_ID")
-  effectId Int    @map("EFFECT_ID")
-  power       Int     @map("POWER")
-  spin        Int     @map("SPIN")
-  level       Int     @map("LEVEL")
-  isPassive   Boolean @map("Is_Passive")
-  charges     Int     @map("CHARGES")
-  description String  @map("DESCRIPTION")
-  parentId    Int     @map("Parent_Id")
-  player   Player @relation(fields: [playerId], references: [id])
+  playerId Int   
+  effectId Int   
+  power       Int    
+  spin        Int    
+  level       Int    
+  isPassive   Boolean  
+  charges     Int    
+  description String  
+  parentId    Int      
 
-  @@map("EFFECT_PLAYER")
+  player   Player @relation(fields: [playerId], references: [id])
+  sysMasGeneral   SysMasGeneral @relation(fields: [effectId], references: [GenCode])
+   @@id([playerId, effectId])
 }
 

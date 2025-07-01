@@ -3,18 +3,18 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  const items = [
-    { name: 'Potion', description: 'Restore health', level: 1, typeGid: 1, price: 50, isLevelUp: false, isOpen: true, locationGid: 0 },
-    { name: 'Elixir', description: 'Restore mana', level: 1, typeGid: 2, price: 75, isLevelUp: false, isOpen: true, locationGid: 0 }
-  ];
+  // const items = [
+  //   { name: 'Potion', description: 'Restore health', level: 1, typeGid: 1, price: 50, isLevelUp: false, isOpen: true, locationGid: 0 },
+  //   { name: 'Elixir', description: 'Restore mana', level: 1, typeGid: 2, price: 75, isLevelUp: false, isOpen: true, locationGid: 0 }
+  // ];
 
-  for (const data of items) {
-    await prisma.item.upsert({
-      where: { id: data.typeGid },
-      update: {},
-      create: data
-    });
-  }
+  // for (const data of items) {
+  //   await prisma.item.upsert({
+  //     where: { id: data.typeGid },
+  //     update: {},
+  //     create: data
+  //   });
+  // }
 
   const generals = [
     { genCode: 11000001, genName: 'power_skill', genParent: 0 },
