@@ -109,9 +109,10 @@ model SysMasGeneral {
 }
 
 model SysMasLanguage {
-  id      Int    @id @default(autoincrement()) @map("ID")
-  langKey String @map("LANG_KEY")
-  langVal String @map("LANG_VAL")
+  id           Int    @id @default(autoincrement()) @map("ID")
+  code         String @map("CODE")
+  vietnamText  String @map("VIETNAM_TEXT")
+  englishText  String @map("ENGLISH_TEXT")
 
   @@map("SYS_MAS_LANGUAGE")
 }
@@ -120,6 +121,13 @@ model EffectPlayer {
   id       Int    @id @default(autoincrement()) @map("ID")
   playerId Int    @map("PLAYER_ID")
   effectId Int    @map("EFFECT_ID")
+  power       Int     @map("POWER")
+  spin        Int     @map("SPIN")
+  level       Int     @map("LEVEL")
+  isPassive   Boolean @map("Is_Passive")
+  charges     Int     @map("CHARGES")
+  description String  @map("DESCRIPTION")
+  parentId    Int     @map("Parent_Id")
   player   Player @relation(fields: [playerId], references: [id])
 
   @@map("EFFECT_PLAYER")

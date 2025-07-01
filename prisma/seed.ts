@@ -49,7 +49,14 @@ async function main() {
     await (prisma as any).effectPlayer.create({
       data: {
         playerId: player.id,
-        effectName: 'power_skill'
+        effectId: 11000001,
+        power: 10,
+        spin: 5,
+        level: 1,
+        isPassive: false,
+        charges: 3,
+        description: 'Sample effect',
+        parentId: 0,
       }
     });
   }

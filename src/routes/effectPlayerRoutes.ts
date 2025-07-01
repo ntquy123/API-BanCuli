@@ -3,6 +3,6 @@ import * as EffectPlayerController from '../controllers/effectPlayerController';
 
 const router = Router();
 
-router.get('/effect-player/:playerId', EffectPlayerController.getEffectPlayer);
+router.get('/effect-player/:playerId', EffectPlayerController.getEffectPlayers);
 
 export default router;
