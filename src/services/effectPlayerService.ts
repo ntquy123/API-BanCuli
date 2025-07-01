@@ -12,3 +12,15 @@ export const getByPlayerId = async (playerId: number) => {
     },
   });
 };
+
+export const levelUpEffectPlayer = async (
+  playerId: number,
+  effectId: number
+) => {
+  return prisma.effectPlayer.update({
+    where: { playerId_effectId: { playerId, effectId } },
+    data: {
+      level: { increment: 1 },
+    },
+  });
+};
