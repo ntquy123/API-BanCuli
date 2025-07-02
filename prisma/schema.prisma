@@ -25,7 +25,7 @@ model Player {
   RingBall      Int?
   Money         Int?
   Hair          Int?
-  TalentPoint  Int?
+  TalentPoint   Int?
   IdAccount    String
   roomUsers   RoomUser[]
   playerItems PlayerItem[]
@@ -103,7 +103,8 @@ model History {
 
 model SysMasGeneral {
   GenCode          Int     @id
-  GenName         String   
+  GenName         String  
+  ParentCode      Int? 
   description     String?  
   
   effectPlayers EffectPlayer[] 
