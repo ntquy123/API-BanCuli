@@ -7,8 +7,16 @@ export const getByPlayerId = async (playerId: number) => {
       sysMasGeneral: {
         select: {
           GenName: true, // Lấy tên kỹ năng
+          ParentCode: true, // Lấy parentId nếu cần
+          description: true // Lấy mô tả kỹ năng
         },
       },
+       player: {
+        select: {
+          TalentPoint: true,
+          Level: true
+        }
+      }
     },
   });
 };
