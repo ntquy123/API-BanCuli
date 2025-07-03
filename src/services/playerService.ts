@@ -106,4 +106,24 @@ export const updatePlayerStats = async (
   });
 };
 
+export const equipItem = async (
+  playerId: number,
+  typeGid: number,
+  itemId: number
+) => {
+  const data: { Ball?: number; Shirt?: number } = {};
+  if (typeGid === 1) {
+    data.Ball = itemId;
+  } else if (typeGid === 2) {
+    data.Shirt = itemId;
+  } else {
+    throw new Error('Unsupported typeGid');
+  }
+
+  return prisma.player.update({
+    where: { id: playerId },
+    data,
+  });
+};
+
 
