@@ -57,7 +57,7 @@ model RoomUser {
 }
 
 model Item {
-  id          Int     @id @default(autoincrement())
+  id          Int     @id
   name        String
   description String
   level       Int
@@ -73,7 +73,8 @@ model PlayerItem {
   id       Int  @id @default(autoincrement())
   playerId Int
   itemId   Int
-  quantity Int  @default(1)
+  level    Int   
+  description String
 
   player Player @relation(fields: [playerId], references: [id])
   item   Item   @relation(fields: [itemId], references: [id])
@@ -117,15 +118,14 @@ model SysMasLanguage {
 }
 
 model EffectPlayer {
-  playerId Int   
-  effectId Int   
-  power       Int    
-  spin        Int    
+  playerId    Int   
+  effectId    Int   
+  power       Float    
+  spin        Float    
   level       Int    
   isPassive   Boolean  
   charges     Int    
-  description String  
-  parentId    Int      
+  description String    
 
   player   Player @relation(fields: [playerId], references: [id])
   sysMasGeneral   SysMasGeneral @relation(fields: [effectId], references: [GenCode])

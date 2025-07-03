@@ -29,8 +29,8 @@ export const getPlayerByListId = async (ids: number[]) => {
   return players.map((player) => {
     const totals = player.effectPlayers.reduce(
       (acc, ef) => {
-        acc.totalSpin += ef.spin + ef.level;
-        acc.totalPower += ef.power + ef.level;
+        acc.totalSpin += ef.spin * ef.level;
+        acc.totalPower += ef.power * ef.level;
         return acc;
       },
       { totalSpin: 0, totalPower: 0 }
