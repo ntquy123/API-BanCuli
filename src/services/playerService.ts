@@ -9,12 +9,35 @@ export const getPlayerByAccountId = async (accountId: string) => {
 
  
 export const getPlayerByListId = async (ids: number[]) => {
-  return await prisma.player.findMany({
+  const players = await prisma.player.findMany({
     where: {
-      IdAccount: {
-        in: ids.map(String), // nếu IdAccount là string trong DB
+      id: {
+        in: ids,
       },
     },
+    include: {
+      effectPlayers: {
+        select: {
+          spin: true,
+          power: true,
+          level: true,
+        },
+      },
+    },
+  });
+
+  return players.map((player) => {
+    const totals = player.effectPlayers.reduce(
+      (acc, ef) => {
+        acc.totalSpin += ef.spin + ef.level;
+        acc.totalPower += ef.power + ef.level;
+        return acc;
+      },
+      { totalSpin: 0, totalPower: 0 }
+    );
+
+    const { effectPlayers, ...rest } = player;
+    return { ...rest, ...totals };
   });
 };
 
