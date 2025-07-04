@@ -73,15 +73,26 @@ export const sellItem = async (
   price: number
 ) => {
   return prisma.$transaction(async (tx) => {
+    if (itemId === 88000001) {
+      await tx.player.update({
+        where: { id: playerId },
+        data: {
+          Money: { increment: price },
+          RingBall: { decrement: 10 },
+        },
+      });
+      return true;
+    }
+
     const playerItem = await tx.playerItem.findUnique({
       where: {
         playerId_itemId_seq: {
           playerId,
           itemId,
-          seq
-        }
+          seq,
+        },
       },
-      select: { playerId: true }
+      select: { playerId: true },
     });
 
     if (!playerItem) {
