@@ -20,15 +20,22 @@ export const buyItemController = async (req: Request, res: Response) => {
 
 export const sellItemController = async (req: Request, res: Response) => {
   try {
-    const id = Number(req.body.id);
+    const playerId = Number(req.body.playerId);
+    const itemId = Number(req.body.itemId);
+    const seq = Number(req.body.seq);
     const price = Number(req.body.price);
 
-    if (isNaN(id) || isNaN(price)) {
-      res.status(400).json({ message: 'Invalid id or price' });
+    if (
+      isNaN(playerId) ||
+      isNaN(itemId) ||
+      isNaN(seq) ||
+      isNaN(price)
+    ) {
+      res.status(400).json({ message: 'Invalid parameters' });
       return;
     }
 
-    await sellItem(id, price);
+    await sellItem(playerId, itemId, seq, price);
     res.json({ message: 'Item sold' });
   } catch (error: any) {
     res.status(500).json({ message: error.message });

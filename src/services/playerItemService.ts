@@ -25,10 +25,22 @@ export const buyItem = async (playerId: number, itemId: number) => {
       throw new Error('Not enough money');
     }
 
+    const lastSeq = await tx.playerItem.findFirst({
+      where: {
+        playerId,
+        itemId
+      },
+      orderBy: { seq: 'desc' },
+      select: { seq: true }
+    });
+
+    const seq = lastSeq ? lastSeq.seq + 1 : 0;
+
     const playerItem = await tx.playerItem.create({
       data: {
         playerId,
         itemId,
+        seq,
         level: 1,
         description: ''
       }
@@ -43,10 +55,21 @@ export const buyItem = async (playerId: number, itemId: number) => {
   });
 };
 
-export const sellItem = async (id: number, price: number) => {
+export const sellItem = async (
+  playerId: number,
+  itemId: number,
+  seq: number,
+  price: number
+) => {
   return prisma.$transaction(async (tx) => {
     const playerItem = await tx.playerItem.findUnique({
-      where: { id },
+      where: {
+        playerId_itemId_seq: {
+          playerId,
+          itemId,
+          seq
+        }
+      },
       select: { playerId: true }
     });
 
@@ -54,7 +77,15 @@ export const sellItem = async (id: number, price: number) => {
       throw new Error('PlayerItem not found');
     }
 
-    await tx.playerItem.delete({ where: { id } });
+    await tx.playerItem.delete({
+      where: {
+        playerId_itemId_seq: {
+          playerId,
+          itemId,
+          seq
+        }
+      }
+    });
 
     await tx.player.update({
       where: { id: playerItem.playerId },
