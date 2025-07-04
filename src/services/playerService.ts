@@ -35,7 +35,8 @@ export const getPlayerByListId = async (ids: number[]) => {
       },
       { totalSpin: 0, totalPower: 0 }
     );
-
+    totals.totalSpin += 1;
+    totals.totalPower += 5;
     const { effectPlayers, ...rest } = player;
     return { ...rest, ...totals };
   });
