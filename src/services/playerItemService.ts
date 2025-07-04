@@ -25,6 +25,17 @@ export const buyItem = async (playerId: number, itemId: number) => {
       throw new Error('Not enough money');
     }
 
+    if (itemId === 88000001) {
+      await tx.player.update({
+        where: { id: playerId },
+        data: {
+          Money: { decrement: item.price },
+          RingBall: { increment: 10 },
+        },
+      });
+      return { success: true } as const;
+    }
+
     const lastSeq = await tx.playerItem.findFirst({
       where: {
         playerId,
