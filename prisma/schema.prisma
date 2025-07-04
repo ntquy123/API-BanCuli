@@ -69,17 +69,17 @@ model Item {
   playerItems PlayerItem[]
 }
 
-model PlayerItem {
-  id       Int  @id @default(autoincrement())
+model PlayerItem { 
   playerId Int
   itemId   Int
+  seq      Int 
   level    Int   
   description String
 
   player Player @relation(fields: [playerId], references: [id])
   item   Item   @relation(fields: [itemId], references: [id])
 
-  @@unique([playerId, itemId])
+@@id([playerId, itemId, seq])
 }
 
 model History {
