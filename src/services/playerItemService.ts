@@ -117,3 +117,37 @@ export const sellItem = async (
     return true;
   });
 };
+
+export const levelUpPlayerItem = async (
+  playerId: number,
+  itemId: number,
+  seq: number
+) => {
+  const playerItem = await prisma.playerItem.findUnique({
+    where: {
+      playerId_itemId_seq: {
+        playerId,
+        itemId,
+        seq,
+      },
+    },
+    select: { playerId: true },
+  });
+
+  if (!playerItem) {
+    throw new Error('PlayerItem not found');
+  }
+
+  return prisma.playerItem.update({
+    where: {
+      playerId_itemId_seq: {
+        playerId,
+        itemId,
+        seq,
+      },
+    },
+    data: {
+      level: { increment: 1 },
+    },
+  });
+};

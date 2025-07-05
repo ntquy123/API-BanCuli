@@ -20,6 +20,7 @@ API:
 GET /api/items - Danh sách vật phẩm
 GET /api/players/:id/inventory - Túi đồ người chơi
 POST /api/player/equip - Trang bị vật phẩm cho người chơi
+POST /api/effect-player/item-level-up - Nâng cấp level của vật phẩm
 
 Body JSON:
 {

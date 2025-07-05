@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { getByPlayerId, levelUpEffectPlayer } from '../services/effectPlayerService';
+import { levelUpPlayerItem } from '../services/playerItemService';
 
 export const getEffectPlayers = async (req: Request, res: Response) => {
   try {
@@ -35,5 +36,23 @@ export const levelUpEffect = async (req: Request, res: Response) => {
       res.status(500).json({ message: error.message });
     }
  
+  }
+};
+
+export const levelUpItem = async (req: Request, res: Response) => {
+  try {
+    const playerId = Number(req.body.playerId);
+    const itemId = Number(req.body.itemId);
+    const seq = Number(req.body.seq);
+
+    if (isNaN(playerId) || isNaN(itemId) || isNaN(seq)) {
+      res.status(400).json({ message: 'Invalid parameters' });
+      return;
+    }
+
+    const updated = await levelUpPlayerItem(playerId, itemId, seq);
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
   }
 };
