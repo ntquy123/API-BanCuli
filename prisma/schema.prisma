@@ -19,6 +19,7 @@ model Player {
   Level         Int?
   Exp           Int?
   Ball          Int?
+  SeqBall       Int?
   Body          Int?
   Shirt         Int?
   Pant          Int?
@@ -66,6 +67,12 @@ model Item {
   isLevelUp   Boolean @map("is_Level_Up")
   isOpen      Boolean
   locationGid Int     @map("Location_Gid")
+  Mass             Float?
+  GravityScale     Float?
+  Drag             Float?
+  Bounciness       Float?
+  Elasticity       Float?
+  ImpactResistance Float?
   playerItems PlayerItem[]
 }
 
