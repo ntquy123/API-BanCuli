@@ -19,8 +19,14 @@ pm2 delete BanCuLi
 API:
 GET /api/items - Danh sách vật phẩm
 GET /api/players/:id/inventory - Túi đồ người chơi
+POST /api/players/ball-physics - Chỉ số vật lý viên bi đang trang bị (danh sách id)
 POST /api/player/equip - Trang bị vật phẩm cho người chơi
 POST /api/effect-player/item-level-up - Nâng cấp level của vật phẩm
+
+Body JSON /players/ball-physics:
+{
+  "ids": [1, 2]
+}
 
 Body JSON:
 {
