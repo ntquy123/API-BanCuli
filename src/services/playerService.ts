@@ -110,11 +110,13 @@ export const updatePlayerStats = async (
 export const equipItem = async (
   playerId: number,
   typeGid: number,
-  itemId: number
+  itemId: number,
+  seqBall: number
 ) => {
-  const data: { Ball?: number; Shirt?: number } = {};
+  const data: { Ball?: number; Shirt?: number; SeqBall?: number } = {};
   if (typeGid === 1) {
     data.Ball = itemId;
+    data.SeqBall = seqBall; // Assuming seqBall is a field in the player model
   } else if (typeGid === 2) {
     data.Shirt = itemId;
   } else {

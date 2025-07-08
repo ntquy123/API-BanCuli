@@ -53,13 +53,13 @@ export const equipItemController: RequestHandler = async (req, res): Promise<voi
     const playerId = Number(req.body.playerId);
     const typeGid = Number(req.body.typeGid);
     const itemId = Number(req.body.itemId);
-
+    const seqBall = Number(req.body.seqBall);
     if (isNaN(playerId) || isNaN(typeGid) || isNaN(itemId)) {
       res.status(400).json({ message: 'Invalid playerId, typeGid or itemId' });
       return;
     }
 
-    const updatedPlayer = await equipItem(playerId, typeGid, itemId);
+    const updatedPlayer = await equipItem(playerId, typeGid, itemId,seqBall);
     res.json(updatedPlayer);
     return;
   } catch (error: any) {
