@@ -22,10 +22,14 @@ export const getInventoryByPlayer = async (playerId: number) => {
   if (!player) return null;
 
   // Trả thông tin player kèm danh sách playerItems đơn giản hóa
-  const simplifiedItems = player.playerItems.map((pi) => ({
-    seq: pi.seq,
-    ...pi.item,
-  }));
+  const simplifiedItems = player.playerItems.map((pi) => {
+    const { level: _level, ...itemWithoutLevel } = pi.item;
+    return {
+      seq: pi.seq,
+      level: pi.level,
+      ...itemWithoutLevel,
+    };
+  });
 
   return { ...player, playerItems: simplifiedItems };
 };
