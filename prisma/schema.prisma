@@ -139,3 +139,35 @@ model EffectPlayer {
    @@id([playerId, effectId])
 }
 
+model Reward {
+  id           Int      @id @default(autoincrement())
+  rewardType   String
+  rewardAmount Int
+  itemId       Int?
+  createdAt    DateTime @default(now())
+
+  achievements Achievement[]
+}
+
+model Achievement {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  criteria    String?
+  rewardId    Int
+
+  reward            Reward             @relation(fields: [rewardId], references: [id])
+  playerAchievements PlayerAchievement[]
+}
+
+model PlayerAchievement {
+  playerId      Int
+  achievementId Int
+  achievedAt    DateTime @default(now())
+
+  player      Player      @relation(fields: [playerId], references: [id])
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+
+  @@id([playerId, achievementId])
+}
+

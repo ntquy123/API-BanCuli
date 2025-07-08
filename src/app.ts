@@ -8,6 +8,7 @@ import languageRoutes from './routes/languageRoutes';
 import effectPlayerRoutes from './routes/effectPlayerRoutes';
 import playerItemRoutes from './routes/playerItemRoutes';
 import ballPhysicsRoutes from './routes/ballPhysicsRoutes';
+import achievementRoutes from './routes/achievementRoutes';
 
 const app = express();
 
@@ -20,4 +21,5 @@ app.use('/api', languageRoutes);
 app.use('/api', effectPlayerRoutes);
 app.use('/api', playerItemRoutes);
 app.use('/api', ballPhysicsRoutes);
+app.use('/api', achievementRoutes);
 export default app;
