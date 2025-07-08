@@ -31,7 +31,8 @@ model Player {
   roomUsers   RoomUser[]
   playerItems PlayerItem[]
   histories   History[]
-  effectPlayers EffectPlayer[] 
+  effectPlayers EffectPlayer[]
+  playerAchievements PlayerAchievement[]
 }
 
 
