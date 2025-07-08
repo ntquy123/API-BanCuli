@@ -6,7 +6,7 @@ import prisma from '../models/prismaClient';
   });
 };
 
- export const getInventoryByPlayer = async (playerId: number) => {
+export const getInventoryByPlayer = async (playerId: number) => {
   // Lấy thông tin player
   const player = await prisma.player.findUnique({
     where: { id: playerId },
@@ -21,9 +21,6 @@ import prisma from '../models/prismaClient';
 
   if (!player) return null;
 
-  // Đổi tên cho dễ dùng (items là danh sách PlayerItem, mỗi phần tử có thêm trường item)
-  return {
-    ...player,
-    items: player.playerItems,
-  };
+  // Trả nguyên thông tin player kèm danh sách playerItems
+  return player;
 };
