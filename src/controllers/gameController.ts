@@ -23,7 +23,7 @@ const generateTransno = (): bigint => {
     for (const entry of req.body) {
       const {
         playerId,
-        tunrOrder,
+        turnOrder,
         typeMatchGid,
         StatusWin,
         rounds,
@@ -47,7 +47,7 @@ const generateTransno = (): bigint => {
       await createHistory({
         playerId,
         transno,
-        turnOrder: tunrOrder,
+        turnOrder,
         typeMatchGid,
         statusWin: StatusWin,
         mapGame: MapGame,
