@@ -10,6 +10,7 @@ import playerItemRoutes from './routes/playerItemRoutes';
 import ballPhysicsRoutes from './routes/ballPhysicsRoutes';
 import achievementRoutes from './routes/achievementRoutes';
 import historyRoutes from './routes/historyRoutes';
+import drawRoutes from './routes/drawRoutes';
 
 const app = express();
 
@@ -24,4 +25,5 @@ app.use('/api', playerItemRoutes);
 app.use('/api', ballPhysicsRoutes);
 app.use('/api', achievementRoutes);
 app.use('/api', historyRoutes);
+app.use('/api', drawRoutes);
 export default app;

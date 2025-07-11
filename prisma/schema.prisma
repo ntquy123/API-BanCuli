@@ -174,3 +174,13 @@ model PlayerAchievement {
   @@id([playerId, achievementId])
 }
 
+model DailyRareItem {
+  playerId Int
+  date     DateTime
+  count    Int      @default(0)
+
+  player Player @relation(fields: [playerId], references: [id])
+
+  @@id([playerId, date])
+}
+

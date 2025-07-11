@@ -187,3 +187,31 @@ export const levelUpPlayerItem = async (
     },
   });
 };
+
+export const addItemToInventory = async (
+  playerId: number,
+  itemId: number
+) => {
+  return prisma.$transaction(async (tx) => {
+    const lastSeq = await tx.playerItem.findFirst({
+      where: {
+        playerId,
+        itemId,
+      },
+      orderBy: { seq: 'desc' },
+      select: { seq: true },
+    });
+
+    const seq = lastSeq ? lastSeq.seq + 1 : 0;
+
+    return tx.playerItem.create({
+      data: {
+        playerId,
+        itemId,
+        seq,
+        level: 1,
+        description: '',
+      },
+    });
+  });
+};
