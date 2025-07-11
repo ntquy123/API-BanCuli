@@ -39,3 +39,11 @@ export const createHistory = async (data: HistoryData) => {
     },
   });
 };
+
+export const getAllHistories = async () => {
+  return prisma.history.findMany({
+    include: {
+      player: true,
+    },
+  });
+};
