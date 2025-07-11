@@ -40,10 +40,27 @@ export const createHistory = async (data: HistoryData) => {
   });
 };
 
+export const getHistories = async (skip = 0, take = 10) => {
+  return prisma.history.findMany({
+    include: {
+      player: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    skip,
+    take,
+  });
+};
+
+// Keep for backward compatibility if other modules use it
 export const getAllHistories = async () => {
   return prisma.history.findMany({
     include: {
       player: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
     },
   });
 };
