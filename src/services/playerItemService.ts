@@ -2,9 +2,9 @@ import prisma from '../models/prismaClient';
 
 export const buyItem = async (playerId: number, itemId: number) => {
   return prisma.$transaction(async (tx) => {
-    const item = await tx.item.findUnique({
+    const item = await (tx as any).item.findUnique({
       where: { id: itemId },
-      select: { price: true }
+      select: { price: true, priceByBall: true }
     });
 
     if (!item) {
@@ -13,27 +13,38 @@ export const buyItem = async (playerId: number, itemId: number) => {
 
     const player = await tx.player.findUnique({
       where: { id: playerId },
-      select: { Money: true }
+      select: { Money: true, RingBall: true }
     });
 
     if (!player) {
       throw new Error('Player not found');
     }
 
-    const currentMoney = player.Money ?? 0;
-    if (currentMoney < item.price) {
-      throw new Error('Not enough money');
-    }
+    const costMoney = item.price ?? 0;
+    const costRingBall = (item as any).priceByBall ?? 0;
 
     if (itemId === 88000001) {
+      if ((player.Money ?? 0) < costMoney) {
+        throw new Error('Not enough money');
+      }
       await tx.player.update({
         where: { id: playerId },
         data: {
-          Money: { decrement: item.price },
+          Money: { decrement: costMoney },
           RingBall: { increment: 10 },
         },
       });
       return { success: true } as const;
+    }
+
+    if (costMoney > 0) {
+      if ((player.Money ?? 0) < costMoney) {
+        throw new Error('Not enough money');
+      }
+    } else {
+      if ((player.RingBall ?? 0) < costRingBall) {
+        throw new Error('Not enough RingBall');
+      }
     }
 
     const lastSeq = await tx.playerItem.findFirst({
@@ -57,10 +68,17 @@ export const buyItem = async (playerId: number, itemId: number) => {
       }
     });
 
-    await tx.player.update({
-      where: { id: playerId },
-      data: { Money: { decrement: item.price } }
-    });
+    if (costMoney > 0) {
+      await tx.player.update({
+        where: { id: playerId },
+        data: { Money: { decrement: costMoney } },
+      });
+    } else {
+      await tx.player.update({
+        where: { id: playerId },
+        data: { RingBall: { decrement: costRingBall } },
+      });
+    }
 
     return playerItem;
   });
@@ -69,15 +87,23 @@ export const buyItem = async (playerId: number, itemId: number) => {
 export const sellItem = async (
   playerId: number,
   itemId: number,
-  seq: number,
-  price: number
+  seq: number
 ) => {
   return prisma.$transaction(async (tx) => {
+    const item = await (tx as any).item.findUnique({
+      where: { id: itemId },
+      select: { price: true, priceByBall: true }
+    });
+
+    if (!item) {
+      throw new Error('Item not found');
+    }
+
     if (itemId === 88000001) {
       await tx.player.update({
         where: { id: playerId },
         data: {
-          Money: { increment: price },
+          Money: { increment: item.price ?? 0 },
           RingBall: { decrement: 10 },
         },
       });
@@ -109,10 +135,20 @@ export const sellItem = async (
       }
     });
 
-    await tx.player.update({
-      where: { id: playerItem.playerId },
-      data: { Money: { increment: price } }
-    });
+    const costMoney = item.price ?? 0;
+    const costRingBall = (item as any).priceByBall ?? 0;
+
+    if (costMoney > 0) {
+      await tx.player.update({
+        where: { id: playerItem.playerId },
+        data: { Money: { increment: costMoney } },
+      });
+    } else {
+      await tx.player.update({
+        where: { id: playerItem.playerId },
+        data: { RingBall: { increment: costRingBall } },
+      });
+    }
 
     return true;
   });

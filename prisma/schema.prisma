@@ -65,6 +65,7 @@ model Item {
   level       Int
   typeGid     Int     @map("Type_Gid")
   price       Int
+  priceByBall Int?
   isLevelUp   Boolean @map("is_Level_Up")
   isOpen      Boolean
   locationGid Int     @map("Location_Gid")
