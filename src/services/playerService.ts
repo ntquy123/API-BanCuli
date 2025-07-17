@@ -49,7 +49,7 @@ export const updatePlayerStats = async (
 ) => {
   const player = await prisma.player.findUnique({
     where: { id: playerId },
-    select: { Exp: true, Level: true },
+    select: { Exp: true, Level: true, TalentPoint: true },
   });
 
   if (!player) {
@@ -96,14 +96,21 @@ export const updatePlayerStats = async (
       break;
     }
   }
+  const levelDiff = newLevel - currentLevel;
+  const data: any = {
+    Exp: totalExp,
+    Level: newLevel,
+    RingBall: { increment: ballDelta },
+  };
+
+  if (levelDiff > 0) {
+    const currentTP = player.TalentPoint ?? 0;
+    data.TalentPoint = currentTP + levelDiff;
+  }
 
   return prisma.player.update({
     where: { id: playerId },
-    data: {
-      Exp: totalExp,
-      Level: newLevel,
-      RingBall: { increment: ballDelta },
-    },
+    data,
   });
 };
 
