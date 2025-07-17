@@ -1,6 +1,6 @@
 // src/controllers/playerController.ts
 import { Request, Response, RequestHandler } from 'express';
-import { getPlayerByAccountId, getPlayerByListId, equipItem } from '../services/playerService';
+import { getPlayerByAccountId, getPlayerByListId, equipPlayerItem } from '../services/playerService';
 import { getInventoryByPlayer } from '../services/itemService';
 
 export const getPlayerController = async (req: Request, res: Response) => {
@@ -51,16 +51,17 @@ export const getInventoryController: RequestHandler = async (
 export const equipItemController: RequestHandler = async (req, res): Promise<void> => {
   try {
     const playerId = Number(req.body.playerId);
-    const typeGid = Number(req.body.typeGid);
+    const locationId = Number(req.body.locationId);
     const itemId = Number(req.body.itemId);
-    const seqBall = Number(req.body.seqBall);
-    if (isNaN(playerId) || isNaN(typeGid) || isNaN(itemId)) {
-      res.status(400).json({ message: 'Invalid playerId, typeGid or itemId' });
+    const seqItem = Number(req.body.seqItem);
+
+    if (isNaN(playerId) || isNaN(locationId) || isNaN(itemId) || isNaN(seqItem)) {
+      res.status(400).json({ message: 'Invalid parameters' });
       return;
     }
 
-    const updatedPlayer = await equipItem(playerId, typeGid, itemId,seqBall);
-    res.json(updatedPlayer);
+    const result = await equipPlayerItem(playerId, locationId, itemId, seqItem);
+    res.json(result);
     return;
   } catch (error: any) {
     res.status(500).json({ message: error.message });

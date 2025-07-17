@@ -185,3 +185,16 @@ model DailyRareItem {
   @@id([playerId, date])
 }
 
+model EquipPlayer {
+  playerId    Int
+  locationId  Int
+  itemId      Int
+  seqItem     Int
+  createdDate DateTime @default(now())
+
+  player Player @relation(fields: [playerId], references: [id])
+  item   Item   @relation(fields: [itemId], references: [id])
+
+  @@id([playerId, locationId])
+}
+
