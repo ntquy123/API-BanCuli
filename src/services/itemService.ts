@@ -2,7 +2,8 @@ import prisma from '../models/prismaClient';
 
  export const getAllItems = async () => {
   return prisma.item.findMany({
-    where: { locationGid: 2 }
+    where: { locationGid: 2,isOpen: true },
+    orderBy: { id: 'asc' },
   });
 };
 
