@@ -131,4 +131,32 @@ export const equipItem = async (
   return playerItem;
 };
 
+export const equipPlayerItem = async (
+  playerId: number,
+  locationId: number,
+  itemId: number,
+  seqItem: number
+) => {
+  const existing = await prisma.equipPlayer.findUnique({
+    where: { playerId_locationId: { playerId, locationId } },
+  });
+
+  if (existing) {
+    return prisma.equipPlayer.update({
+      where: { playerId_locationId: { playerId, locationId } },
+      data: { itemId, seqItem },
+    });
+  }
+
+  return prisma.equipPlayer.create({
+    data: {
+      playerId,
+      locationId,
+      itemId,
+      seqItem,
+      createdDate: new Date(),
+    },
+  });
+};
+
 
