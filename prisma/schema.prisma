@@ -18,14 +18,9 @@ model Player {
   PlayerName   String?
   Level         Int?
   Exp           Int?
-  Ball          Int?
-  SeqBall       Int?
   Body          Int?
-  Shirt         Int?
-  Pant          Int?
   RingBall      Int?
   Money         Int?
-  Hair          Int?
   TalentPoint   Int?
   IdAccount    String
   roomUsers   RoomUser[]
