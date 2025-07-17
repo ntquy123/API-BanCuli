@@ -51,7 +51,7 @@ export const getBallPhysicsByPlayer = async (playerId: number): Promise<BallPhys
   return {
     Mass: item.Mass !== null ? item.Mass * factor : null,
     GravityScale: item.GravityScale !== null ? item.GravityScale * factor : null,
-    Drag: item.Drag !== null ? item.Drag * factor : null,
+    Drag: item.Drag !== null ? item.Drag / factor : null,
     Bounciness: item.Bounciness !== null ? item.Bounciness * factor : null,
     Elasticity: item.Elasticity !== null ? item.Elasticity * factor : null,
     ImpactResistance: item.ImpactResistance !== null ? item.ImpactResistance * factor : null,

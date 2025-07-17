@@ -80,7 +80,13 @@ export const drawReward = async (playerId: number): Promise<RewardResult> => {
   }
 
   // Fallback to common reward
-  const amount = Math.random() < 0.5 ? 1 : 0;
+   let amount = 0;
+  const rand = Math.random() * 100;
+  if (rand < 30) amount = 0;         // 30% được 0 viên
+  else if (rand < 60) amount = 1;    // 30% được 1 viên
+  else if (rand < 80) amount = 2;    // 20% được 2 viên
+  else if (rand < 95) amount = 3;    // 15% được 3 viên
+  else amount = 4;   
   if (amount > 0) {
     await prisma.player.update({
       where: { id: playerId },

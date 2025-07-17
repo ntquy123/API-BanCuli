@@ -33,6 +33,7 @@ model Player {
   histories   History[]
   effectPlayers EffectPlayer[]
   playerAchievements PlayerAchievement[]
+  dailyRareItem DailyRareItem[]
 }
 
 
