@@ -1,5 +1,8 @@
 import prisma from '../models/prismaClient';
 
+// Location id used in EquipPlayer to mark the equipped ball slot
+const BALL_SLOT_LOCATION_ID = 2;
+
 export interface BallPhysics {
   Mass: number | null;
   GravityScale: number | null;
@@ -10,18 +13,27 @@ export interface BallPhysics {
   level: number;
 }
 
-export const getBallPhysicsByPlayer = async (playerId: number): Promise<BallPhysics | null> => {
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
-    select: { Ball: true, SeqBall: true },
+export const getBallPhysicsByPlayer = async (
+  playerId: number
+): Promise<BallPhysics | null> => {
+  // Get equipped ball from EquipPlayer table based on location
+  const equip = await (prisma as any).equipPlayer.findFirst({
+    where: { playerId, locationId: BALL_SLOT_LOCATION_ID },
+    select: { itemId: true, seq: true },
   });
 
-  if (!player || player.Ball === null || player.SeqBall === null) {
+  if (!equip) {
     return null;
   }
 
   const playerItem = await prisma.playerItem.findUnique({
-    where: { playerId_itemId_seq: { playerId, itemId: player.Ball, seq: player.SeqBall } },
+    where: {
+      playerId_itemId_seq: {
+        playerId,
+        itemId: equip.itemId,
+        seq: equip.seq,
+      },
+    },
     select: { level: true },
   });
 
@@ -30,7 +42,7 @@ export const getBallPhysicsByPlayer = async (playerId: number): Promise<BallPhys
   }
 
   const item = await prisma.item.findUnique({
-    where: { id: player.Ball },
+    where: { id: equip.itemId },
     select: {
       Mass: true,
       GravityScale: true,

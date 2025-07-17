@@ -1,6 +1,9 @@
 // src/services/playerService.ts
 import prisma from '../models/prismaClient'; // Import Prisma Client
 
+// Location id used in EquipPlayer to mark the equipped ball slot
+const BALL_SLOT_LOCATION_ID = 2;
+
 export const getPlayerByAccountId = async (accountId: string) => {
   return await prisma.player.findFirst({
     where: { IdAccount: accountId },
@@ -123,7 +126,25 @@ export const equipItem = async (
   const data: { Ball?: number; Shirt?: number; SeqBall?: number } = {};
   if (typeGid === 1) {
     data.Ball = itemId;
-    data.SeqBall = seqBall; // Assuming seqBall is a field in the player model
+    data.SeqBall = seqBall;
+
+    // Update EquipPlayer table for the ball slot
+    const locationId = BALL_SLOT_LOCATION_ID;
+    const existing = await (prisma as any).equipPlayer.findFirst({
+      where: { playerId, locationId },
+      select: { playerId: true },
+    });
+
+    if (existing) {
+      await (prisma as any).equipPlayer.update({
+        where: { playerId_locationId: { playerId, locationId } },
+        data: { itemId, seq: seqBall },
+      });
+    } else {
+      await (prisma as any).equipPlayer.create({
+        data: { playerId, locationId, itemId, seq: seqBall },
+      });
+    }
   } else if (typeGid === 2) {
     data.Shirt = itemId;
   } else {
