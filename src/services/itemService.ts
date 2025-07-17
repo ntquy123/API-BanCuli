@@ -1,5 +1,15 @@
 import prisma from '../models/prismaClient';
 
+// Map locationId in EquipPlayer to human readable keys
+const LOCATION_KEY_MAP: Record<number, string> = {
+  1: 'Culi1',
+  2: 'Culi2',
+  3: 'Culi3',
+  4: 'Shirt',
+  5: 'Pant',
+  6: 'Hair',
+};
+
  export const getAllItems = async () => {
   return prisma.item.findMany({
     where: { locationGid: 2,isOpen: true },
@@ -13,11 +23,12 @@ export const getInventoryByPlayer = async (playerId: number) => {
     where: { id: playerId },
     include: {
       playerItems: {
-        include: {
-          item: true
-        }
-      }
-    }
+        include: { item: true },
+      },
+      equipPlayers: {
+        include: { item: true },
+      },
+    },
   });
 
   if (!player) return null;
@@ -32,42 +43,47 @@ export const getInventoryByPlayer = async (playerId: number) => {
     };
   });
 
-  // Lấy thông tin các vật phẩm đang trang bị
-  const equipIds: { key: string; id: number | null; seq?: number | null }[] = [
-    { key: 'Ball', id: player.Ball, seq: player.SeqBall },
-    { key: 'Body', id: player.Body },
-    { key: 'Shirt', id: player.Shirt },
-    { key: 'Pant', id: player.Pant },
-    { key: 'Hair', id: player.Hair },
-  ];
-
+  // Thông tin các vật phẩm đang trang bị
   const equippedItems: Record<string, any> = {};
-  for (const equip of equipIds) {
-    if (equip.id === null || equip.id === undefined) continue;
-    const pi = await prisma.playerItem.findUnique({
-      where: {
-        playerId_itemId_seq: {
-          playerId,
-          itemId: equip.id,
-          seq: equip.seq ?? 0,
-        },
-      },
-      include: { item: true },
-    });
+
+  // Lấy trang phục culi, áo quần, tóc từ bảng EquipPlayer
+  for (const equip of player.equipPlayers) {
+    const key = LOCATION_KEY_MAP[equip.locationId];
+    if (!key) continue;
+
+    const pi = player.playerItems.find(
+      (i) => i.itemId === equip.itemId && i.seq === equip.seqItem
+    );
+
+    const level = pi?.level ?? 1;
+    const { level: _lvl, ...itemWithoutLevel } = equip.item as any;
+
+    equippedItems[key] = {
+      seq: equip.seqItem,
+      level,
+      ...itemWithoutLevel,
+    };
+  }
+
+  // Body vẫn được lưu ở bảng Player
+  if (player.Body !== null && player.Body !== undefined) {
+    const pi = player.playerItems.find(
+      (i) => i.itemId === player.Body
+    );
 
     if (pi) {
       const { level: _lvl, ...itemWithoutLevel } = pi.item;
-      equippedItems[equip.key] = {
+      equippedItems['Body'] = {
         seq: pi.seq,
         level: pi.level,
         ...itemWithoutLevel,
       };
     } else {
-      const item = await prisma.item.findUnique({ where: { id: equip.id } });
+      const item = await prisma.item.findUnique({ where: { id: player.Body } });
       if (item) {
         const { level: _lvl, ...itemWithoutLevel } = item;
-        equippedItems[equip.key] = {
-          seq: equip.seq ?? 0,
+        equippedItems['Body'] = {
+          seq: 0,
           level: 1,
           ...itemWithoutLevel,
         };
@@ -75,6 +91,6 @@ export const getInventoryByPlayer = async (playerId: number) => {
     }
   }
 
-  const { playerItems, ...rest } = player;
+  const { playerItems, equipPlayers, ...rest } = player;
   return { ...rest, playerItems: simplifiedItems, equippedItems };
 };
