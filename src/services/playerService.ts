@@ -23,6 +23,8 @@ export const getPlayerByListId = async (ids: number[]) => {
           level: true,
         },
       },
+      // Include equipPlayers relation so caller can know equipped items
+      equipPlayers: true,
     },
   });
 
