@@ -11,40 +11,20 @@ export interface BallPhysics {
 }
 
 export const getBallPhysicsByPlayer = async (playerId: number): Promise<BallPhysics | null> => {
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
-    select: { Ball: true, SeqBall: true },
-  });
-
-  if (!player || player.Ball === null || player.SeqBall === null) {
-    return null;
-  }
-
-  const playerItem = await prisma.playerItem.findUnique({
-    where: { playerId_itemId_seq: { playerId, itemId: player.Ball, seq: player.SeqBall } },
-    select: { level: true },
+  const playerItem = await prisma.playerItem.findFirst({
+    where: {
+      playerId,
+      item: { typeGid: 1 },
+    },
+    include: { item: true },
+    orderBy: { seq: 'asc' },
   });
 
   if (!playerItem) {
     return null;
   }
 
-  const item = await prisma.item.findUnique({
-    where: { id: player.Ball },
-    select: {
-      Mass: true,
-      GravityScale: true,
-      Drag: true,
-      Bounciness: true,
-      Elasticity: true,
-      ImpactResistance: true,
-    },
-  });
-
-  if (!item) {
-    return null;
-  }
-
+  const item = playerItem.item;
   const level = playerItem.level;
   const factor = 1 + 0.1 * (level - 1);
 

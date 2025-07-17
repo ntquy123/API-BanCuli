@@ -118,22 +118,17 @@ export const equipItem = async (
   playerId: number,
   typeGid: number,
   itemId: number,
-  seqBall: number
+  seq: number
 ) => {
-  const data: { Ball?: number; Shirt?: number; SeqBall?: number } = {};
-  if (typeGid === 1) {
-    data.Ball = itemId;
-    data.SeqBall = seqBall; // Assuming seqBall is a field in the player model
-  } else if (typeGid === 2) {
-    data.Shirt = itemId;
-  } else {
-    throw new Error('Unsupported typeGid');
+  const playerItem = await prisma.playerItem.findUnique({
+    where: { playerId_itemId_seq: { playerId, itemId, seq } },
+  });
+
+  if (!playerItem) {
+    throw new Error('Item not found in inventory');
   }
 
-  return prisma.player.update({
-    where: { id: playerId },
-    data,
-  });
+  return playerItem;
 };
 
 
