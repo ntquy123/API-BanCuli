@@ -61,10 +61,10 @@ export const getBallPhysicsByPlayer = async (
 
   return {
     Mass: item.Mass !== null ? item.Mass * factor : null,
-    GravityScale: item.GravityScale !== null ? item.GravityScale * factor : null,
+    GravityScale: item.GravityScale !== null ? item.GravityScale : null,
     Drag: item.Drag !== null ? item.Drag / factor : null,
     Bounciness: item.Bounciness !== null ? item.Bounciness * factor : null,
-    Elasticity: item.Elasticity !== null ? item.Elasticity * factor : null,
+    Elasticity: item.Elasticity !== null ? item.Elasticity : null,
     ImpactResistance: item.ImpactResistance !== null ? item.ImpactResistance * factor : null,
     level,
   };

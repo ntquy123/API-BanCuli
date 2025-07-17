@@ -29,6 +29,7 @@ model Player {
   effectPlayers EffectPlayer[]
   playerAchievements PlayerAchievement[]
   dailyRareItem DailyRareItem[]
+   equipPlayers EquipPlayer[] 
 }
 
 
@@ -73,6 +74,7 @@ model Item {
   Elasticity       Float?
   ImpactResistance Float?
   playerItems PlayerItem[]
+   equipPlayers EquipPlayer[] 
 }
 
 model PlayerItem { 
