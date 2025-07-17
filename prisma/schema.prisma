@@ -180,6 +180,7 @@ model DailyRareItem {
   @@id([playerId, date])
 }
 
+
 model EquipPlayer {
   playerId    Int
   locationId  Int
@@ -187,13 +188,8 @@ model EquipPlayer {
   seqItem     Int
   createdDate DateTime @default(now())
 
-<<<<<<< HEAD
-  player     Player     @relation(fields: [playerId], references: [id])
-  playerItem PlayerItem @relation(fields: [playerId, itemId, seqItem], references: [playerId, itemId, seq])
-=======
   player Player @relation(fields: [playerId], references: [id])
   item   Item   @relation(fields: [itemId], references: [id])
->>>>>>> origin/codex/update-equipitemcontroller-and-route
 
   @@id([playerId, locationId])
 }

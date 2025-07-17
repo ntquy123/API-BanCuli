@@ -13,16 +13,6 @@ export interface BallPhysics {
   level: number;
 }
 
-<<<<<<< HEAD
-export const getBallPhysicsByPlayer = async (playerId: number): Promise<BallPhysics | null> => {
-  const playerItem = await prisma.playerItem.findFirst({
-    where: {
-      playerId,
-      item: { typeGid: 1 },
-    },
-    include: { item: true },
-    orderBy: { seq: 'asc' },
-=======
 export const getBallPhysicsByPlayer = async (
   playerId: number
 ): Promise<BallPhysics | null> => {
@@ -45,16 +35,12 @@ export const getBallPhysicsByPlayer = async (
       },
     },
     select: { level: true },
->>>>>>> origin/codex/update-getballphysicsbyplayer-method
   });
 
   if (!playerItem) {
     return null;
   }
 
-<<<<<<< HEAD
-  const item = playerItem.item;
-=======
   const item = await prisma.item.findUnique({
     where: { id: equip.itemId },
     select: {
@@ -70,8 +56,6 @@ export const getBallPhysicsByPlayer = async (
   if (!item) {
     return null;
   }
-
->>>>>>> origin/codex/update-getballphysicsbyplayer-method
   const level = playerItem.level;
   const factor = 1 + 0.1 * (level - 1);
 

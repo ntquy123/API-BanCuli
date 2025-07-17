@@ -53,16 +53,6 @@ export const equipItemController: RequestHandler = async (req, res): Promise<voi
     const playerId = Number(req.body.playerId);
     const locationId = Number(req.body.locationId);
     const itemId = Number(req.body.itemId);
-<<<<<<< HEAD
-    const seq = Number(req.body.seq);
-    if (isNaN(playerId) || isNaN(typeGid) || isNaN(itemId) || isNaN(seq)) {
-      res.status(400).json({ message: 'Invalid playerId, typeGid or itemId' });
-      return;
-    }
-
-    const updatedPlayer = await equipItem(playerId, typeGid, itemId, seq);
-    res.json(updatedPlayer);
-=======
     const seqItem = Number(req.body.seqItem);
 
     if (isNaN(playerId) || isNaN(locationId) || isNaN(itemId) || isNaN(seqItem)) {
@@ -72,7 +62,6 @@ export const equipItemController: RequestHandler = async (req, res): Promise<voi
 
     const result = await equipPlayerItem(playerId, locationId, itemId, seqItem);
     res.json(result);
->>>>>>> origin/codex/update-equipitemcontroller-and-route
     return;
   } catch (error: any) {
     res.status(500).json({ message: error.message });

@@ -125,20 +125,12 @@ export const equipItem = async (
   itemId: number,
   seq: number
 ) => {
-<<<<<<< HEAD
-  const playerItem = await prisma.playerItem.findUnique({
-    where: { playerId_itemId_seq: { playerId, itemId, seq } },
-  });
-
-  if (!playerItem) {
-    throw new Error('Item not found in inventory');
-=======
   const data: { Ball?: number; Shirt?: number; SeqBall?: number } = {};
+
   if (typeGid === 1) {
     data.Ball = itemId;
-    data.SeqBall = seqBall;
+    data.SeqBall = seq;
 
-    // Update EquipPlayer table for the ball slot
     const locationId = BALL_SLOT_LOCATION_ID;
     const existing = await (prisma as any).equipPlayer.findFirst({
       where: { playerId, locationId },
@@ -148,21 +140,23 @@ export const equipItem = async (
     if (existing) {
       await (prisma as any).equipPlayer.update({
         where: { playerId_locationId: { playerId, locationId } },
-        data: { itemId, seq: seqBall },
+        data: { itemId, seqItem: seq },
       });
     } else {
       await (prisma as any).equipPlayer.create({
-        data: { playerId, locationId, itemId, seq: seqBall },
+        data: { playerId, locationId, itemId, seqItem: seq },
       });
     }
   } else if (typeGid === 2) {
     data.Shirt = itemId;
   } else {
     throw new Error('Unsupported typeGid');
->>>>>>> origin/codex/update-getballphysicsbyplayer-method
   }
 
-  return playerItem;
+  return prisma.player.update({
+    where: { id: playerId },
+    data,
+  });
 };
 
 export const equipPlayerItem = async (
