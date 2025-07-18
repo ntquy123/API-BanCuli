@@ -79,6 +79,14 @@ export const getInventoryByPlayer = async (playerId: number) => {
     }
   }
 
+  const equippedIdSeq = new Set(
+    equippedItems.map((ei: any) => `${ei.id}-${ei.seq}`)
+  );
+
+  const filteredItems = simplifiedItems.filter(
+    (it) => !equippedIdSeq.has(`${it.id}-${it.seq}`)
+  );
+
   const { playerItems, equipPlayers, ...rest } = player;
-  return { ...rest, playerItems: simplifiedItems, equippedItems };
+  return { ...rest, playerItems: filteredItems, equippedItems };
 };
