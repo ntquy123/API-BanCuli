@@ -1,9 +1,10 @@
 import prisma from '../models/prismaClient';
 
-// Location id used in EquipPlayer to mark the equipped ball slot
-const BALL_SLOT_LOCATION_ID = 2;
+ 
 
 export interface BallPhysics {
+  itemId: number
+  seqItem: number
   Mass: number | null;
   GravityScale: number | null;
   Drag: number | null;
@@ -13,66 +14,82 @@ export interface BallPhysics {
   level: number;
 }
 
-export const getBallPhysicsByPlayer = async (
+ export const getBallPhysicsByPlayer = async (
   playerId: number
-): Promise<BallPhysics | null> => {
-  // Get equipped ball from EquipPlayer table based on location
-  const equip = await (prisma as any).equipPlayer.findFirst({
-    where: { playerId, locationId: BALL_SLOT_LOCATION_ID },
-    select: { itemId: true, seq: true },
+): Promise<BallPhysics[]> => {
+  // Lấy danh sách các quả bóng từ EquipPlayer với điều kiện playerId và locationId trong [1, 2, 3]
+  const equips = await prisma.equipPlayer.findMany({
+    where: { playerId, locationId: { in: [1, 2, 3] } },
+    select: { itemId: true, seqItem: true },
   });
 
-  if (!equip) {
-    return null;
+  if (!equips || equips.length === 0) {
+    return [];
   }
 
-  const playerItem = await prisma.playerItem.findUnique({
-    where: {
-      playerId_itemId_seq: {
-        playerId,
+  // Lấy thông tin vật lý cho từng quả bóng
+  const results = await Promise.all(
+    equips.map(async (equip) => {
+      const playerItem = await prisma.playerItem.findUnique({
+        where: {
+          playerId_itemId_seq: {
+            playerId,
+            itemId: equip.itemId,
+            seq: equip.seqItem,
+          },
+        },
+        select: { level: true },
+      });
+
+      if (!playerItem) {
+        return null;
+      }
+
+      const item = await prisma.item.findUnique({
+        where: { id: equip.itemId },
+        select: {
+          Mass: true,
+          GravityScale: true,
+          Drag: true,
+          Bounciness: true,
+          Elasticity: true,
+          ImpactResistance: true,
+        },
+      });
+
+      if (!item) {
+        return null;
+      }
+
+      const level = playerItem.level;
+      const factor = 1 + 0.1 * (level - 1);
+
+      return {
         itemId: equip.itemId,
-        seq: equip.seq,
-      },
-    },
-    select: { level: true },
-  });
+        seqItem: equip.seqItem,
+        Mass: item.Mass !== null ? item.Mass * factor : null,
+        GravityScale: item.GravityScale !== null ? item.GravityScale : null,
+        Drag: item.Drag !== null ? item.Drag / factor : null,
+        Bounciness: item.Bounciness !== null ? item.Bounciness * factor : null,
+        Elasticity: item.Elasticity !== null ? item.Elasticity : null,
+        ImpactResistance: item.ImpactResistance !== null ? item.ImpactResistance * factor : null,
+        level,
+      };
+    })
+  );
 
-  if (!playerItem) {
-    return null;
-  }
-
-  const item = await prisma.item.findUnique({
-    where: { id: equip.itemId },
-    select: {
-      Mass: true,
-      GravityScale: true,
-      Drag: true,
-      Bounciness: true,
-      Elasticity: true,
-      ImpactResistance: true,
-    },
-  });
-
-  if (!item) {
-    return null;
-  }
-  const level = playerItem.level;
-  const factor = 1 + 0.1 * (level - 1);
-
-  return {
-    Mass: item.Mass !== null ? item.Mass * factor : null,
-    GravityScale: item.GravityScale !== null ? item.GravityScale : null,
-    Drag: item.Drag !== null ? item.Drag / factor : null,
-    Bounciness: item.Bounciness !== null ? item.Bounciness * factor : null,
-    Elasticity: item.Elasticity !== null ? item.Elasticity : null,
-    ImpactResistance: item.ImpactResistance !== null ? item.ImpactResistance * factor : null,
-    level,
-  };
+  // Loại bỏ các giá trị null (nếu có)
+  return results.filter((result) => result !== null) as BallPhysics[];
 };
 
-export const getBallPhysicsByPlayers = async (playerIds: number[]): Promise<{ playerId: number; physics: BallPhysics | null }[]> => {
+ export const getBallPhysicsByPlayers = async (
+  playerIds: number[]
+): Promise<{ playerId: number; physics: BallPhysics[] }[]> => {
   const results = await Promise.all(
-    playerIds.map(async (id) => ({ playerId: id, physics: await getBallPhysicsByPlayer(id) }))
+    playerIds.map(async (id) => ({
+      playerId: id,
+      physics: await getBallPhysicsByPlayer(id), // Trả về danh sách các quả bóng
+    }))
   );
   return results;
 };
