@@ -77,12 +77,14 @@ model Item {
    equipPlayers EquipPlayer[] 
 }
 
-model PlayerItem { 
+model PlayerItem {
   playerId Int
   itemId   Int
-  seq      Int 
-  level    Int   
+  seq      Int
+  level    Int
   description String
+  Price     Int?   @default(0)
+  IsSolded  Int    @default(0) // 0: none, 1: listed, 2: sold
 
   player Player @relation(fields: [playerId], references: [id])
   item   Item   @relation(fields: [itemId], references: [id])
@@ -194,5 +196,15 @@ model EquipPlayer {
   item   Item   @relation(fields: [itemId], references: [id])
 
   @@id([playerId, locationId])
+}
+
+model ItemTradeHistory {
+  playerIdBuy  Int
+  playerIdSold Int
+  itemId       Int
+  seq          Int
+  createdAt    DateTime @default(now())
+
+  @@id([playerIdBuy, playerIdSold, itemId, seq])
 }
 
