@@ -11,6 +11,7 @@ import ballPhysicsRoutes from './routes/ballPhysicsRoutes';
 import achievementRoutes from './routes/achievementRoutes';
 import historyRoutes from './routes/historyRoutes';
 import drawRoutes from './routes/drawRoutes';
+import marketRoutes from './routes/marketRoutes';
 
 const app = express();
 
@@ -26,4 +27,5 @@ app.use('/api', ballPhysicsRoutes);
 app.use('/api', achievementRoutes);
 app.use('/api', historyRoutes);
 app.use('/api', drawRoutes);
+app.use('/api', marketRoutes);
 export default app;
