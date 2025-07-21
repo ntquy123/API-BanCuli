@@ -131,3 +131,47 @@ export const getAllListedItems = async () => {
     include: { item: true }
   });
 };
+
+export interface ListedItemFilters {
+  itemName?: string;
+  level?: number;
+  priceOrder?: 'asc' | 'desc';
+  levelOrder?: 'asc' | 'desc';
+  skip?: number;
+  take?: number;
+}
+
+export const getListedItems = async ({
+  itemName,
+  level,
+  priceOrder,
+  levelOrder,
+  skip = 0,
+  take = 10
+}: ListedItemFilters) => {
+  const where: any = { IsSolded: 1 };
+
+  if (level !== undefined && !isNaN(level)) {
+    where.level = level;
+  }
+
+  if (itemName) {
+    where.item = { name: { contains: itemName, mode: 'insensitive' } };
+  }
+
+  const orderBy: any[] = [];
+  if (priceOrder) {
+    orderBy.push({ Price: priceOrder });
+  }
+  if (levelOrder) {
+    orderBy.push({ level: levelOrder });
+  }
+
+  return prisma.playerItem.findMany({
+    where,
+    include: { item: true },
+    orderBy: orderBy.length > 0 ? orderBy : undefined,
+    skip,
+    take
+  });
+};

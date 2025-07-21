@@ -3,7 +3,7 @@ import {
   listItemForSale,
   buyMarketItem,
   cancelSale,
-  getAllListedItems
+  getListedItems as getListedItemsService
 } from '../services/marketService';
 
 export const sellOnMarket = async (req: Request, res: Response) => {
@@ -62,9 +62,25 @@ export const cancelSell = async (req: Request, res: Response) => {
   }
 };
 
-export const getListedItems = async (_req: Request, res: Response) => {
+export const getListedItems = async (req: Request, res: Response) => {
   try {
-    const items = await getAllListedItems();
+    const itemName = req.query.itemName as string | undefined;
+    const level = req.query.level ? Number(req.query.level) : undefined;
+    const priceOrder = req.query.priceOrder as 'asc' | 'desc' | undefined;
+    const levelOrder = req.query.levelOrder as 'asc' | 'desc' | undefined;
+
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = 10;
+    const skip = (page - 1) * pageSize;
+
+    const items = await getListedItemsService({
+      itemName,
+      level,
+      priceOrder,
+      levelOrder,
+      skip,
+      take: pageSize
+    });
     res.json(items);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
