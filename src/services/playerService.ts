@@ -202,29 +202,30 @@ export const createAccount = async (idToken: string, playerName: string) => {
       },
     });
 
-    const effectIds = [
-      11000001,
-      11000002,
-      11000003,
-      11000004,
-      11000005,
-      11000006,
-      11000007,
-      11000008,
+const effects = [
+      { effectId: 11000001, power: 0.0, spin: 0, isPassive: true, charges: 0 },
+      { effectId: 11000002, power: 0, spin: 0.5, isPassive: true, charges: 0 },
+      { effectId: 11000003, power: 0, spin: 0, isPassive: true, charges: 0 },
+      { effectId: 11000004, power: 0, spin: 0, isPassive: true, charges: 0 },
+      { effectId: 11000005, power: 0, spin: 0, isPassive: true, charges: 0 },
+      { effectId: 11000006, power: 0, spin: 0, isPassive: true, charges: 0 },
+      { effectId: 11000007, power: 0, spin: 0, isPassive: false, charges: 0 },
+      { effectId: 11000008, power: 0, spin: 0, isPassive: false, charges: 0 },
     ];
 
-    await tx.effectPlayer.createMany({
-      data: effectIds.map((effectId) => ({
+   await tx.effectPlayer.createMany({
+      data: effects.map((effect) => ({
         playerId: player.id,
-        effectId,
-        power: 0,
-        spin: 0,
-        level: 0,
-        isPassive: false,
-        charges: 0,
-        description: '',
+        effectId: effect.effectId,
+        power: effect.power,
+        spin: effect.spin,
+        level: 1, // Mặc định level ban đầu là 1
+        isPassive: effect.isPassive,
+        charges: effect.charges,
+        description: `Skill ${effect.effectId}`, // Mô tả kỹ năng
       })),
     });
+
 
     return player;
   });
