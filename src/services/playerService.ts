@@ -187,4 +187,47 @@ export const equipPlayerItem = async (
   });
 };
 
+export const createAccount = async (idToken: string, playerName: string) => {
+  return prisma.$transaction(async (tx) => {
+    const player = await tx.player.create({
+      data: {
+        IdAccount: idToken,
+        PlayerName: playerName,
+        Level: 1,
+        Exp: 0,
+        Body: 0,
+        RingBall: 0,
+        Money: 0,
+        TalentPoint: 0,
+      },
+    });
+
+    const effectIds = [
+      11000001,
+      11000002,
+      11000003,
+      11000004,
+      11000005,
+      11000006,
+      11000007,
+      11000008,
+    ];
+
+    await tx.effectPlayer.createMany({
+      data: effectIds.map((effectId) => ({
+        playerId: player.id,
+        effectId,
+        power: 0,
+        spin: 0,
+        level: 0,
+        isPassive: false,
+        charges: 0,
+        description: '',
+      })),
+    });
+
+    return player;
+  });
+};
+
 
