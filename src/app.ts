@@ -12,6 +12,7 @@ import achievementRoutes from './routes/achievementRoutes';
 import historyRoutes from './routes/historyRoutes';
 import drawRoutes from './routes/drawRoutes';
 import marketRoutes from './routes/marketRoutes';
+import accountRoutes from './routes/accountRoutes';
 
 const app = express();
 
@@ -28,4 +29,5 @@ app.use('/api', achievementRoutes);
 app.use('/api', historyRoutes);
 app.use('/api', drawRoutes);
 app.use('/api', marketRoutes);
+app.use('/api', accountRoutes);
 export default app;
