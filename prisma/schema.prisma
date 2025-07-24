@@ -84,7 +84,7 @@ model PlayerItem {
   level    Int
   description String
   Price     Int?   @default(0)
-  IsSolded  Int    @default(0) // 0: none, 1: listed, 2: sold
+  IsSolded  Int    @default(0) // 0: none, 1: listed, 2: sold, 3: can't sold
 
   player Player @relation(fields: [playerId], references: [id])
   item   Item   @relation(fields: [itemId], references: [id])
