@@ -189,6 +189,14 @@ export const equipPlayerItem = async (
 
 export const createAccount = async (idToken: string, playerName: string) => {
   return prisma.$transaction(async (tx) => {
+    const existing = await tx.player.findFirst({
+      where: { IdAccount: idToken },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
     const player = await tx.player.create({
       data: {
         IdAccount: idToken,
@@ -199,6 +207,28 @@ export const createAccount = async (idToken: string, playerName: string) => {
         RingBall: 0,
         Money: 0,
         TalentPoint: 0,
+      },
+    });
+
+    await tx.playerItem.create({
+      data: {
+        playerId: player.id,
+        itemId: 99000001,
+        seq: 0,
+        level: 1,
+        description: '',
+        Price: 0,
+        IsSolded: 3,
+      },
+    });
+
+    await tx.equipPlayer.create({
+      data: {
+        playerId: player.id,
+        locationId: 1,
+        itemId: 99000001,
+        seqItem: 0,
+        createdDate: new Date(),
       },
     });
 
