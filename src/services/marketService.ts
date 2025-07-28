@@ -41,18 +41,27 @@ export const buyMarketItem = async (
       throw new Error('Item not available');
     }
 
-    const buyer = await tx.player.findUnique({
-      where: { id: buyerId },
+    const buyer = await tx.player.findFirst({
+      where: { id: buyerId, IsActive: true },
       select: { RingBall: true }
     });
 
     if (!buyer) {
-      throw new Error('Buyer not found');
+      throw new Error('Buyer not found or inactive');
     }
 
     const price = item.Price ?? 0;
     if ((buyer.RingBall ?? 0) < price) {
       throw new Error('Not enough RingBall');
+    }
+
+    const seller = await tx.player.findFirst({
+      where: { id: sellerId, IsActive: true },
+      select: { id: true }
+    });
+
+    if (!seller) {
+      throw new Error('Seller not found or inactive');
     }
 
     await tx.player.update({

@@ -14,6 +14,14 @@ const getStartOfDay = () => {
 };
 
 export const drawReward = async (playerId: number): Promise<RewardResult> => {
+  const active = await prisma.player.findFirst({
+    where: { id: playerId, IsActive: true },
+    select: { id: true },
+  });
+
+  if (!active) {
+    throw new Error('Player not found or inactive');
+  }
   const histories = await prisma.history.findMany({
     where: { playerId, marbBet: { gte: 5 } },
     orderBy: { createdAt: 'desc' },

@@ -2,7 +2,7 @@ import prisma from '../models/prismaClient';
 
 export const getByPlayerId = async (playerId: number) => {
   return prisma.effectPlayer.findMany({
-    where: { playerId },
+    where: { playerId, player: { IsActive: true } },
     include: {
       sysMasGeneral: {
         select: {
@@ -26,13 +26,13 @@ export const levelUpEffectPlayer = async (
   effectId: number
 ) => {
   return prisma.$transaction(async (tx) => {
-    const player = await tx.player.findUnique({
-      where: { id: playerId },
+    const player = await tx.player.findFirst({
+      where: { id: playerId, IsActive: true },
       select: { TalentPoint: true },
     });
 
     if (!player) {
-      throw new Error('Player not found');
+      throw new Error('Player not found or inactive');
     }
 
     const currentTP = player.TalentPoint ?? 0;

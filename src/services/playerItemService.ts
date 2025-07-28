@@ -11,13 +11,13 @@ export const buyItem = async (playerId: number, itemId: number) => {
       throw new Error('Item not found');
     }
 
-    const player = await tx.player.findUnique({
-      where: { id: playerId },
+    const player = await tx.player.findFirst({
+      where: { id: playerId, IsActive: true },
       select: { Money: true, RingBall: true }
     });
 
     if (!player) {
-      throw new Error('Player not found');
+      throw new Error('Player not found or inactive');
     }
 
     const costMoney = item.price ?? 0;
@@ -97,6 +97,15 @@ export const sellItem = async (
 
     if (!item) {
       throw new Error('Item not found');
+    }
+
+    const active = await tx.player.findFirst({
+      where: { id: playerId, IsActive: true },
+      select: { id: true },
+    });
+
+    if (!active) {
+      throw new Error('Player not found or inactive');
     }
 
     if (itemId === 88000001) {

@@ -35,6 +35,14 @@ export const claimAchievementReward = async (
   achievementId: number,
 ) => {
   return prisma.$transaction(async (tx) => {
+    const active = await tx.player.findFirst({
+      where: { id: playerId, IsActive: true },
+      select: { id: true },
+    });
+
+    if (!active) {
+      throw new Error('Player not found or inactive');
+    }
     const achievement = await tx.achievement.findUnique({
       where: { id: achievementId },
       include: { reward: true },

@@ -6,7 +6,7 @@ const BALL_SLOT_LOCATION_ID = 2;
 
 export const getPlayerByAccountId = async (accountId: string) => {
   return await prisma.player.findFirst({
-    where: { IdAccount: accountId },
+    where: { IdAccount: accountId, IsActive: true },
   });
 };
 
@@ -17,6 +17,7 @@ export const getPlayerByListId = async (ids: number[]) => {
       id: {
         in: ids,
       },
+      IsActive: true,
     },
     include: {
       effectPlayers: {
@@ -52,8 +53,8 @@ export const updatePlayerStats = async (
   expGain: number,
   ballDelta: number
 ) => {
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
+  const player = await prisma.player.findFirst({
+    where: { id: playerId, IsActive: true },
     select: { Exp: true, Level: true, TalentPoint: true },
   });
 
@@ -125,6 +126,14 @@ export const equipItem = async (
   itemId: number,
   seq: number
 ) => {
+  const active = await prisma.player.findFirst({
+    where: { id: playerId, IsActive: true },
+    select: { id: true },
+  });
+
+  if (!active) {
+    throw new Error('Player not found or inactive');
+  }
   const data: { Ball?: number; Shirt?: number; SeqBall?: number } = {};
 
   if (typeGid === 1) {
@@ -190,7 +199,7 @@ export const equipPlayerItem = async (
 export const createAccount = async (idToken: string, playerName: string) => {
   return prisma.$transaction(async (tx) => {
     const existing = await tx.player.findFirst({
-      where: { IdAccount: idToken },
+      where: { IdAccount: idToken, IsActive: true },
     });
 
     if (existing) {

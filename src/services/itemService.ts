@@ -9,8 +9,8 @@ export const getAllItems = async () => {
 
 export const getInventoryByPlayer = async (playerId: number) => {
   // Lấy thông tin player
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
+  const player = await prisma.player.findFirst({
+    where: { id: playerId, IsActive: true },
     include: {
       playerItems: {
         include: { item: true },
