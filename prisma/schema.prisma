@@ -23,13 +23,14 @@ model Player {
   Money         Int?
   TalentPoint   Int?
   IdAccount    String
+  IsActive     Boolean
   roomUsers   RoomUser[]
   playerItems PlayerItem[]
   histories   History[]
   effectPlayers EffectPlayer[]
   playerAchievements PlayerAchievement[]
   dailyRareItem DailyRareItem[]
-   equipPlayers EquipPlayer[] 
+  equipPlayers EquipPlayer[] 
 }
 
 

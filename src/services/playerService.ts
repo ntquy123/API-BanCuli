@@ -212,10 +212,11 @@ export const createAccount = async (idToken: string, playerName: string) => {
         PlayerName: playerName,
         Level: 1,
         Exp: 0,
-        Body: 0,
-        RingBall: 0,
+        Body: 1,
+        RingBall: 20,
         Money: 0,
         TalentPoint: 0,
+        IsActive: true
       },
     });
 
