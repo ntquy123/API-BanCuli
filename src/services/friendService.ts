@@ -1,4 +1,5 @@
 import prisma from '../models/prismaClient';
+import { getPlayerByListId } from './playerService';
 
 export const sendFriendRequest = async (senderId: number, receiverId: number) => {
   try {
@@ -68,6 +69,23 @@ export const respondFriendRequest = async (
     }
 
     return { success: true, data: request };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+};
+
+export const getFriendList = async (playerId: number) => {
+  try {
+    const friendships = await prisma.friendship.findMany({
+      where: { playerId },
+      select: { friendId: true },
+    });
+    const friendIds = friendships.map((f) => f.friendId);
+    if (friendIds.length === 0) {
+      return { success: true, data: [] };
+    }
+    const players = await getPlayerByListId(friendIds);
+    return { success: true, data: players };
   } catch (error: any) {
     return { success: false, message: error.message };
   }
