@@ -4,6 +4,7 @@ import {
   removeFriend,
   respondFriendRequest,
   sendMessage,
+  receiveItems,
 } from '../services/friendService';
 
 export const sendFriendRequestController = async (
@@ -116,6 +117,47 @@ export const sendMessageController = async (
     );
     if (result.success) {
       res.json(result.data);
+      return;
+    }
+    res.status(400).json({ message: result.message });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const receiveItemsController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const senderId = Number(req.body.senderId ?? req.params.senderId);
+    const receiverId = Number(req.body.receiverId ?? req.params.receiverId);
+    const items = req.body.items;
+
+    if (
+      isNaN(senderId) ||
+      isNaN(receiverId) ||
+      !Array.isArray(items) ||
+      !items.every(
+        (it: any) =>
+          it &&
+          typeof it === 'object' &&
+          !isNaN(Number(it.itemId)) &&
+          !isNaN(Number(it.seq))
+      )
+    ) {
+      res.status(400).json({ message: 'Invalid parameters' });
+      return;
+    }
+
+    const parsedItems = items.map((it: any) => ({
+      itemId: Number(it.itemId),
+      seq: Number(it.seq),
+    }));
+
+    const result = await receiveItems(senderId, receiverId, parsedItems);
+    if (result.success) {
+      res.json(result);
       return;
     }
     res.status(400).json({ message: result.message });

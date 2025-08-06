@@ -90,3 +90,66 @@ export const sendMessage = async (
   }
 };
 
+export const receiveItems = async (
+  senderId: number,
+  receiverId: number,
+  items: Array<{ itemId: number; seq: number }>
+) => {
+  try {
+    await prisma.$transaction(async (tx) => {
+      for (const { itemId, seq } of items) {
+        if (itemId === 0) {
+          const quantity = seq;
+          const sender = await tx.player.findUnique({
+            where: { id: senderId },
+            select: { RingBall: true },
+          });
+          if (!sender || (sender.RingBall ?? 0) < quantity) {
+            throw new Error('Not enough RingBall');
+          }
+          await tx.player.update({
+            where: { id: senderId },
+            data: { RingBall: { decrement: quantity } },
+          });
+          await tx.player.update({
+            where: { id: receiverId },
+            data: { RingBall: { increment: quantity } },
+          });
+        } else {
+          const playerItem = await tx.playerItem.findUnique({
+            where: {
+              playerId_itemId_seq: { playerId: senderId, itemId, seq },
+            },
+          });
+          if (!playerItem) {
+            throw new Error('Sender does not own item');
+          }
+          await tx.playerItem.delete({
+            where: {
+              playerId_itemId_seq: { playerId: senderId, itemId, seq },
+            },
+          });
+          const lastSeq = await tx.playerItem.findFirst({
+            where: { playerId: receiverId, itemId },
+            orderBy: { seq: 'desc' },
+            select: { seq: true },
+          });
+          const newSeq = lastSeq ? lastSeq.seq + 1 : 0;
+          await tx.playerItem.create({
+            data: {
+              playerId: receiverId,
+              itemId,
+              seq: newSeq,
+              level: playerItem.level,
+              description: `item được gửi từ user: ${senderId}`,
+            },
+          });
+        }
+      }
+    });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+};
+
