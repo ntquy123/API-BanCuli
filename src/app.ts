@@ -13,6 +13,7 @@ import historyRoutes from './routes/historyRoutes';
 import drawRoutes from './routes/drawRoutes';
 import marketRoutes from './routes/marketRoutes';
 import accountRoutes from './routes/accountRoutes';
+import friendRoutes from './routes/friendRoutes';
 
 const app = express();
 
@@ -30,4 +31,5 @@ app.use('/api', historyRoutes);
 app.use('/api', drawRoutes);
 app.use('/api', marketRoutes);
 app.use('/api', accountRoutes);
+app.use('/api', friendRoutes);
 export default app;
