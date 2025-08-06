@@ -3,17 +3,17 @@ import os from 'os';
 import net from 'net';
 import http from 'http';
 import dotenv from 'dotenv';
-import app from './app';
+import app from './app'; // Express app
 import WebSocket, { Server } from 'ws';
 
 // Load environment variables
 dotenv.config();
 
-const PORT = Number(process.env.PORT) || 5000;
+// API port (5000)
+const API_PORT = Number(process.env.API_PORT) || 5000;
+// WebSocket port (5001)
+const WS_PORT = Number(process.env.WS_PORT) || 5001;
 
-/**
- * Simple hash function to consistently select a worker based on IP.
- */
 const getWorkerIndex = (ip: string, length: number): number => {
   let hash = 0;
   for (let i = 0; i < ip.length; i++) {
@@ -26,9 +26,8 @@ const getWorkerIndex = (ip: string, length: number): number => {
 
 if (cluster.isPrimary) {
   const numCPUs = os.cpus().length;
-
-  // Fork workers.
   const workers: Worker[] = [];
+
   for (let i = 0; i < numCPUs; i++) {
     workers[i] = cluster.fork();
   }
@@ -47,22 +46,24 @@ if (cluster.isPrimary) {
     worker.send('sticky-session:connection', socket);
   });
 
-  server.listen(PORT, () => {
-    console.log(`Master listening on port ${PORT}`);
+  server.listen(API_PORT, () => {
+    console.log(`Master listening on API port ${API_PORT}`);
   });
 } else {
   // Worker process: set up Express and WebSocket servers.
-  const server = http.createServer(app);
-  const wss: Server = new WebSocket.Server({ noServer: true });
+  
+  // Set up API server (HTTP)  // Chỉ tạo server mà KHÔNG lắng nghe trên cổng 5000
+  const apiServer = http.createServer(app); // Express app listens on API_PORT
+ 
 
-  // Handle WebSocket connections.
+  // Set up WebSocket server
+  const wss: Server = new WebSocket.Server({ noServer: true });
+  
   wss.on('connection', (ws: WebSocket) => {
-    console.log('A new client connected!');
+    console.log('A new WebSocket client connected!');
 
     ws.on('message', (message: string) => {
       console.log('Received: %s', message);
-
-      // Parse and handle incoming messages from client
       let data: any;
       try {
         data = JSON.parse(message);
@@ -72,14 +73,9 @@ if (cluster.isPrimary) {
       }
 
       if (data.type === 'invite') {
-        ws.send(
-          JSON.stringify({ type: 'invite', message: 'You have a new friend invite!' })
-        );
+        ws.send(JSON.stringify({ type: 'invite', message: 'You have a new friend invite!' }));
       } else if (data.type === 'friend_challenge') {
-        const challengeMessage = {
-          type: 'friend_challenge_response',
-          message: 'Challenge received!',
-        };
+        const challengeMessage = { type: 'friend_challenge_response', message: 'Challenge received!' };
         ws.send(JSON.stringify(challengeMessage));
       }
     });
@@ -88,8 +84,8 @@ if (cluster.isPrimary) {
     ws.send(JSON.stringify(welcomeMessage));
   });
 
-  // Upgrade HTTP requests to WebSocket when appropriate.
-  server.on('upgrade', (request, socket, head) => {
+  // Upgrade HTTP requests to WebSocket when appropriate
+  apiServer.on('upgrade', (request, socket, head) => {
     if (request.headers['upgrade'] !== 'websocket') return socket.destroy();
 
     wss.handleUpgrade(request, socket, head, (ws) => {
@@ -97,15 +93,24 @@ if (cluster.isPrimary) {
     });
   });
 
-  // Receive connections from the master process.
+  // Server for WebSocket running on port 5001
+  const wsServer = http.createServer();
+  wsServer.listen(WS_PORT, () => {
+    console.log(`WebSocket server running on port ${WS_PORT}`);
+  });
+
+  // Handle WebSocket connections on the new port
+  wsServer.on('upgrade', (request, socket, head) => {
+    if (request.headers['upgrade'] !== 'websocket') return socket.destroy();
+
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request);
+    });
+  });
+
   process.on('message', (message, socket: any) => {
     if (message !== 'sticky-session:connection') return;
-    server.emit('connection', socket);
+    apiServer.emit('connection', socket);
     socket.resume();
   });
-
-  server.listen(0, () => {
-    console.log(`Worker ${process.pid} ready`);
-  });
 }
-
