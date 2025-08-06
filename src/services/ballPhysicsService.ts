@@ -4,6 +4,7 @@ import prisma from '../models/prismaClient';
 
 export interface BallPhysics {
   itemId: number
+  name: string
   seqItem: number
   Mass: number | null;
   GravityScale: number | null;
@@ -48,6 +49,7 @@ export interface BallPhysics {
       const item = await prisma.item.findUnique({
         where: { id: equip.itemId },
         select: {
+          name: true,
           Mass: true,
           GravityScale: true,
           Drag: true,
@@ -62,11 +64,12 @@ export interface BallPhysics {
       }
 
       const level = playerItem.level;
-      const factor = 1 + 0.1 * (level - 1);
+      const factor = 1 + 0.05 * (level - 1); // Tăng 5% mỗi cấp
 
       return {
         itemId: equip.itemId,
         seqItem: equip.seqItem,
+        name: item.name, 
         Mass: item.Mass !== null ? item.Mass * factor : null,
         GravityScale: item.GravityScale !== null ? item.GravityScale : null,
         Drag: item.Drag !== null ? item.Drag / factor : null,
