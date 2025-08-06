@@ -14,88 +14,93 @@ datasource db {
 }
 
 model Player {
-  id            Int     @id @default(autoincrement())
-  PlayerName   String?
-  Level         Int?
-  Exp           Int?
-  Body          Int?
-  RingBall      Int?
-  Money         Int?
-  TalentPoint   Int?
-  IdAccount    String
-  IsActive     Boolean
-  roomUsers   RoomUser[]
-  playerItems PlayerItem[]
-  histories   History[]
-  effectPlayers EffectPlayer[]
-  playerAchievements PlayerAchievement[]
-  dailyRareItem DailyRareItem[]
-  equipPlayers EquipPlayer[] 
+  id                     Int                 @id @default(autoincrement())
+  PlayerName             String?
+  Level                  Int?
+  Exp                    Int?
+  Body                   Int?
+  RingBall               Int?
+  Money                  Int?
+  TalentPoint            Int?
+  IdAccount              String
+  IsActive               Boolean
+  roomUsers              RoomUser[]
+  playerItems            PlayerItem[]
+  histories              History[]
+  effectPlayers          EffectPlayer[]
+  playerAchievements     PlayerAchievement[]
+  dailyRareItem          DailyRareItem[]
+  equipPlayers           EquipPlayer[]
+  sentFriendRequests     FriendRequest[]     @relation("SentFriendRequests")
+  receivedFriendRequests FriendRequest[]     @relation("ReceivedFriendRequests")
+  friendships            Friendship[]        @relation("PlayerFriendships")
+  friends                Friendship[]        @relation("FriendPlayerShips")
+  messagesSent           FriendMessage[]     @relation("MessagesSent")
+  messagesReceived       FriendMessage[]     @relation("MessagesReceived")
 }
-
 
 // SYSTEM
 model Room {
-  id              Int      @id @default(autoincrement())
-  roomName        String    
-  port            Int     
-  maxPlayers      Int
-  currentPlayers  Int
-  roomUsers   RoomUser[]
+  id             Int        @id @default(autoincrement())
+  roomName       String
+  port           Int
+  maxPlayers     Int
+  currentPlayers Int
+  roomUsers      RoomUser[]
 }
 
 model RoomUser {
-  id      Int    @id @default(autoincrement())
-  roomId  Int
-  userId  Int
+  id       Int      @id @default(autoincrement())
+  roomId   Int
+  userId   Int
   joinedAt DateTime @default(now())
 
+  player Player @relation(fields: [userId], references: [id]) // Quan hệ với bảng Player
+  room   Room   @relation(fields: [roomId], references: [id]) // Quan hệ với bảng Room
 
-  player  Player  @relation(fields: [userId], references: [id]) // Quan hệ với bảng Player
-  room    Room    @relation(fields: [roomId], references: [id]) // Quan hệ với bảng Room
-   @@unique([roomId, userId]) // Đảm bảo mỗi người dùng chỉ có thể tham gia một phòng một lần
+  @@unique([roomId, userId]) // Đảm bảo mỗi người dùng chỉ có thể tham gia một phòng một lần
 }
 
 model Item {
-  id          Int     @id
-  name        String
-  description String
-  level       Int
-  typeGid     Int     @map("Type_Gid")
-  price       Int
-  priceByBall Int?
-  isLevelUp   Boolean @map("is_Level_Up")
-  isOpen      Boolean
-  locationGid Int     @map("Location_Gid")
-  Levelrequired Int?
+  id               Int           @id
+  name             String
+  description      String
+  level            Int
+  typeGid          Int           @map("Type_Gid")
+  price            Int
+  priceByBall      Int?
+  isLevelUp        Boolean       @map("is_Level_Up")
+  isOpen           Boolean
+  locationGid      Int           @map("Location_Gid")
+  Levelrequired    Int?
   Mass             Float?
   GravityScale     Float?
   Drag             Float?
   Bounciness       Float?
   Elasticity       Float?
   ImpactResistance Float?
-  playerItems PlayerItem[]
-   equipPlayers EquipPlayer[] 
+  playerItems      PlayerItem[]
+  equipPlayers     EquipPlayer[]
 }
 
 model PlayerItem {
-  playerId Int
-  itemId   Int
-  seq      Int
-  level    Int
+  playerId    Int
+  itemId      Int
+  seq         Int
+  level       Int
   description String
-  Price     Int?   @default(0)
-  IsSolded  Int    @default(0) // 0: none, 1: listed, 2: sold, 3: can't sold
+  Price       Int?   @default(0)
+  IsSolded    Int    @default(0) // 0: none, 1: listed, 2: sold, 3: can't sold
 
   player Player @relation(fields: [playerId], references: [id])
   item   Item   @relation(fields: [itemId], references: [id])
 
-@@id([playerId, itemId, seq])
+  @@id([playerId, itemId, seq])
 }
 
 model History {
-  playerId     Int 
-  transno      BigInt  
+  playerId     Int
+  transno      BigInt
   turnOrder    Int?
   typeMatchGid Int?
   statusWin    Int?
@@ -110,37 +115,39 @@ model History {
   createdAt    DateTime @default(now())
 
   player Player @relation(fields: [playerId], references: [id])
+
   @@id([playerId, transno])
 }
 
 model SysMasGeneral {
-  GenCode          Int     @id
-  GenName         String  
-  ParentCode      Int? 
-  description     String?  
-  
-  effectPlayers EffectPlayer[] 
+  GenCode     Int     @id
+  GenName     String
+  ParentCode  Int?
+  description String?
+
+  effectPlayers EffectPlayer[]
 }
 
 model SysMasLanguage {
-  code         String  @id 
-  vietnamText  String  
-  englishText  String  
+  code        String @id
+  vietnamText String
+  englishText String
 }
 
 model EffectPlayer {
-  playerId    Int   
-  effectId    Int   
-  power       Float    
-  spin        Float    
-  level       Int    
-  isPassive   Boolean  
-  charges     Int    
-  description String    
+  playerId    Int
+  effectId    Int
+  power       Float
+  spin        Float
+  level       Int
+  isPassive   Boolean
+  charges     Int
+  description String
 
-  player   Player @relation(fields: [playerId], references: [id])
-  sysMasGeneral   SysMasGeneral @relation(fields: [effectId], references: [GenCode])
-   @@id([playerId, effectId])
+  player        Player        @relation(fields: [playerId], references: [id])
+  sysMasGeneral SysMasGeneral @relation(fields: [effectId], references: [GenCode])
+
+  @@id([playerId, effectId])
 }
 
 model Reward {
@@ -154,13 +161,13 @@ model Reward {
 }
 
 model Achievement {
-  id          Int      @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   name        String
   description String?
   criteria    String?
   rewardId    Int
 
-  reward            Reward             @relation(fields: [rewardId], references: [id])
+  reward             Reward              @relation(fields: [rewardId], references: [id])
   playerAchievements PlayerAchievement[]
 }
 
@@ -185,7 +192,6 @@ model DailyRareItem {
   @@id([playerId, date])
 }
 
-
 model EquipPlayer {
   playerId    Int
   locationId  Int
@@ -209,3 +215,38 @@ model ItemTradeHistory {
   @@id([playerIdBuy, playerIdSold, itemId, seq])
 }
 
+model FriendRequest {
+  senderId   Int
+  receiverId Int
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+
+  sender   Player @relation("SentFriendRequests", fields: [senderId], references: [id])
+  receiver Player @relation("ReceivedFriendRequests", fields: [receiverId], references: [id])
+
+  @@id([senderId, receiverId])
+}
+
+model Friendship {
+  playerId Int
+  friendId Int
+  since    DateTime @default(now())
+
+  player Player @relation("PlayerFriendships", fields: [playerId], references: [id])
+  friend Player @relation("FriendPlayerShips", fields: [friendId], references: [id])
+
+  @@id([playerId, friendId])
+}
+
+model FriendMessage {
+  id         Int      @id @default(autoincrement())
+  senderId   Int
+  receiverId Int
+  message    String
+  itemId     Int?
+  seqId      Int?
+  createdAt  DateTime @default(now())
+
+  sender   Player @relation("MessagesSent", fields: [senderId], references: [id])
+  receiver Player @relation("MessagesReceived", fields: [receiverId], references: [id])
+}
