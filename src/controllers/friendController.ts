@@ -154,40 +154,38 @@ export const sendMessageController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
+  const senderId = Number(req.body.senderId ?? req.params.senderId);
+  const receiverId = Number(req.body.receiverId ?? req.params.receiverId);
+  const { message } = req.body;
+  const itemId =
+    req.body.itemId !== undefined ? Number(req.body.itemId) : undefined;
+  const seqId =
+    req.body.seqId !== undefined ? Number(req.body.seqId) : undefined;
+
+  if (
+    isNaN(senderId) ||
+    isNaN(receiverId) ||
+    typeof message !== 'string' ||
+    (itemId !== undefined && isNaN(itemId)) ||
+    (seqId !== undefined && isNaN(seqId))
+  ) {
+    res.status(400).json({ message: 'Invalid parameters' });
+    return;
+  }
+
   try {
-    const senderId = Number(req.body.senderId ?? req.params.senderId);
-    const receiverId = Number(req.body.receiverId ?? req.params.receiverId);
-    const { message } = req.body;
-    const itemId =
-      req.body.itemId !== undefined ? Number(req.body.itemId) : undefined;
-    const seqId =
-      req.body.seqId !== undefined ? Number(req.body.seqId) : undefined;
-
-    if (
-      isNaN(senderId) ||
-      isNaN(receiverId) ||
-      typeof message !== 'string' ||
-      (itemId !== undefined && isNaN(itemId)) ||
-      (seqId !== undefined && isNaN(seqId))
-    ) {
-      res.status(400).json({ message: 'Invalid parameters' });
-      return;
-    }
-
-    const result = await sendMessage(
+    const msg = await sendMessage(
       senderId,
       receiverId,
       message,
       itemId,
       seqId
     );
-    if (result.success) {
-      res.json(result.data);
-      return;
-    }
-    res.status(400).json({ message: result.message });
+    res.json(msg);
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    const status =
+      error.message === 'Message limit reached' ? 400 : 500;
+    res.status(status).json({ message: error.message });
   }
 };
 

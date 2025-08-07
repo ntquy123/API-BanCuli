@@ -125,20 +125,25 @@ export const sendMessage = async (
   itemId?: number,
   seqId?: number
 ) => {
-  try {
-    const last = await prisma.friendMessage.findFirst({
-      where: { senderId },
-      orderBy: { seqMess: 'desc' },
-      select: { seqMess: true },
-    });
-    const seqMess = last ? last.seqMess + 1 : 0;
-    const msg = await prisma.friendMessage.create({
-      data: { senderId, receiverId, message, itemId, seqId, seqMess },
-    });
-    return { success: true, data: msg };
-  } catch (error: any) {
-    return { success: false, message: error.message };
+  const messageCount = await prisma.friendMessage.count({
+    where: { senderId },
+  });
+
+  if (messageCount >= 100) {
+    throw new Error('Message limit reached');
   }
+
+  const last = await prisma.friendMessage.findFirst({
+    where: { senderId },
+    orderBy: { seqMess: 'desc' },
+    select: { seqMess: true },
+  });
+
+  const seqMess = (last?.seqMess ?? 0) + 1;
+
+  return prisma.friendMessage.create({
+    data: { senderId, receiverId, message, itemId, seqId, seqMess },
+  });
 };
 
 export const receiveItems = async (
