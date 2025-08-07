@@ -118,6 +118,56 @@ if (cluster.isPrimary) {
             JSON.stringify({ type: 'error', message: 'Player is offline' })
           );
         }
+      } else if (data.type === 'friend_challenge_response') {
+        const { senderId, receiverId, bet, accepted } = data;
+
+        if (
+          !senderId ||
+          !receiverId ||
+          typeof bet === 'undefined' ||
+          typeof accepted === 'undefined'
+        ) {
+          ws.send(
+            JSON.stringify({
+              type: 'error',
+              message:
+                'senderId, receiverId, bet, and accepted are required for friend_challenge_response',
+            }),
+          );
+          return;
+        }
+
+        if (senderId !== playerId) {
+          ws.send(
+            JSON.stringify({
+              type: 'error',
+              message: 'senderId does not match current player',
+            }),
+          );
+          return;
+        }
+
+        const target = players.get(receiverId);
+        if (target) {
+          target.send(
+            JSON.stringify({
+              type: 'friend_challenge_response',
+              senderId,
+              bet,
+              accepted,
+            }),
+          );
+          ws.send(
+            JSON.stringify({
+              type: 'friend_challenge_response_ack',
+              message: 'Response delivered',
+            }),
+          );
+        } else {
+          ws.send(
+            JSON.stringify({ type: 'error', message: 'Player is offline' }),
+          );
+        }
       }
     });
 
