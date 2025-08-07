@@ -58,9 +58,13 @@ if (cluster.isPrimary) {
 
   // Set up WebSocket server
   const wss: Server = new WebSocket.Server({ noServer: true });
-  
+
+  const players = new Map<string, WebSocket>();
+
   wss.on('connection', (ws: WebSocket) => {
     console.log('A new WebSocket client connected!');
+
+    let playerId: string | null = null;
 
     ws.on('message', (message: string) => {
       console.log('Received: %s', message);
@@ -72,12 +76,19 @@ if (cluster.isPrimary) {
         return;
       }
 
-      if (data.type === 'invite') {
+      if (data.type === 'register') {
+        playerId = data.playerId;
+        players.set(playerId, ws);
+      } else if (data.type === 'invite') {
         ws.send(JSON.stringify({ type: 'invite', message: 'You have a new friend invite!' }));
       } else if (data.type === 'friend_challenge') {
         const challengeMessage = { type: 'friend_challenge_response', message: 'Challenge received!' };
         ws.send(JSON.stringify(challengeMessage));
       }
+    });
+
+    ws.on('close', () => {
+      if (playerId) players.delete(playerId);
     });
 
     const welcomeMessage = { type: 'welcome', message: 'Welcome to the game server!' };
