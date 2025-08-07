@@ -218,7 +218,7 @@ model ItemTradeHistory {
 model FriendRequest {
   senderId   Int
   receiverId Int
-  status     String   @default("PENDING")
+  status     String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
   createdAt  DateTime @default(now())
 
   sender   Player @relation("SentFriendRequests", fields: [senderId], references: [id])
@@ -240,13 +240,14 @@ model Friendship {
 
 model FriendMessage {
   senderId   Int
-  receiverId Int
   seqMess    Int
+  receiverId Int
+  status     String @default("PENDING") // PENDING, READ
   message    String
   itemId     Int?
   seqId      Int?
   createdAt  DateTime @default(now())
-  @@id([senderId, receiverId, seqMess])
+  @@id([senderId, seqMess])
   sender   Player @relation("MessagesSent", fields: [senderId], references: [id])
   receiver Player @relation("MessagesReceived", fields: [receiverId], references: [id])
 }
