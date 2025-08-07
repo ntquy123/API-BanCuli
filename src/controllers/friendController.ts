@@ -7,6 +7,7 @@ import {
   receiveItems,
   getFriendList,
   getPendingFriendRequests,
+  getFriendMessages,
 } from '../services/friendService';
 
 export const sendFriendRequestController = async (
@@ -118,6 +119,27 @@ export const getPendingFriendRequestsController = async (
       return;
     }
     const result = await getPendingFriendRequests(receiverId);
+    if (result.success) {
+      res.json(result.data);
+      return;
+    }
+    res.status(400).json({ message: result.message });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getFriendMessagesController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const receiverId = Number(req.params.receiverId);
+    if (isNaN(receiverId)) {
+      res.status(400).json({ message: 'Invalid receiverId' });
+      return;
+    }
+    const result = await getFriendMessages(receiverId);
     if (result.success) {
       res.json(result.data);
       return;
