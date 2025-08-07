@@ -174,18 +174,22 @@ export const sendMessageController = async (
   }
 
   try {
-    const msg = await sendMessage(
+    const result = await sendMessage(
       senderId,
       receiverId,
       message,
       itemId,
       seqId
     );
-    res.json(msg);
-  } catch (error: any) {
+    if (result.success) {
+      res.json(result.data);
+      return;
+    }
     const status =
-      error.message === 'Message limit reached' ? 400 : 500;
-    res.status(status).json({ message: error.message });
+      result.message === 'Message limit reached' ? 400 : 500;
+    res.status(status).json({ message: result.message });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
   }
 };
 
