@@ -51,10 +51,9 @@ if (cluster.isPrimary) {
   });
 } else {
   // Worker process: set up Express and WebSocket servers.
-  
+
   // Set up API server (HTTP)  // Chỉ tạo server mà KHÔNG lắng nghe trên cổng 5000
   const apiServer = http.createServer(app); // Express app listens on API_PORT
- 
 
   // Set up WebSocket server
   const wss: Server = new WebSocket.Server({ noServer: true });
@@ -80,7 +79,16 @@ if (cluster.isPrimary) {
         playerId = data.playerId;
         players.set(playerId, ws);
       } else if (data.type === 'invite') {
-        ws.send(JSON.stringify({ type: 'invite', message: 'You have a new friend invite!' }));
+        if (!data.playerId) {
+          ws.send(JSON.stringify({ type: 'error', message: 'playerId is required for invite' }));
+          return;
+        }
+        const target = players.get(data.playerId);
+        if (target) {
+          target.send(JSON.stringify({ type: 'invite', message: 'You have a new friend invite!' }));
+        } else {
+          ws.send(JSON.stringify({ type: 'error', message: 'Player is offline' }));
+        }
       } else if (data.type === 'friend_challenge') {
         const challengeMessage = { type: 'friend_challenge_response', message: 'Challenge received!' };
         ws.send(JSON.stringify(challengeMessage));
