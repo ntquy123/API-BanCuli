@@ -199,6 +199,8 @@ export const receiveItemsController = async (
     const senderId = Number(req.body.senderId ?? req.params.senderId);
     const receiverId = Number(req.body.receiverId ?? req.params.receiverId);
     const items = req.body.items;
+    const seqMess =
+      req.body.seqMess !== undefined ? Number(req.body.seqMess) : undefined;
 
     if (
       isNaN(senderId) ||
@@ -211,6 +213,7 @@ export const receiveItemsController = async (
           !isNaN(Number(it.itemId)) &&
           !isNaN(Number(it.seq))
       )
+      || (seqMess !== undefined && isNaN(seqMess))
     ) {
       res.status(400).json({ message: 'Invalid parameters' });
       return;
@@ -221,7 +224,12 @@ export const receiveItemsController = async (
       seq: Number(it.seq),
     }));
 
-    const result = await receiveItems(senderId, receiverId, parsedItems);
+    const result = await receiveItems(
+      senderId,
+      receiverId,
+      parsedItems,
+      seqMess
+    );
     if (result.success) {
       res.json(result);
       return;

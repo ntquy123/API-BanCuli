@@ -126,8 +126,14 @@ export const sendMessage = async (
   seqId?: number
 ) => {
   try {
+    const last = await prisma.friendMessage.findFirst({
+      where: { senderId },
+      orderBy: { seqMess: 'desc' },
+      select: { seqMess: true },
+    });
+    const seqMess = last ? last.seqMess + 1 : 0;
     const msg = await prisma.friendMessage.create({
-      data: { senderId, receiverId, message, itemId, seqId },
+      data: { senderId, receiverId, message, itemId, seqId, seqMess },
     });
     return { success: true, data: msg };
   } catch (error: any) {
@@ -138,10 +144,20 @@ export const sendMessage = async (
 export const receiveItems = async (
   senderId: number,
   receiverId: number,
-  items: Array<{ itemId: number; seq: number }>
+  items: Array<{ itemId: number; seq: number }>,
+  seqMess?: number
 ) => {
   try {
     await prisma.$transaction(async (tx) => {
+      await tx.friendMessage.updateMany({
+        where: {
+          senderId,
+          receiverId,
+          ...(seqMess !== undefined ? { seqMess } : {}),
+        },
+        data: { status: 'READ' },
+      });
+
       for (const { itemId, seq } of items) {
         if (itemId === 0) {
           const quantity = seq;
