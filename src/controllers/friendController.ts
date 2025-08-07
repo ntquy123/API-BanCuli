@@ -4,6 +4,7 @@ import {
   removeFriend,
   respondFriendRequest,
   sendMessage,
+  deleteFriendMessage,
   receiveItems,
   getFriendList,
   getPendingFriendRequests,
@@ -142,6 +143,28 @@ export const getFriendMessagesController = async (
     const result = await getFriendMessages(receiverId);
     if (result.success) {
       res.json(result.data);
+      return;
+    }
+    res.status(400).json({ message: result.message });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deleteFriendMessageController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const senderId = Number(req.params.senderId ?? req.body.senderId);
+    const seqMess = Number(req.params.seqMess ?? req.body.seqMess);
+    if (isNaN(senderId) || isNaN(seqMess)) {
+      res.status(400).json({ message: 'Invalid senderId or seqMess' });
+      return;
+    }
+    const result = await deleteFriendMessage(senderId, seqMess);
+    if (result.success) {
+      res.json({ success: true });
       return;
     }
     res.status(400).json({ message: result.message });

@@ -225,3 +225,17 @@ export const receiveItems = async (
   }
 };
 
+export const deleteFriendMessage = async (
+  senderId: number,
+  seqMess: number
+) => {
+  try {
+    await prisma.friendMessage.delete({
+      where: { senderId_seqMess: { senderId, seqMess } },
+    });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+};
+
