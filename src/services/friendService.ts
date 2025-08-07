@@ -91,6 +91,21 @@ export const getFriendList = async (playerId: number) => {
   }
 };
 
+export const getPendingFriendRequests = async (
+  receiverId: number
+) => {
+  try {
+    const requests = await prisma.friendRequest.findMany({
+      where: { receiverId, status: 'PENDING' },
+      include: { sender: true },
+    });
+    const senders = requests.map((r) => r.sender);
+    return { success: true, data: senders };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+};
+
 export const sendMessage = async (
   senderId: number,
   receiverId: number,

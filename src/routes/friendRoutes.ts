@@ -7,6 +7,7 @@ import {
   sendMessageController,
   receiveItemsController,
   getFriendListController,
+  getPendingFriendRequestsController,
 } from '../controllers/friendController';
 
 const router = Router();
@@ -17,5 +18,6 @@ router.post('/friend-respond', respondFriendRequestController);
 router.post('/send-message', sendMessageController);
 router.post('/receive-items', receiveItemsController);
 router.get('/friend-list/:playerId', getFriendListController);
+router.get('/friend-requests/:receiverId', getPendingFriendRequestsController);
 
 export default router;
