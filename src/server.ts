@@ -78,7 +78,12 @@ if (cluster.isPrimary) {
       if (data.type === 'register') {
         playerId = data.playerId;
         players.set(playerId, ws);
-      } else if (data.type === 'invite') {
+      } 
+      else if (data.type === 'get_online_players') {
+        const onlineIds = Array.from(players.keys());
+        ws.send(JSON.stringify({ type: 'online_players', playerIds: onlineIds }));
+    }
+      else if (data.type === 'invite') {
         if (!data.playerId) {
           ws.send(JSON.stringify({ type: 'error', message: 'playerId is required for invite' }));
           return;
@@ -90,8 +95,9 @@ if (cluster.isPrimary) {
           ws.send(JSON.stringify({ type: 'error', message: 'Player is offline' }));
         }
       } else if (data.type === 'friend_challenge') {
-        const { senderId, receiverId, bet } = data;
-
+          const senderId = String(data.senderId);
+          const receiverId = String(data.receiverId);
+          const bet = data.bet;
         if (!senderId || !receiverId || typeof bet === 'undefined') {
           ws.send(
             JSON.stringify({
@@ -106,12 +112,6 @@ if (cluster.isPrimary) {
         if (target) {
           target.send(
             JSON.stringify({ type: 'friend_challenge', senderId, bet })
-          );
-          ws.send(
-            JSON.stringify({
-              type: 'friend_challenge_ack',
-              message: 'Challenge delivered',
-            })
           );
         } else {
           ws.send(
@@ -155,12 +155,6 @@ if (cluster.isPrimary) {
               senderId,
               bet,
               accepted,
-            }),
-          );
-          ws.send(
-            JSON.stringify({
-              type: 'friend_challenge_response_ack',
-              message: 'Response delivered',
             }),
           );
         } else {
