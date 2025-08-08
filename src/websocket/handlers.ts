@@ -4,6 +4,7 @@ export type PlayerMap = Map<string, WebSocket>;
 
 export interface HandlerContext {
   playerId: string | null;
+  isPlayerOnline: (playerId: string) => boolean;
 }
 
 type MessageHandler = (
@@ -30,7 +31,7 @@ export const handleGetOnlinePlayers: MessageHandler = (ws, players) => {
   ws.send(JSON.stringify({ type: 'online_players', playerIds: onlineIds }));
 };
 
-export const handleInvite: MessageHandler = (ws, players, data) => {
+export const handleInvite: MessageHandler = (ws, players, data, context) => {
   const { playerId } = data;
   if (!playerId) {
     ws.send(
@@ -38,9 +39,9 @@ export const handleInvite: MessageHandler = (ws, players, data) => {
     );
     return;
   }
-  const target = players.get(playerId);
-  if (target) {
-    target.send(
+  if (context.isPlayerOnline(playerId)) {
+    const target = players.get(playerId);
+    target?.send(
       JSON.stringify({ type: 'invite', message: 'You have a new friend invite!' })
     );
   } else {
@@ -48,7 +49,7 @@ export const handleInvite: MessageHandler = (ws, players, data) => {
   }
 };
 
-export const handleFriendChallenge: MessageHandler = (ws, players, data) => {
+export const handleFriendChallenge: MessageHandler = (ws, players, data, context) => {
   const senderId = String(data.senderId);
   const receiverId = String(data.receiverId);
   const bet = data.bet;
@@ -62,9 +63,9 @@ export const handleFriendChallenge: MessageHandler = (ws, players, data) => {
     return;
   }
 
-  const target = players.get(receiverId);
-  if (target) {
-    target.send(JSON.stringify({ type: 'friend_challenge', senderId, bet }));
+  if (context.isPlayerOnline(receiverId)) {
+    const target = players.get(receiverId);
+    target?.send(JSON.stringify({ type: 'friend_challenge', senderId, bet }));
   } else {
     ws.send(JSON.stringify({ type: 'error', message: 'Player is offline' }));
   }
@@ -101,9 +102,9 @@ export const handleFriendChallengeResponse: MessageHandler = (
     );
     return;
   }
-  const target = players.get(receiverId);
-  if (target) {
-    target.send(
+  if (context.isPlayerOnline(receiverId)) {
+    const target = players.get(receiverId);
+    target?.send(
       JSON.stringify({
         type: 'friend_challenge_response',
         senderId,

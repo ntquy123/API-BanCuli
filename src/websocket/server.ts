@@ -9,7 +9,10 @@ export const initWebSocketServer = (apiServer: http.Server, wsPort: number) => {
   wss.on('connection', (ws: WebSocket) => {
     console.log('A new WebSocket client connected!');
 
-    const context: HandlerContext = { playerId: null };
+    const context: HandlerContext = {
+      playerId: null,
+      isPlayerOnline: (id) => players.has(id),
+    };
 
     ws.on('message', (message: string) => {
       console.log('Received: %s', message);
