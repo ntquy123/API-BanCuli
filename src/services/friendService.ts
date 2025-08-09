@@ -17,6 +17,14 @@ export const searchPlayerById = async (id: number) => {
 
 export const sendFriendRequest = async (senderId: number, receiverId: number) => {
   try {
+            // Kiểm tra receiverId có tồn tại không
+    const receiver = await prisma.player.findUnique({
+      where: { id: receiverId, IsActive: true },
+    });
+    if (!receiver) {
+      return { success: false, message: 'Receiver player not found' };
+    }
+    // Kiểm tra xem senderId và receiverId có là bạn hay không
     const alreadyFriend = await prisma.friendship.findFirst({
       where: {
         OR: [
@@ -77,6 +85,11 @@ export const removeFriend = async (playerId: number, friendId: number) => {
         ],
       },
     });
+     await prisma.friendRequest.delete({
+  where: {
+    senderId_receiverId: { senderId: playerId, receiverId: friendId },
+  },
+});
     return { success: true };
   } catch (error: any) {
     return { success: false, message: error.message };

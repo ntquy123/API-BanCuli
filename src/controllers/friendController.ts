@@ -95,13 +95,10 @@ export const respondFriendRequestController = async (
   res: Response
 ): Promise<void> => {
   try {
-    const senderId = Number(req.body.senderId ?? req.params.senderId);
-    const receiverId = Number(req.body.receiverId ?? req.params.receiverId);
-    const acceptParam = req.body.accept ?? req.params.accept;
-    const accept =
-      typeof acceptParam === 'string'
-        ? acceptParam.toLowerCase() === 'true'
-        : Boolean(acceptParam);
+    const senderId = Number(req.body.playerId ?? req.params.playerId);
+    const receiverId = Number(req.body.friendId ?? req.params.friendId);
+    const acceptParam = req.body.status ?? req.params.status;
+    const accept = acceptParam === 1;
 
     if (isNaN(senderId) || isNaN(receiverId)) {
       res.status(400).json({ message: 'Invalid senderId or receiverId' });
