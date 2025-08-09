@@ -15,11 +15,11 @@ export const searchPlayerById = async (id: number) => {
   }
 };
 
-export const sendFriendRequest = async (senderId: number, receiverId: number) => {
+export const sendFriendRequest = async (senderId: number, friendCode: number) => {
   try {
             // Kiểm tra receiverId có tồn tại không
     const receiver = await prisma.player.findUnique({
-      where: { id: receiverId, IsActive: true, NOT: {
+      where: { friendCode: friendCode, IsActive: true, NOT: {
       id: senderId
     } },
     });

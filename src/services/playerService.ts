@@ -4,15 +4,28 @@ import prisma from '../models/prismaClient'; // Import Prisma Client
 // Location id used in EquipPlayer to mark the equipped ball slot
 const BALL_SLOT_LOCATION_ID = 2;
 
-const generateFriendCode = (): string => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  const length = Math.floor(Math.random() * 3) + 8; // 8-10 characters
-  let code = '';
-  for (let i = 0; i < length; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+ const generateFriendCode  = (): string => {
+  // Bộ ký tự không dễ nhầm
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // bỏ O, I
+  const numbers = '23456789';                 // bỏ 0, 1
+  
+  // Nhóm 1: 3 chữ cái
+  let part1 = '';
+  for (let i = 0; i < 3; i++) {
+    part1 += letters.charAt(Math.floor(Math.random() * letters.length));
   }
-  return code;
+  
+  // Nhóm 2: 3 chữ số
+  let part2 = '';
+  for (let i = 0; i < 3; i++) {
+    part2 += numbers.charAt(Math.floor(Math.random() * numbers.length));
+  }
+  
+  // Kết quả dạng ABC-123
+  return `${part1}-${part2}`;
 };
+
+
 
 export const getPlayerByAccountId = async (accountId: string) => {
   return await prisma.player.findFirst({
@@ -21,7 +34,7 @@ export const getPlayerByAccountId = async (accountId: string) => {
 };
 
  
-export const getPlayerByListId = async (ids: number[]) => {
+export const getPlayerByListId = async (ids: bigint[]) => {
   const players = await prisma.player.findMany({
     where: {
       id: {
