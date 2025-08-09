@@ -15,18 +15,19 @@ export const searchPlayerById = async (id: number) => {
   }
 };
 
-export const sendFriendRequest = async (senderId: number, friendCode: number) => {
+export const sendFriendRequest = async (
+  senderId: number,
+  friendCode: string
+) => {
   try {
-            // Kiểm tra receiverId có tồn tại không
     const receiver = await prisma.player.findUnique({
-      where: { friendCode: friendCode, IsActive: true, NOT: {
-      id: senderId
-    } },
+      where: { friendCode, IsActive: true },
     });
-    if (!receiver) {
+    if (!receiver || receiver.id === BigInt(senderId)) {
       return { success: false, message: 'Receiver player not found' };
     }
-    // Kiểm tra xem senderId và receiverId có là bạn hay không
+    const receiverId = Number(receiver.id);
+
     const alreadyFriend = await prisma.friendship.findFirst({
       where: {
         OR: [
@@ -40,13 +41,17 @@ export const sendFriendRequest = async (senderId: number, friendCode: number) =>
     }
 
     const incoming = await prisma.friendRequest.findUnique({
-      where: { senderId_receiverId: { senderId: receiverId, receiverId: senderId } },
+      where: {
+        senderId_receiverId: { senderId: receiverId, receiverId: senderId },
+      },
     });
 
     if (incoming) {
       if (incoming.status === 'PENDING') {
         const updated = await prisma.friendRequest.update({
-          where: { senderId_receiverId: { senderId: receiverId, receiverId: senderId } },
+          where: {
+            senderId_receiverId: { senderId: receiverId, receiverId: senderId },
+          },
           data: { status: 'ACCEPTED' },
         });
         await prisma.friendship.createMany({
@@ -56,7 +61,11 @@ export const sendFriendRequest = async (senderId: number, friendCode: number) =>
           ],
           skipDuplicates: true,
         });
-        return { success: true, message: 'Friend request auto-accepted', data: updated };
+        return {
+          success: true,
+          message: 'Friend request auto-accepted',
+          data: updated,
+        };
       }
       return { success: false, message: 'Already handled' };
     }

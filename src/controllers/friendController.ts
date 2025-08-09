@@ -48,14 +48,15 @@ export const sendFriendRequestController = async (
 ): Promise<void> => {
   try {
     const senderId = Number(req.body.senderId ?? req.params.senderId);
-    const receiverId = Number(req.body.receiverId ?? req.params.receiverId);
+    const friendCode =
+      (req.body.friendCode ?? req.params.friendCode)?.toString();
 
-    if (isNaN(senderId) || isNaN(receiverId)) {
-      res.status(400).json({ message: 'Invalid senderId or receiverId' });
+    if (isNaN(senderId) || !friendCode) {
+      res.status(400).json({ message: 'Invalid senderId or friendCode' });
       return;
     }
 
-    const result = await sendFriendRequest(senderId, receiverId);
+    const result = await sendFriendRequest(senderId, friendCode);
     if (result.success) {
       res.json(result.data);
       return;
