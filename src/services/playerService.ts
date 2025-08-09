@@ -206,8 +206,22 @@ export const createAccount = async (idToken: string, playerName: string) => {
       return existing;
     }
 
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, "0");
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const year = String(now.getFullYear()).slice(-2);
+    const prefix = day + month + year;
+
+    const start = parseInt(prefix + "0");
+    const end = parseInt(prefix + "999999");
+    const countToday = await tx.player.count({
+      where: { id: { gte: start, lte: end } },
+    });
+    const newId = parseInt(prefix + String(countToday + 1));
+
     const player = await tx.player.create({
       data: {
+        id: newId,
         IdAccount: idToken,
         PlayerName: playerName,
         Level: 1,
