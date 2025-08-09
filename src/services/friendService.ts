@@ -21,9 +21,9 @@ export const sendFriendRequest = async (
 ) => {
   try {
     const receiver = await prisma.player.findUnique({
-      where: { friendCode, IsActive: true },
+      where: { friendCode, IsActive: true, NOT: { id: senderId } },
     });
-    if (!receiver || receiver.id === BigInt(senderId)) {
+    if (!receiver) {
       return { success: false, message: 'Receiver player not found' };
     }
     const receiverId = Number(receiver.id);

@@ -34,7 +34,7 @@ export const getPlayerByAccountId = async (accountId: string) => {
 };
 
  
-export const getPlayerByListId = async (ids: bigint[]) => {
+export const getPlayerByListId = async (ids: number[]) => {
   const players = await prisma.player.findMany({
     where: {
       id: {
