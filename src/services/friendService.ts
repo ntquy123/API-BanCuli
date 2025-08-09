@@ -1,6 +1,20 @@
 import prisma from '../models/prismaClient';
 import { getPlayerByListId } from './playerService';
 
+export const searchPlayerById = async (id: number) => {
+  try {
+    const player = await prisma.player.findUnique({
+      where: { id, IsActive: true },
+    });
+    if (!player) {
+      return { success: false, message: 'Player not found' };
+    }
+    return { success: true, data: player };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+};
+
 export const sendFriendRequest = async (senderId: number, receiverId: number) => {
   try {
     const alreadyFriend = await prisma.friendship.findFirst({

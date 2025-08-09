@@ -9,7 +9,38 @@ import {
   getFriendList,
   getPendingFriendRequests,
   getFriendMessages,
+  searchPlayerById,
 } from '../services/friendService';
+
+export const searchPlayerByIdController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const raw =
+      (req.params.id as string | undefined) ??
+      (req.query.search as string | undefined);
+    if (raw === undefined) {
+      res.status(400).json({ message: 'Invalid id' });
+      return;
+    }
+
+    const id = Number(raw);
+    if (isNaN(id) || String(id) !== raw) {
+      res.status(400).json({ message: 'Invalid id' });
+      return;
+    }
+
+    const result = await searchPlayerById(id);
+    if (result.success) {
+      res.json(result.data);
+      return;
+    }
+    res.status(404).json({ message: result.message });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 export const sendFriendRequestController = async (
   req: Request,

@@ -10,6 +10,7 @@ import {
   getPendingFriendRequestsController,
   getFriendMessagesController,
   deleteFriendMessageController,
+  searchPlayerByIdController,
 } from '../controllers/friendController';
 
 const router = Router();
@@ -19,6 +20,7 @@ router.post('/friend-remove', removeFriendController);
 router.post('/friend-respond', respondFriendRequestController);
 router.post('/send-message', sendMessageController);
 router.post('/receive-items', receiveItemsController);
+router.get('/friend-search/:id', searchPlayerByIdController);
 router.get('/friend-list/:playerId', getFriendListController);
 router.get('/friend-requests/:receiverId', getPendingFriendRequestsController);
 router.get('/messages/:receiverId', getFriendMessagesController);
