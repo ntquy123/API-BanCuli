@@ -29,6 +29,28 @@ export const sendFriendRequest = async (senderId: number, receiverId: number) =>
       return { success: false, message: 'Already friends' };
     }
 
+    const incoming = await prisma.friendRequest.findUnique({
+      where: { senderId_receiverId: { senderId: receiverId, receiverId: senderId } },
+    });
+
+    if (incoming) {
+      if (incoming.status === 'PENDING') {
+        const updated = await prisma.friendRequest.update({
+          where: { senderId_receiverId: { senderId: receiverId, receiverId: senderId } },
+          data: { status: 'ACCEPTED' },
+        });
+        await prisma.friendship.createMany({
+          data: [
+            { playerId: senderId, friendId: receiverId },
+            { playerId: receiverId, friendId: senderId },
+          ],
+          skipDuplicates: true,
+        });
+        return { success: true, message: 'Friend request auto-accepted', data: updated };
+      }
+      return { success: false, message: 'Already handled' };
+    }
+
     const existing = await prisma.friendRequest.findUnique({
       where: { senderId_receiverId: { senderId, receiverId } },
     });
