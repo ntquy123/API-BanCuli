@@ -14,7 +14,8 @@ datasource db {
 }
 
 model Player {
-  id                     Int                 @id @default(autoincrement())
+  id                     BigInt                 @id @default(autoincrement())
+  friendCode             String  @unique                       // mã công khai để tìm
   PlayerName             String?
   Level                  Int?
   Exp                    Int?
@@ -52,7 +53,7 @@ model Room {
 model RoomUser {
   id       Int      @id @default(autoincrement())
   roomId   Int
-  userId   Int
+  userId   BigInt
   joinedAt DateTime @default(now())
 
   player Player @relation(fields: [userId], references: [id]) // Quan hệ với bảng Player
@@ -84,7 +85,7 @@ model Item {
 }
 
 model PlayerItem {
-  playerId    Int
+  playerId    BigInt
   itemId      Int
   seq         Int
   level       Int
@@ -99,7 +100,7 @@ model PlayerItem {
 }
 
 model History {
-  playerId     Int
+  playerId     BigInt
   transno      BigInt
   turnOrder    Int?
   typeMatchGid Int?
@@ -135,7 +136,7 @@ model SysMasLanguage {
 }
 
 model EffectPlayer {
-  playerId    Int
+  playerId    BigInt
   effectId    Int
   power       Float
   spin        Float
@@ -172,7 +173,7 @@ model Achievement {
 }
 
 model PlayerAchievement {
-  playerId      Int
+  playerId      BigInt
   achievementId Int
   achievedAt    DateTime @default(now())
 
@@ -183,7 +184,7 @@ model PlayerAchievement {
 }
 
 model DailyRareItem {
-  playerId Int
+  playerId BigInt
   date     DateTime
   count    Int      @default(0)
 
@@ -193,7 +194,7 @@ model DailyRareItem {
 }
 
 model EquipPlayer {
-  playerId    Int
+  playerId    BigInt
   locationId  Int
   itemId      Int
   seqItem     Int
@@ -216,8 +217,8 @@ model ItemTradeHistory {
 }
 
 model FriendRequest {
-  senderId   Int
-  receiverId Int
+  senderId   BigInt
+  receiverId BigInt
   status     String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
   createdAt  DateTime @default(now())
 
@@ -228,8 +229,8 @@ model FriendRequest {
 }
 
 model Friendship {
-  playerId Int
-  friendId Int
+  playerId BigInt
+  friendId BigInt
   since    DateTime @default(now())
 
   player Player @relation("PlayerFriendships", fields: [playerId], references: [id])
@@ -239,9 +240,9 @@ model Friendship {
 }
 
 model FriendMessage {
-  senderId   Int
+  senderId   BigInt
   seqMess    Int
-  receiverId Int
+  receiverId BigInt
   status     String @default("PENDING") // PENDING, READ
   message    String
   itemId     Int?
