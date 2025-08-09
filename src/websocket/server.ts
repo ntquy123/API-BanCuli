@@ -4,14 +4,13 @@ import { handleMessage, HandlerContext } from './handlers';
 
 export const initWebSocketServer = (apiServer: http.Server, wsPort: number) => {
   const wss: Server = new WebSocket.Server({ noServer: true });
-  const players = new Map<string, WebSocket>();
+  const players = new Map<number, WebSocket>();
 
   wss.on('connection', (ws: WebSocket) => {
     console.log('A new WebSocket client connected!');
 
     const context: HandlerContext = {
-      playerId: null,
-      isPlayerOnline: (id) => players.has(id),
+      playerId: null
     };
 
     ws.on('message', (message: string) => {

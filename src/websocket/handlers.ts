@@ -1,10 +1,9 @@
 import WebSocket from 'ws';
 
-export type PlayerMap = Map<string, WebSocket>;
+export type PlayerMap = Map<number, WebSocket>;
 
 export interface HandlerContext {
-  playerId: string | null;
-  isPlayerOnline: (playerId: string) => boolean;
+  playerId: number | null;
 }
 
 type MessageHandler = (
@@ -22,8 +21,9 @@ export const handleRegister: MessageHandler = (ws, players, data, context) => {
     );
     return;
   }
-  context.playerId = playerId;
-  players.set(playerId, ws);
+  const id = Number(playerId);
+  context.playerId = id;
+  players.set(id, ws); 
 };
 
 export const handleGetOnlinePlayers: MessageHandler = (ws, players) => {
@@ -39,19 +39,16 @@ export const handleInvite: MessageHandler = (ws, players, data, context) => {
     );
     return;
   }
-  if (context.isPlayerOnline(playerId)) {
     const target = players.get(playerId);
     target?.send(
       JSON.stringify({ type: 'invite', message: 'You have a new friend invite!' })
     );
-  } else {
-    ws.send(JSON.stringify({ type: 'error', message: 'Player is offline' }));
-  }
+  
 };
 
-export const handleFriendChallenge: MessageHandler = (ws, players, data, context) => {
-  const senderId = String(data.senderId);
-  const receiverId = String(data.receiverId);
+ export const handleFriendChallenge: MessageHandler = (ws, players, data, context) => {
+  const senderId = Number(data.senderId);
+  const receiverId = Number(data.receiverId);
   const bet = data.bet;
   if (!senderId || !receiverId || typeof bet === 'undefined') {
     ws.send(
@@ -62,12 +59,23 @@ export const handleFriendChallenge: MessageHandler = (ws, players, data, context
     );
     return;
   }
-
-  if (context.isPlayerOnline(receiverId)) {
-    const target = players.get(receiverId);
-    target?.send(JSON.stringify({ type: 'friend_challenge', senderId, bet }));
+  const target = players.get(receiverId);
+  if (target) {
+    target.send(JSON.stringify({ type: 'friend_challenge', senderId, bet }));
+    ws.send(
+      JSON.stringify({
+        type: 'friend_challenge_ack',
+        message: 'Challenge sent successfully',
+        receiverId,
+      })
+    );
   } else {
-    ws.send(JSON.stringify({ type: 'error', message: 'Player is offline' }));
+    ws.send(
+      JSON.stringify({
+        type: 'error',
+        message: 'Target player is offline or not found',
+      })
+    );
   }
 };
 
@@ -102,27 +110,39 @@ export const handleFriendChallengeResponse: MessageHandler = (
     );
     return;
   }
-  if (context.isPlayerOnline(receiverId)) {
+
     const target = players.get(receiverId);
-    target?.send(
+    if (!target) {
+      ws.send(JSON.stringify({ type: 'error', message: 'Target player not found' }));
+      return;
+    }
+    target.send(
       JSON.stringify({
-        type: 'friend_challenge_response',
+        type: 'friend_challenge_response_fromSocket',
         senderId,
+        receiverId,
         bet,
         accepted,
       })
     );
-  } else {
-    ws.send(JSON.stringify({ type: 'error', message: 'Player is offline' }));
-  }
+ 
 };
-
+export const handleCheckPlayerOnline: MessageHandler = (ws, players, data) => {
+  const { playerId } = data;
+  if (typeof playerId === 'undefined') {
+    ws.send(JSON.stringify({ type: 'error', message: 'playerId is required for check_player_online' }));
+    return;
+  }
+  const isOnline = players.has(playerId);
+  ws.send(JSON.stringify({ type: 'check_player_online', playerId, isOnline }));
+};
 const handlers: Record<string, MessageHandler> = {
   register: handleRegister,
   get_online_players: handleGetOnlinePlayers,
   invite: handleInvite,
   friend_challenge: handleFriendChallenge,
   friend_challenge_response: handleFriendChallengeResponse,
+  check_player_online: handleCheckPlayerOnline, 
 };
 
 export const handleMessage = (
