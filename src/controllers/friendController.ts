@@ -95,8 +95,8 @@ export const respondFriendRequestController = async (
   res: Response
 ): Promise<void> => {
   try {
-    const senderId = Number(req.body.playerId ?? req.params.playerId);
-    const receiverId = Number(req.body.friendId ?? req.params.friendId);
+    const senderId = Number(req.body.senderId ?? req.params.senderId);
+    const receiverId = Number(req.body.receiverId ?? req.params.receiverId);
     const acceptParam = req.body.status ?? req.params.status;
     const accept = acceptParam === 1;
 

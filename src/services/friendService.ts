@@ -19,7 +19,9 @@ export const sendFriendRequest = async (senderId: number, receiverId: number) =>
   try {
             // Kiểm tra receiverId có tồn tại không
     const receiver = await prisma.player.findUnique({
-      where: { id: receiverId, IsActive: true },
+      where: { id: receiverId, IsActive: true, NOT: {
+      id: senderId
+    } },
     });
     if (!receiver) {
       return { success: false, message: 'Receiver player not found' };
