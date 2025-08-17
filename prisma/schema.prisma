@@ -164,7 +164,7 @@ model PlayerAchievement {
   player      Player      @relation(fields: [playerId], references: [id])
  
 
-  @@id([playerId, seq])
+  @@id([playerId,rewardType, seq])
 }
 
 model DailyRareItem {
