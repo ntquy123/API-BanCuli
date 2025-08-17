@@ -151,25 +151,20 @@ model EffectPlayer {
   @@id([playerId, effectId])
 }
 
-model Reward {
-  id           Int      @id @default(autoincrement())
-  rewardType   String
-  rewardAmount Int
-  dayofweek    Int?
-  itemId       Int?
-  createdAt    DateTime @default(now())
-  playerAchievement PlayerAchievement[]
-}
 
 model PlayerAchievement {
-  playerId      Int
-  rewardId Int
+  playerId     Int
+  seq          Int
+  rewardType   String
+  locationId   Int?
+  rewardAmount Int?
+  itemId       Int?
   achievedAt    DateTime @default(now())
 
   player      Player      @relation(fields: [playerId], references: [id])
-  reward      Reward      @relation(fields: [rewardId], references: [id])
+ 
 
-  @@id([playerId, rewardId])
+  @@id([playerId, seq])
 }
 
 model DailyRareItem {
