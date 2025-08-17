@@ -158,30 +158,18 @@ model Reward {
   dayofweek    Int?
   itemId       Int?
   createdAt    DateTime @default(now())
-
-  achievements Achievement[]
-}
-
-model Achievement {
-  id          Int     @id @default(autoincrement())
-  name        String
-  description String?
-  criteria    String?
-  rewardId    Int
-
-  reward             Reward              @relation(fields: [rewardId], references: [id])
-  playerAchievements PlayerAchievement[]
+  playerAchievement PlayerAchievement[]
 }
 
 model PlayerAchievement {
   playerId      Int
-  achievementId Int
+  rewardId Int
   achievedAt    DateTime @default(now())
 
   player      Player      @relation(fields: [playerId], references: [id])
-  achievement Achievement @relation(fields: [achievementId], references: [id])
+  reward      Reward      @relation(fields: [rewardId], references: [id])
 
-  @@id([playerId, achievementId])
+  @@id([playerId, rewardId])
 }
 
 model DailyRareItem {
