@@ -13,6 +13,7 @@ import drawRoutes from './routes/drawRoutes';
 import marketRoutes from './routes/marketRoutes';
 import accountRoutes from './routes/accountRoutes';
 import friendRoutes from './routes/friendRoutes';
+import rewardRoutes from './routes/rewardRoutes';
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use('/api', drawRoutes);
 app.use('/api', marketRoutes);
 app.use('/api', accountRoutes);
 app.use('/api', friendRoutes);
+app.use('/api', rewardRoutes);
 
 // KHÔNG CÒN BẤT KỲ ĐOẠN app.listen() hay new WebSocket.Server() nào ở đây
 
