@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import * as RewardController from '../controllers/rewardController';
+import { getRewards, refreshRewards } from '../controllers/rewardController';
 
 const router = Router();
 
-router.get('/rewards', RewardController.getRewards);
+router.get('/rewards', getRewards);
+router.post('/rewards/refresh', refreshRewards);
 
 export default router;
