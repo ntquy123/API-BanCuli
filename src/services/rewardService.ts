@@ -16,10 +16,11 @@ export const listRewards = async (
     },
     take: 20,
     select: {
-      seq: true,
+      //seq: true,
       locationId: true,
-      itemId: true,
-      rewardAmount: true,
+      //itemId: true,
+      //rewardAmount: true,
+      isUsed: true,
     },
   });
 
