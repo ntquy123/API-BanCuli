@@ -1,5 +1,9 @@
 import { Request, Response } from 'express';
-import { listRewards, refreshRewards as refreshRewardsService } from '../services/rewardService';
+import {
+  listRewards,
+  refreshRewards as refreshRewardsService,
+  claimReward as claimRewardService,
+} from '../services/rewardService';
 
 export const getRewards = async (req: Request, res: Response) => {
   try {
@@ -49,6 +53,38 @@ export const refreshRewards = async (req: Request, res: Response) => {
 
     const rewards = await refreshRewardsService(playerIdNum);
     res.json(rewards);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const claimReward = async (req: Request, res: Response) => {
+  try {
+    const playerId = Number(req.body.playerId);
+    const locationId = Number(req.body.locationId);
+    const rewardType = req.body.rewardType;
+
+    if (
+      isNaN(playerId) ||
+      isNaN(locationId) ||
+      typeof rewardType !== 'string'
+    ) {
+      res.status(400).json({ message: 'Missing or invalid parameters' });
+      return;
+    }
+
+    const achievement = await claimRewardService(
+      playerId,
+      locationId,
+      rewardType,
+    );
+
+    if (!achievement) {
+      res.status(404).json({ message: 'No reward found' });
+      return;
+    }
+
+    res.json(achievement);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

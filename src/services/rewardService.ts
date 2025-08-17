@@ -1,4 +1,5 @@
 import prisma from '../models/prismaClient';
+import { addItemToInventory } from './playerItemService';
 
 export const listRewards = async (
   rewardType: string,
@@ -74,3 +75,47 @@ export const refreshRewards = async (playerId: number) => {
 function getRandomInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
+export const claimReward = async (
+  playerId: number,
+  locationId: number,
+  rewardType: string,
+) => {
+  const achievement = await prisma.$transaction(async (tx) => {
+    const found = await tx.playerAchievement.findFirst({
+      where: { playerId, rewardType, locationId },
+    });
+
+    if (!found || found.isUsed) {
+      return null;
+    }
+
+    const updated = await tx.playerAchievement.update({
+      where: {
+        playerId_rewardType_seq: {
+          playerId,
+          rewardType,
+          seq: found.seq,
+        },
+      },
+      data: { isUsed: true },
+    });
+
+    if ((found.rewardAmount ?? 0) > 0) {
+      await tx.player.update({
+        where: { id: playerId },
+        data: {
+          RingBall: { increment: found.rewardAmount ?? 0 },
+        },
+      });
+    }
+
+    return updated;
+  });
+
+  if (achievement && achievement.itemId) {
+    await addItemToInventory(playerId, achievement.itemId);
+  }
+
+  return achievement;
+};
