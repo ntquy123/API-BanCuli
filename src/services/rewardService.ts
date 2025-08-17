@@ -5,22 +5,22 @@ export const listRewards = async (
   playerId: number,
   dayOfWeek?: number,
 ) => {
-  const rewards = await prisma.reward.findMany({
+  const achievements = await prisma.playerAchievement.findMany({
     where: {
       rewardType,
-      ...(dayOfWeek !== undefined ? { dayofweek: dayOfWeek } : {}),
+      playerId,
     },
-    include: {
-      playerAchievement: {
-        where: { playerId },
-        select: { achievedAt: true },
-      },
+    orderBy: {
+      seq: 'asc',
+    },
+    take: 20,
+    select: {
+      seq: true,
+      locationId: true,
+      itemId: true,
+      rewardAmount: true,
     },
   });
 
-  return rewards.map((reward) => ({
-    ...reward,
-    claimed: reward.playerAchievement.length > 0,
-    claimedAt: reward.playerAchievement[0]?.achievedAt ?? null,
-  }));
+  return achievements;
 };
