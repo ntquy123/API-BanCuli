@@ -11,27 +11,16 @@ export const listRewards = async (
       ...(dayOfWeek !== undefined ? { dayofweek: dayOfWeek } : {}),
     },
     include: {
-      achievements: {
-        include: {
-          playerAchievements: {
-            where: { playerId },
-            select: { achievedAt: true },
-          },
-        },
+      playerAchievement: {
+        where: { playerId },
+        select: { achievedAt: true },
       },
     },
   });
 
   return rewards.map((reward) => ({
     ...reward,
-    achievements: reward.achievements.map((ach) => ({
-      id: ach.id,
-      name: ach.name,
-      description: ach.description,
-      criteria: ach.criteria,
-      rewardId: ach.rewardId,
-      claimed: ach.playerAchievements.length > 0,
-      claimedAt: ach.playerAchievements[0]?.achievedAt || null,
-    })),
+    claimed: reward.playerAchievement.length > 0,
+    claimedAt: reward.playerAchievement[0]?.achievedAt ?? null,
   }));
 };
