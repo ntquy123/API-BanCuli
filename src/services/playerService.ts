@@ -90,33 +90,7 @@ export const updatePlayerStats = async (
 
   const totalExp = currentExp + expGain;
 
-  const levelSteps = [
-    0,
-    100,
-    250,
-    450,
-    700,
-    1000,
-    1350,
-    1750,
-    2200,
-    2700,
-    3250,
-    3850,
-    4500,
-    5200,
-    5950,
-    6750,
-    7600,
-    8500,
-    9450,
-    10450,
-    11500,
-    12600,
-    13750,
-    14950,
-    16200,
-  ];
+  const levelSteps = [0, 20, 40, 60, 80, 110, 140, 170, 200, 230, 270, 310, 350, 390, 430, 480, 530, 580, 630, 680, 740, 800, 860, 920, 980];
 
   let newLevel = currentLevel;
   for (let i = levelSteps.length - 1; i >= 0; i--) {
@@ -270,14 +244,14 @@ export const createAccount = async (idToken: string, playerName: string) => {
         });
 
         const effects = [
-          { effectId: 11000001, power: 0.0, spin: 0, isPassive: true, charges: 0 },
-          { effectId: 11000002, power: 0, spin: 0.5, isPassive: true, charges: 0 },
-          { effectId: 11000003, power: 0, spin: 0, isPassive: true, charges: 0 },
-          { effectId: 11000004, power: 0, spin: 0, isPassive: true, charges: 0 },
-          { effectId: 11000005, power: 0, spin: 0, isPassive: true, charges: 0 },
-          { effectId: 11000006, power: 0, spin: 0, isPassive: true, charges: 0 },
-          { effectId: 11000007, power: 0, spin: 0, isPassive: false, charges: 0 },
-          { effectId: 11000008, power: 0, spin: 0, isPassive: false, charges: 0 },
+          { level: 0, effectId: 11000001, power: 0, spin: 0, isPassive: true, charges: 0 },
+          { level: 0, effectId: 11000002, power: 0, spin: 0.5, isPassive: true, charges: 0 },
+          { level: 0, effectId: 11000003, power: 0, spin: 0, isPassive: true, charges: 0 },
+          { level: 0, effectId: 11000004, power: 0, spin: 0, isPassive: true, charges: 0 },
+          { level: 0, effectId: 11000005, power: 0, spin: 0, isPassive: true, charges: 0 },
+          { level: 0, effectId: 11000006, power: 0, spin: 0, isPassive: true, charges: 0 },
+          { level: 0, effectId: 11000007, power: 0, spin: 0, isPassive: false, charges: 0 },
+          { level: 1, effectId: 11000008, power: 0, spin: 0, isPassive: false, charges: 4 },
         ];
 
         await tx.effectPlayer.createMany({
@@ -286,7 +260,7 @@ export const createAccount = async (idToken: string, playerName: string) => {
             effectId: effect.effectId,
             power: effect.power,
             spin: effect.spin,
-            level: 1, // Mặc định level ban đầu là 1
+            level: effect.level,
             isPassive: effect.isPassive,
             charges: effect.charges,
             description: `Skill ${effect.effectId}`, // Mô tả kỹ năng
