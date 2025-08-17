@@ -159,6 +159,7 @@ model PlayerAchievement {
   locationId   Int?
   rewardAmount Int?
   itemId       Int?
+  isUsed       Boolean @default(false)
   achievedAt    DateTime @default(now())
 
   player      Player      @relation(fields: [playerId], references: [id])
