@@ -26,9 +26,50 @@ export const listRewards = async (
   return achievements;
 };
 
-export const refreshRewards = async (playerId: number) => {
-  const rewardType = '11100001';
+export const insertPlayerAchievement = async (
+  playerId: number,
+  rewardType: string,
+) => {
+  if (rewardType === '11100001') {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
 
+    const existing = await prisma.playerAchievement.findFirst({
+      where: {
+        playerId,
+        rewardType,
+        achievedAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+    });
+
+    if (existing) {
+      return prisma.playerAchievement.findMany({
+        where: { playerId, rewardType },
+        orderBy: { seq: 'asc' },
+        select: {
+          seq: true,
+          locationId: true,
+          itemId: true,
+          rewardAmount: true,
+        },
+      });
+    }
+
+    return refreshRewards(playerId, rewardType);
+  }
+
+  return [];
+};
+
+export const refreshRewards = async (
+  playerId: number,
+  rewardType = '11100001',
+) => {
   await prisma.playerAchievement.deleteMany({
     where: { playerId, rewardType },
   });

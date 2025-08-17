@@ -3,6 +3,7 @@ import {
   listRewards,
   refreshRewards as refreshRewardsService,
   claimReward as claimRewardService,
+  insertPlayerAchievement as insertPlayerAchievementService,
 } from '../services/rewardService';
 
 export const getRewards = async (req: Request, res: Response) => {
@@ -85,6 +86,28 @@ export const claimReward = async (req: Request, res: Response) => {
     }
 
     res.json(achievement);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const insertPlayerAchievement = async (req: Request, res: Response) => {
+  try {
+    const { playerId, rewardType } = req.body;
+
+    const playerIdNum = Number(playerId);
+    if (isNaN(playerIdNum) || typeof rewardType !== 'string') {
+      res
+        .status(400)
+        .json({ message: 'Missing or invalid playerId or rewardType' });
+      return;
+    }
+
+    const achievements = await insertPlayerAchievementService(
+      playerIdNum,
+      rewardType,
+    );
+    res.json(achievements);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
