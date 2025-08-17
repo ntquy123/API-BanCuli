@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { listRewards } from '../services/rewardService';
+import { listRewards, refreshRewards as refreshRewardsService } from '../services/rewardService';
 
 export const getRewards = async (req: Request, res: Response) => {
   try {
@@ -27,6 +27,27 @@ export const getRewards = async (req: Request, res: Response) => {
     }
 
     const rewards = await listRewards(rewardType, playerIdNum, dayOfWeekNum);
+    res.json(rewards);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const refreshRewards = async (req: Request, res: Response) => {
+  try {
+    const playerIdParam = (req.query.playerId ?? req.body.playerId) as string | undefined;
+    if (playerIdParam === undefined) {
+      res.status(400).json({ message: 'Missing playerId' });
+      return;
+    }
+
+    const playerIdNum = Number(playerIdParam);
+    if (isNaN(playerIdNum)) {
+      res.status(400).json({ message: 'Invalid playerId' });
+      return;
+    }
+
+    const rewards = await refreshRewardsService(playerIdNum);
     res.json(rewards);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
