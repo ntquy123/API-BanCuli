@@ -44,13 +44,17 @@ export const levelUpItem = async (req: Request, res: Response) => {
     const playerId = Number(req.body.playerId);
     const itemId = Number(req.body.itemId);
     const seq = Number(req.body.seq);
+    const rawMaterials = Array.isArray(req.body.materials) ? req.body.materials : [];
+    const materials = rawMaterials
+      .map((m: any) => ({ id: Number(m.id), seq: Number(m.seq) }))
+      .filter((m) => !isNaN(m.id) && !isNaN(m.seq));
 
     if (isNaN(playerId) || isNaN(itemId) || isNaN(seq)) {
       res.status(400).json({ message: 'Invalid parameters' });
       return;
     }
 
-    const updated = await levelUpPlayerItem(playerId, itemId, seq);
+    const updated = await levelUpPlayerItem(playerId, itemId, seq, materials);
     res.json(updated);
   } catch (error: any) {
     res.status(500).json({ message: error.message });

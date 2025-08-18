@@ -22,6 +22,17 @@ GET /api/players/:id/inventory - Túi đồ người chơi
 POST /api/players/ball-physics - Chỉ số vật lý viên bi đang trang bị (danh sách id)
 POST /api/player/equip - Trang bị vật phẩm cho người chơi
 POST /api/effect-player/item-level-up - Nâng cấp level của vật phẩm
+Body JSON /effect-player/item-level-up:
+{
+  "playerId": 1,
+  "itemId": 5,
+  "seq": 0,
+  "materials": [
+    { "id": 10, "seq": 0 },
+    { "id": 11, "seq": 1 }
+  ]
+}
+
 GET /api/histories?page=1&pageSize=10 - Lịch sử trận đấu (mặc định 10 bản ghi gần nhất, hỗ trợ phân trang)
 POST /api/draw-reward - Bốc thăm trúng thưởng (body: {"playerId": number})
 POST /api/friend-request - Gửi lời mời kết bạn (body: {"senderId": number, "friendCode": string})

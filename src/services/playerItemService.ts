@@ -163,37 +163,53 @@ export const sellItem = async (
   });
 };
 
+type Material = { id: number; seq: number };
+
 export const levelUpPlayerItem = async (
   playerId: number,
   itemId: number,
-  seq: number
+  seq: number,
+  materials: Material[] = []
 ) => {
-  const playerItem = await prisma.playerItem.findUnique({
-    where: {
-      playerId_itemId_seq: {
-        playerId,
-        itemId,
-        seq,
+  return prisma.$transaction(async (tx) => {
+    const playerItem = await tx.playerItem.findUnique({
+      where: {
+        playerId_itemId_seq: {
+          playerId,
+          itemId,
+          seq,
+        },
       },
-    },
-    select: { playerId: true },
-  });
+      select: { playerId: true },
+    });
 
-  if (!playerItem) {
-    throw new Error('PlayerItem not found');
-  }
+    if (!playerItem) {
+      throw new Error('PlayerItem not found');
+    }
 
-  return prisma.playerItem.update({
-    where: {
-      playerId_itemId_seq: {
-        playerId,
-        itemId,
-        seq,
+    const updated = await tx.playerItem.update({
+      where: {
+        playerId_itemId_seq: {
+          playerId,
+          itemId,
+          seq,
+        },
       },
-    },
-    data: {
-      level: { increment: 1 },
-    },
+      data: {
+        level: { increment: 1 },
+      },
+    });
+
+    if (materials.length > 0) {
+      await tx.playerItem.deleteMany({
+        where: {
+          playerId,
+          OR: materials.map((m) => ({ itemId: m.id, seq: m.seq })),
+        },
+      });
+    }
+
+    return updated;
   });
 };
 
