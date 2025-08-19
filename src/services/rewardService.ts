@@ -85,7 +85,7 @@ export const refreshRewards = async (
     let rewardAmount = 0;
 
     if (itemLocations.includes(loc)) {
-      itemId = getRandomInt(99000020, 99000030);
+      itemId = getRandomInt(99000002, 99000010);
     } else if (rewardLocations.includes(loc)) {
       rewardAmount = getRandomInt(1, 4);
     }
