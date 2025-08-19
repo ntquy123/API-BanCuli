@@ -30,6 +30,7 @@ model Player {
   histories              History[]
   effectPlayers          EffectPlayer[]
   playerAchievements     PlayerAchievement[]
+  achievementStatuses    PlayerAchievementStatus[]
   dailyRareItem          DailyRareItem[]
   equipPlayers           EquipPlayer[]
   sentFriendRequests     FriendRequest[]     @relation("SentFriendRequests")
@@ -82,6 +83,7 @@ model Item {
   ImpactResistance Float?
   playerItems      PlayerItem[]
   equipPlayers     EquipPlayer[]
+  achievementStatuses PlayerAchievementStatus[]
 }
 
 model PlayerItem {
@@ -163,9 +165,21 @@ model PlayerAchievement {
   achievedAt    DateTime @default(now())
 
   player      Player      @relation(fields: [playerId], references: [id])
- 
+
 
   @@id([playerId,rewardType, seq])
+}
+
+model PlayerAchievementStatus {
+  playerId     Int
+  typeGid      Int
+  achievementId Int
+  itemId       Int
+
+  player Player @relation(fields: [playerId], references: [id])
+  item   Item   @relation(fields: [itemId], references: [id])
+
+  @@id([playerId, typeGid, achievementId])
 }
 
 model DailyRareItem {
