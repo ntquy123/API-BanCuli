@@ -66,6 +66,7 @@ model RoomUser {
 model Item {
   id               Int           @id
   name             String
+  ElementType      Int?           //Loại nguyên tố của vật phẩm
   description      String
   level            Int
   typeGid          Int           @map("Type_Gid")
@@ -175,7 +176,9 @@ model PlayerAchievementStatus {
   typeGid      Int
   achievementId Int
   itemId       Int
-
+  isComplete Boolean @default(false)
+  isGiftReceived Boolean @default(false)
+  updatedAt    DateTime @default(now())
   player Player @relation(fields: [playerId], references: [id])
   item   Item   @relation(fields: [itemId], references: [id])
 
