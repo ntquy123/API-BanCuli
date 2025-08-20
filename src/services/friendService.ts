@@ -212,6 +212,26 @@ export const sendMessage = async (
   }
 };
 
+export const readMessage = async (
+  playerId: number,
+  seqMess: number,
+  receiverId?: number
+) => {
+  try {
+    await prisma.friendMessage.updateMany({
+      where: {
+        senderId: playerId,
+        seqMess,
+        ...(receiverId !== undefined ? { receiverId } : {}),
+      },
+      data: { status: 'READ' },
+    });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+};
+
 export const receiveItems = async (
   senderId: number,
   receiverId: number,

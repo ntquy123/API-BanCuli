@@ -4,6 +4,7 @@ import {
   removeFriend,
   respondFriendRequest,
   sendMessage,
+  readMessage,
   deleteFriendMessage,
   receiveItems,
   getFriendList,
@@ -172,6 +173,47 @@ export const getFriendMessagesController = async (
     const result = await getFriendMessages(receiverId);
     if (result.success) {
       res.json(result.data);
+      return;
+    }
+    res.status(400).json({ message: result.message });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const readFriendMessageController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const playerId = Number(req.body.playerId ?? req.params.playerId);
+    const seqMess = Number(req.body.seqMess ?? req.params.seqMess);
+    const receiverIdRaw = req.body.receiverId ?? req.params.receiverId;
+    const receiverId =
+      receiverIdRaw !== undefined ? Number(receiverIdRaw) : undefined;
+
+    if (
+      isNaN(playerId) ||
+      isNaN(seqMess) ||
+      (receiverIdRaw !== undefined && isNaN(receiverId))
+    ) {
+      res.status(400).json({ message: 'Invalid parameters' });
+      return;
+    }
+
+    // Optional validation: ensure requester is the intended receiver
+    if (
+      receiverId !== undefined &&
+      Number(req.body.requesterId ?? req.params.requesterId ?? receiverId) !==
+        receiverId
+    ) {
+      res.status(403).json({ message: 'Forbidden' });
+      return;
+    }
+
+    const result = await readMessage(playerId, seqMess, receiverId);
+    if (result.success) {
+      res.json({ success: true });
       return;
     }
     res.status(400).json({ message: result.message });
