@@ -1,4 +1,5 @@
 import prisma from '../models/prismaClient';
+import { Prisma } from '@prisma/client';
 
 export const listItemForSale = async (
   playerId: number,
@@ -150,6 +151,13 @@ export interface ListedItemFilters {
   take?: number;
 }
 
+export type ListedItemResult = Prisma.PlayerItemGetPayload<{
+  include: {
+    item: true;
+    player: { select: { PlayerName: true } };
+  };
+}>;
+
 export const getListedItems = async ({
   itemName,
   level,
@@ -157,7 +165,7 @@ export const getListedItems = async ({
   levelOrder,
   skip = 0,
   take = 10
-}: ListedItemFilters) => {
+}: ListedItemFilters): Promise<ListedItemResult[]> => {
   const where: any = { IsSolded: 1 };
 
   if (level !== undefined && !isNaN(level)) {
@@ -178,9 +186,12 @@ export const getListedItems = async ({
 
   return prisma.playerItem.findMany({
     where,
-    include: { item: true },
+    include: {
+      item: true,
+      player: { select: { PlayerName: true } },
+    },
     orderBy: orderBy.length > 0 ? orderBy : undefined,
     skip,
-    take
+    take,
   });
 };

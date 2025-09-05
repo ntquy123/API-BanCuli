@@ -3,7 +3,8 @@ import {
   listItemForSale,
   buyMarketItem,
   cancelSale,
-  getListedItems as getListedItemsService
+  getListedItems as getListedItemsService,
+  ListedItemResult
 } from '../services/marketService';
 
 export const sellOnMarket = async (req: Request, res: Response) => {
@@ -79,9 +80,15 @@ export const getListedItems = async (req: Request, res: Response) => {
       priceOrder,
       levelOrder,
       skip,
-      take: pageSize
+      take: pageSize,
     });
-    res.json(items);
+    const response: (ListedItemResult & { playerName: string | null })[] = items.map(
+      (i) => ({
+        ...i,
+        playerName: i.player?.PlayerName ?? null,
+      })
+    );
+    res.json(response);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
