@@ -1,4 +1,20 @@
 import prisma from '../models/prismaClient';
+import { Item, Player } from '@prisma/client';
+
+export interface InventoryItem extends Omit<Item, 'level'> {
+  seq: number;
+  level: number;
+  IsSolded: number;
+}
+
+export interface EquippedInventoryItem extends InventoryItem {
+  locationId: number;
+}
+
+export type InventoryByPlayer = Omit<Player, 'playerItems' | 'equipPlayers'> & {
+  playerItems: InventoryItem[];
+  equippedItems: EquippedInventoryItem[];
+};
 
 export const getAllItems = async () => {
   return prisma.item.findMany({
@@ -7,7 +23,9 @@ export const getAllItems = async () => {
   });
 };
 
-export const getInventoryByPlayer = async (playerId: number) => {
+export const getInventoryByPlayer = async (
+  playerId: number
+): Promise<InventoryByPlayer | null> => {
   // Lấy thông tin player
   const player = await prisma.player.findFirst({
     where: { id: playerId, IsActive: true },
@@ -24,17 +42,18 @@ export const getInventoryByPlayer = async (playerId: number) => {
   if (!player) return null;
 
   // Trả thông tin player kèm danh sách playerItems đơn giản hóa
-  const simplifiedItems = player.playerItems.map((pi) => {
+  const simplifiedItems: InventoryItem[] = player.playerItems.map((pi) => {
     const { level: _level, ...itemWithoutLevel } = pi.item;
     return {
       seq: pi.seq,
       level: pi.level,
+      IsSolded: pi.IsSolded,
       ...itemWithoutLevel,
     };
   });
 
   // Thông tin các vật phẩm đang trang bị
-  const equippedItems: any[] = [];
+  const equippedItems: EquippedInventoryItem[] = [];
 
   // Lấy thông tin trang bị từ bảng EquipPlayer
   for (const equip of player.equipPlayers) {
@@ -49,6 +68,7 @@ export const getInventoryByPlayer = async (playerId: number) => {
       locationId: equip.locationId,
       seq: equip.seqItem,
       level,
+      IsSolded: pi?.IsSolded ?? 0,
       ...itemWithoutLevel,
     });
   }
@@ -63,6 +83,7 @@ export const getInventoryByPlayer = async (playerId: number) => {
         locationId: 0,
         seq: pi.seq,
         level: pi.level,
+        IsSolded: pi.IsSolded,
         ...itemWithoutLevel,
       });
     } else {
@@ -73,6 +94,7 @@ export const getInventoryByPlayer = async (playerId: number) => {
           locationId: 0,
           seq: 0,
           level: 1,
+          IsSolded: 0,
           ...itemWithoutLevel,
         });
       }
