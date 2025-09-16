@@ -52,7 +52,16 @@ export const refreshRewards = async (req: Request, res: Response) => {
       return;
     }
 
-    const rewards = await refreshRewardsService(playerIdNum);
+    const rewardTypeParam = (req.query.rewardType ?? req.body.rewardType) as
+      | string
+      | undefined;
+    const rewardTypeValue =
+      typeof rewardTypeParam === 'string' ? rewardTypeParam : undefined;
+
+    const rewards = await refreshRewardsService(
+      playerIdNum,
+      rewardTypeValue,
+    );
     res.json(rewards);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
