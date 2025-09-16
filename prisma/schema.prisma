@@ -156,7 +156,7 @@ model EffectPlayer {
 
 
 model PlayerAchievement {
-  playerId     Int
+  playerId     Int?
   seq          Int
   rewardType   String
   locationId   Int?
@@ -165,10 +165,9 @@ model PlayerAchievement {
   isUsed       Boolean @default(false)
   achievedAt    DateTime @default(now())
 
-  player      Player      @relation(fields: [playerId], references: [id])
+ player      Player?     @relation(fields: [playerId], references: [id])
 
-
-  @@id([playerId,rewardType, seq])
+  @@id([rewardType, seq])
 }
 
 model PlayerAchievementStatus {
