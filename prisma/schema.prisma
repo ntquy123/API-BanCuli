@@ -14,8 +14,8 @@ datasource db {
 }
 
 model Player {
-  id                     Int                 @id @default(autoincrement())
-  friendCode             String  @unique                       // mã công khai để tìm
+  id                     Int                       @id @default(autoincrement())
+  friendCode             String                    @unique // mã công khai để tìm
   PlayerName             String?
   Level                  Int?
   Exp                    Int?
@@ -33,12 +33,12 @@ model Player {
   achievementStatuses    PlayerAchievementStatus[]
   dailyRareItem          DailyRareItem[]
   equipPlayers           EquipPlayer[]
-  sentFriendRequests     FriendRequest[]     @relation("SentFriendRequests")
-  receivedFriendRequests FriendRequest[]     @relation("ReceivedFriendRequests")
-  friendships            Friendship[]        @relation("PlayerFriendships")
-  friends                Friendship[]        @relation("FriendPlayerShips")
-  messagesSent           FriendMessage[]     @relation("MessagesSent")
-  messagesReceived       FriendMessage[]     @relation("MessagesReceived")
+  sentFriendRequests     FriendRequest[]           @relation("SentFriendRequests")
+  receivedFriendRequests FriendRequest[]           @relation("ReceivedFriendRequests")
+  friendships            Friendship[]              @relation("PlayerFriendships")
+  friends                Friendship[]              @relation("FriendPlayerShips")
+  messagesSent           FriendMessage[]           @relation("MessagesSent")
+  messagesReceived       FriendMessage[]           @relation("MessagesReceived")
 }
 
 // SYSTEM
@@ -64,26 +64,26 @@ model RoomUser {
 }
 
 model Item {
-  id               Int           @id
-  name             String
-  ElementType      Int?           //Loại nguyên tố của vật phẩm
-  description      String
-  level            Int
-  typeGid          Int           @map("Type_Gid")
-  price            Int
-  priceByBall      Int?
-  isLevelUp        Boolean       @map("is_Level_Up")
-  isOpen           Boolean
-  locationGid      Int           @map("Location_Gid")
-  Levelrequired    Int?
-  Mass             Float?
-  GravityScale     Float?
-  Drag             Float?
-  Bounciness       Float?
-  Elasticity       Float?
-  ImpactResistance Float?
-  playerItems      PlayerItem[]
-  equipPlayers     EquipPlayer[]
+  id                  Int                       @id
+  name                String
+  ElementType         Int? //Loại nguyên tố của vật phẩm
+  description         String
+  level               Int
+  typeGid             Int                       @map("Type_Gid")
+  price               Int
+  priceByBall         Int?
+  isLevelUp           Boolean                   @map("is_Level_Up")
+  isOpen              Boolean
+  locationGid         Int                       @map("Location_Gid")
+  Levelrequired       Int?
+  Mass                Float?
+  GravityScale        Float?
+  Drag                Float?
+  Bounciness          Float?
+  Elasticity          Float?
+  ImpactResistance    Float?
+  playerItems         PlayerItem[]
+  equipPlayers        EquipPlayer[]
   achievementStatuses PlayerAchievementStatus[]
 }
 
@@ -154,7 +154,6 @@ model EffectPlayer {
   @@id([playerId, effectId])
 }
 
-
 model PlayerAchievement {
   playerId     Int?
   seq          Int
@@ -162,24 +161,26 @@ model PlayerAchievement {
   locationId   Int?
   rewardAmount Int?
   itemId       Int?
-  isUsed       Boolean @default(false)
-  achievedAt    DateTime @default(now())
+  isUsed       Boolean  @default(false)
+  achievedAt   DateTime @default(now())
 
- player      Player?     @relation(fields: [playerId], references: [id])
+  player   Player?                   @relation(fields: [playerId], references: [id])
+  statuses PlayerAchievementStatus[] @relation("PlayerAchievementToStatus")
 
   @@id([rewardType, seq])
 }
 
 model PlayerAchievementStatus {
-  playerId     Int
-  typeGid      Int
-  achievementId Int
-  itemId       Int
-  isComplete Boolean @default(false)
-  isGiftReceived Boolean @default(false)
-  updatedAt    DateTime @default(now())
-  player Player @relation(fields: [playerId], references: [id])
-  item   Item   @relation(fields: [itemId], references: [id])
+  playerId       Int
+  typeGid        String
+  achievementId  Int
+  itemId         Int
+  isComplete     Boolean           @default(false)
+  isGiftReceived Boolean           @default(false)
+  updatedAt      DateTime          @default(now())
+  player         Player            @relation(fields: [playerId], references: [id])
+  item           Item              @relation(fields: [itemId], references: [id])
+  achievement    PlayerAchievement @relation("PlayerAchievementToStatus", fields: [typeGid, achievementId], references: [rewardType, seq])
 
   @@id([playerId, typeGid, achievementId])
 }
@@ -244,12 +245,13 @@ model FriendMessage {
   senderId   Int
   seqMess    Int
   receiverId Int
-  status     String @default("PENDING") // PENDING, READ
+  status     String   @default("PENDING") // PENDING, READ
   message    String
   itemId     Int?
   seqId      Int?
   createdAt  DateTime @default(now())
+  sender     Player   @relation("MessagesSent", fields: [senderId], references: [id])
+  receiver   Player   @relation("MessagesReceived", fields: [receiverId], references: [id])
+
   @@id([senderId, seqMess])
-  sender   Player @relation("MessagesSent", fields: [senderId], references: [id])
-  receiver Player @relation("MessagesReceived", fields: [receiverId], references: [id])
 }
