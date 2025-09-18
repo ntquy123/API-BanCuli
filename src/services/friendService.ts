@@ -178,6 +178,27 @@ export const getFriendMessages = async (receiverId: number) => {
   }
 };
 
+export const getConversationHistory = async (
+  playerId: number,
+  friendId: number
+) => {
+  try {
+    const messages = await prisma.friendMessage.findMany({
+      where: {
+        OR: [
+          { senderId: playerId, receiverId: friendId },
+          { senderId: friendId, receiverId: playerId },
+        ],
+      },
+      include: { sender: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    return { success: true, data: messages };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+};
+
 export const sendMessage = async (
   senderId: number,
   receiverId: number,

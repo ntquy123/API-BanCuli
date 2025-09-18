@@ -36,6 +36,7 @@ Body JSON /effect-player/item-level-up:
 GET /api/histories?page=1&pageSize=10 - Lịch sử trận đấu (mặc định 10 bản ghi gần nhất, hỗ trợ phân trang)
 POST /api/draw-reward - Bốc thăm trúng thưởng (body: {"playerId": number})
 POST /api/friend-request - Gửi lời mời kết bạn (body: {"senderId": number, "friendCode": string})
+GET /api/messages/conversation/:playerId/:friendId - Lịch sử trò chuyện giữa hai người chơi
 GET /api/market/items?page=1&itemName=X&level=1&priceOrder=asc&levelOrder=desc - Danh sách vật phẩm bán trên chợ, hỗ trợ lọc và phân trang (mặc định 10 bản ghi mỗi trang)
 
 Body JSON /players/ball-physics:
