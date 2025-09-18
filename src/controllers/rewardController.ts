@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import {
   listRewards,
+  listRewardPlayerAchievements,
   refreshRewards as refreshRewardsService,
   claimReward as claimRewardService,
   insertPlayerAchievement as insertPlayerAchievementService,
@@ -33,6 +34,35 @@ export const getRewards = async (req: Request, res: Response) => {
 
     const rewards = await listRewards(rewardType, playerIdNum, dayOfWeekNum);
     res.json(rewards);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getPlayerAchievements = async (req: Request, res: Response) => {
+  try {
+    const playerIdParam = Array.isArray(req.query.playerId)
+      ? req.query.playerId[0]
+      : req.query.playerId;
+    const rewardTypeParam = Array.isArray(req.query.rewardType)
+      ? req.query.rewardType[0]
+      : req.query.rewardType;
+
+    if (typeof rewardTypeParam !== 'string' || typeof playerIdParam !== 'string') {
+      res
+        .status(400)
+        .json({ message: 'Missing or invalid rewardType or playerId' });
+      return;
+    }
+
+    const playerId = Number(playerIdParam);
+    if (Number.isNaN(playerId)) {
+      res.status(400).json({ message: 'Invalid playerId' });
+      return;
+    }
+
+    const achievements = await listRewardPlayerAchievements(playerId, rewardTypeParam);
+    res.json(achievements);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

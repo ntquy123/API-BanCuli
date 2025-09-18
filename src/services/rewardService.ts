@@ -14,6 +14,10 @@ type RewardRecord = {
   updatedAt: Date | null;
 };
 
+type PlayerAchievementWithStatus = RewardRecord & {
+  rewardType: string;
+};
+
 const buildRewardRecord = (
   status: any | undefined,
   achievement?: any,
@@ -148,6 +152,41 @@ export const listRewards = async (
   return achievements.map((achievement) =>
     buildRewardRecord((achievement as any).statuses?.[0], achievement),
   );
+};
+
+export const listRewardPlayerAchievements = async (
+  playerId: number,
+  rewardType: string,
+): Promise<PlayerAchievementWithStatus[]> => {
+  await ensureBaseAchievements(rewardType, prisma);
+
+  const achievements = await (prisma.playerAchievement as any).findMany({
+    where: { rewardType },
+    orderBy: { seq: 'asc' },
+    include: {
+      statuses: {
+        where: { playerId },
+        select: {
+          isGiftReceived: true,
+          isComplete: true,
+          updatedAt: true,
+        },
+        take: 1,
+      },
+    },
+  });
+
+  return achievements.map((achievement: any) => {
+    const status = achievement?.statuses?.[0];
+    const normalizedStatus = status
+      ? { ...status, achievementId: achievement.seq }
+      : undefined;
+
+    return {
+      rewardType: String(achievement.rewardType ?? rewardType),
+      ...buildRewardRecord(normalizedStatus, achievement),
+    };
+  });
 };
 
 export const insertPlayerAchievement = async (
