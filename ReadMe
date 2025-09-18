@@ -38,6 +38,8 @@ POST /api/draw-reward - Bốc thăm trúng thưởng (body: {"playerId": number}
 POST /api/friend-request - Gửi lời mời kết bạn (body: {"senderId": number, "friendCode": string})
 GET /api/messages/conversation/:playerId/:friendId - Lịch sử trò chuyện giữa hai người chơi
 GET /api/market/items?page=1&itemName=X&level=1&priceOrder=asc&levelOrder=desc - Danh sách vật phẩm bán trên chợ, hỗ trợ lọc và phân trang (mặc định 10 bản ghi mỗi trang)
+POST /api/rewards/confirm-ad - Xác nhận người chơi đã xem quảng cáo (phải gọi trước khi nhận quà)
+POST /api/rewards/claim - Nhận quà sau khi xác nhận quảng cáo thành công
 
 Body JSON /players/ball-physics:
 {

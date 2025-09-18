@@ -6,6 +6,7 @@ import {
   claimReward as claimRewardService,
   confirmAdWatch as confirmAdWatchService,
   insertPlayerAchievement as insertPlayerAchievementService,
+  RewardClaimError,
 } from '../services/rewardService';
 
 export const getRewards = async (req: Request, res: Response) => {
@@ -127,6 +128,10 @@ export const claimReward = async (req: Request, res: Response) => {
 
     res.json(achievement);
   } catch (error: any) {
+    if (error instanceof RewardClaimError) {
+      res.status(error.statusCode).json({ message: error.message });
+      return;
+    }
     res.status(500).json({ message: error.message });
   }
 };

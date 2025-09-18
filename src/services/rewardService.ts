@@ -1,6 +1,16 @@
 import prisma from '../models/prismaClient';
 import { addItemToInventory } from './playerItemService';
 
+export class RewardClaimError extends Error {
+  statusCode: number;
+
+  constructor(message: string, statusCode: number) {
+    super(message);
+    this.name = 'RewardClaimError';
+    this.statusCode = statusCode;
+  }
+}
+
 const MAX_REWARD_LOCATIONS = 20;
 
 type RewardRecord = {
@@ -321,9 +331,44 @@ export const claimReward = async (
       },
     });
 
-    if (!status || status.isGiftReceived) {
-      return null;
+    if (!status) {
+      throw new RewardClaimError('Reward status not found.', 404);
     }
+
+    if (!status.isGiftReceived) {
+      throw new RewardClaimError(
+        'Reward is not ready to claim. Confirm advertisement before claiming.',
+        400,
+      );
+    }
+
+    if (status.isComplete) {
+      throw new RewardClaimError('Reward has already been claimed.', 409);
+    }
+
+    const limitRaw = status.achievement?.countGif;
+    if (limitRaw !== undefined && limitRaw !== null) {
+      const limit = Number(limitRaw);
+
+      if (Number.isFinite(limit) && limit >= 0) {
+        const completedCount = await (tx.playerAchievementStatus as any).count({
+          where: {
+            typeGid: rewardType,
+            achievementId: locationId,
+            isComplete: true,
+          },
+        });
+
+        if (completedCount >= limit) {
+          throw new RewardClaimError(
+            'Reward claim limit reached for this achievement.',
+            409,
+          );
+        }
+      }
+    }
+
+    const updatedAt = new Date();
 
     await (tx.playerAchievementStatus as any).updateMany({
       where: {
@@ -331,7 +376,7 @@ export const claimReward = async (
         typeGid: rewardType,
         achievementId: locationId,
       },
-      data: { isGiftReceived: true, updatedAt: new Date() },
+      data: { isComplete: true, updatedAt },
     });
 
     const rewardAmount =
@@ -344,7 +389,7 @@ export const claimReward = async (
       });
     }
 
-    return { ...status, isGiftReceived: true };
+    return { ...status, isComplete: true, updatedAt };
   });
 
   if (achievement) {
