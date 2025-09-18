@@ -425,7 +425,37 @@ export const confirmAdWatch = async (
     return null;
   }
 
-  const updatedStatus = await (prisma.playerAchievementStatus as any).update({
+  if (status.isGiftReceived) {
+    return buildRewardRecord(status, status.achievement);
+  }
+
+  const achievement = status.achievement;
+  const limitRaw = achievement?.countGif;
+  const limitValue =
+    limitRaw === null || limitRaw === undefined ? null : Number(limitRaw);
+  const hasLimit =
+    limitValue !== null && Number.isFinite(limitValue) && limitValue >= 0;
+
+  if (hasLimit) {
+    const existingCount = await (prisma.playerAchievementStatus as any).count({
+      where: {
+        typeGid: rewardType,
+        achievementId,
+        isGiftReceived: true,
+      },
+    });
+
+    if (existingCount >= Number(limitValue)) {
+      throw new RewardClaimError(
+        'Ad watch confirmation limit reached for this achievement.',
+        409,
+      );
+    }
+  }
+
+  const updatedAt = new Date();
+
+  await (prisma.playerAchievementStatus as any).delete({
     where: {
       playerId_typeGid_achievementId: {
         playerId,
@@ -433,14 +463,24 @@ export const confirmAdWatch = async (
         achievementId,
       },
     },
+  });
+
+  const createdStatus = await (prisma.playerAchievementStatus as any).create({
     data: {
+      playerId,
+      typeGid: rewardType,
+      achievementId,
+      itemId: status.itemId ?? achievement?.itemId ?? null,
       isGiftReceived: true,
-      updatedAt: new Date(),
+      isComplete: false,
+      updatedAt,
     },
     include: {
       achievement: true,
     },
   });
 
-  return buildRewardRecord(updatedStatus, updatedStatus.achievement);
+  const relatedAchievement = createdStatus.achievement ?? achievement;
+
+  return buildRewardRecord(createdStatus, relatedAchievement);
 };
