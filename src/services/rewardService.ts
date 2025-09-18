@@ -359,3 +359,43 @@ export const claimReward = async (
 
   return achievement;
 };
+
+export const confirmAdWatch = async (
+  playerId: number,
+  rewardType: string,
+  achievementId: number,
+) => {
+  const status = await (prisma.playerAchievementStatus as any).findFirst({
+    where: {
+      playerId,
+      typeGid: rewardType,
+      achievementId,
+    },
+    include: {
+      achievement: true,
+    },
+  });
+
+  if (!status) {
+    return null;
+  }
+
+  const updatedStatus = await (prisma.playerAchievementStatus as any).update({
+    where: {
+      playerId_typeGid_achievementId: {
+        playerId,
+        typeGid: rewardType,
+        achievementId,
+      },
+    },
+    data: {
+      isGiftReceived: true,
+      updatedAt: new Date(),
+    },
+    include: {
+      achievement: true,
+    },
+  });
+
+  return buildRewardRecord(updatedStatus, updatedStatus.achievement);
+};

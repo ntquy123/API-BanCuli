@@ -4,6 +4,7 @@ import {
   listRewardPlayerAchievements,
   refreshRewards as refreshRewardsService,
   claimReward as claimRewardService,
+  confirmAdWatch as confirmAdWatchService,
   insertPlayerAchievement as insertPlayerAchievementService,
 } from '../services/rewardService';
 
@@ -125,6 +126,45 @@ export const claimReward = async (req: Request, res: Response) => {
     }
 
     res.json(achievement);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const confirmAdWatch = async (req: Request, res: Response) => {
+  try {
+    const { playerId, rewardType, achievementId, locationId } = req.body ?? {};
+
+    const playerIdNum = Number(playerId);
+    if (Number.isNaN(playerIdNum)) {
+      res.status(400).json({ message: 'Missing or invalid parameters' });
+      return;
+    }
+
+    if (typeof rewardType !== 'string') {
+      res.status(400).json({ message: 'Missing or invalid parameters' });
+      return;
+    }
+
+    const rawAchievementId = achievementId ?? locationId;
+    const achievementIdNum = Number(rawAchievementId);
+    if (rawAchievementId === undefined || Number.isNaN(achievementIdNum)) {
+      res.status(400).json({ message: 'Missing or invalid parameters' });
+      return;
+    }
+
+    const reward = await confirmAdWatchService(
+      playerIdNum,
+      rewardType,
+      achievementIdNum,
+    );
+
+    if (!reward) {
+      res.status(404).json({ message: 'Reward status not found' });
+      return;
+    }
+
+    res.json(reward);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
