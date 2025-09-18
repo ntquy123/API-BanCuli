@@ -16,17 +16,24 @@ const buildRewardRecord = (
   achievement?: any,
 ): RewardRecord => {
   const relatedAchievement = achievement ?? status?.achievement ?? {};
-  const seq =
-    status?.seq ??
-    status?.achievementId ??
-    relatedAchievement?.seq ??
-    relatedAchievement?.achievementId ??
-    0;
+
+  const resolvedSeq = (() => {
+    const achievementId = Number(status?.achievementId);
+    if (Number.isFinite(achievementId) && achievementId > 0) {
+      return achievementId;
+    }
+
+    const achievementSeq = Number(relatedAchievement?.seq);
+    if (Number.isFinite(achievementSeq) && achievementSeq > 0) {
+      return achievementSeq;
+    }
+
+    return 0;
+  })();
 
   const locationId =
-    status?.locationId ??
     relatedAchievement?.locationId ??
-    (typeof seq === 'number' && seq > 0 ? seq : null);
+    (typeof resolvedSeq === 'number' && resolvedSeq > 0 ? resolvedSeq : null);
 
   const itemId =
     status?.itemId ??
@@ -38,16 +45,24 @@ const buildRewardRecord = (
     relatedAchievement?.rewardAmount ??
     0;
 
-  const isUsed = Boolean(
-    status?.isUsed ??
-      status?.isComplete ??
-      status?.isGiftReceived ??
-      relatedAchievement?.isUsed ??
-      false,
-  );
+  const isUsed = (() => {
+    if (typeof status?.isGiftReceived === 'boolean') {
+      return status.isGiftReceived;
+    }
+
+    if (typeof status?.isUsed === 'boolean') {
+      return status.isUsed;
+    }
+
+    if (typeof relatedAchievement?.isUsed === 'boolean') {
+      return relatedAchievement.isUsed;
+    }
+
+    return false;
+  })();
 
   return {
-    seq,
+    seq: resolvedSeq,
     locationId,
     itemId,
     rewardAmount,
@@ -96,7 +111,7 @@ export const listRewards = async (
     take: MAX_REWARD_LOCATIONS,
     include: {
       statuses: {
-        where: { playerId, rewardType },
+        where: { playerId, typeGid: rewardType },
         take: 1,
       },
     },
@@ -120,7 +135,7 @@ export const insertPlayerAchievement = async (
     const existingStatus = await (prisma.playerAchievementStatus as any).findFirst({
       where: {
         playerId,
-        rewardType,
+        typeGid: rewardType,
         updatedAt: {
           gte: startOfDay,
           lte: endOfDay,
@@ -146,7 +161,7 @@ export const refreshRewards = async (
     await ensureBaseAchievements(rewardType, tx);
 
     await (tx.playerAchievementStatus as any).deleteMany({
-      where: { playerId, rewardType },
+      where: { playerId, typeGid: rewardType },
     });
 
     const locations = Array.from({ length: MAX_REWARD_LOCATIONS }, (_, index) => index + 1);
@@ -156,33 +171,49 @@ export const refreshRewards = async (
 
     const generatedAt = new Date();
 
-    const data = locations.map((loc) => {
-      let itemId: number | null = null;
-      let rewardAmount = 0;
-
-      if (itemLocations.includes(loc)) {
-        itemId = getRandomInt(99000002, 99000010);
-      } else if (rewardLocations.includes(loc)) {
-        rewardAmount = getRandomInt(1, 4);
-      }
+    const generatedEntries = locations.map((loc) => {
+      const hasItemReward = itemLocations.includes(loc);
+      const itemId = hasItemReward ? getRandomInt(99000002, 99000010) : null;
+      const rewardAmount = !hasItemReward && rewardLocations.includes(loc)
+        ? getRandomInt(1, 4)
+        : 0;
 
       return {
-        playerId,
-        rewardType,
         seq: loc,
-        locationId: loc,
-        itemId,
-        rewardAmount,
-        isUsed: false,
-        updatedAt: generatedAt,
+        achievementData: {
+          itemId,
+          rewardAmount,
+          locationId: loc,
+          isUsed: false,
+        },
+        statusData: {
+          playerId,
+          typeGid: rewardType,
+          achievementId: loc,
+          itemId,
+          isComplete: true,
+          isGiftReceived: false,
+          updatedAt: generatedAt,
+        },
       };
     });
 
-    await (tx.playerAchievementStatus as any).createMany({ data });
+    await Promise.all(
+      generatedEntries.map(({ seq, achievementData }) =>
+        (tx.playerAchievement as any).update({
+          where: { rewardType_seq: { rewardType, seq } },
+          data: achievementData,
+        }),
+      ),
+    );
+
+    await (tx.playerAchievementStatus as any).createMany({
+      data: generatedEntries.map(({ statusData }) => statusData),
+    });
 
     const statuses = await (tx.playerAchievementStatus as any).findMany({
-      where: { playerId, rewardType },
-      orderBy: { seq: 'asc' },
+      where: { playerId, typeGid: rewardType },
+      orderBy: { achievementId: 'asc' },
       include: {
         achievement: {
           select: {
@@ -215,29 +246,29 @@ export const claimReward = async (
     const status = await (tx.playerAchievementStatus as any).findFirst({
       where: {
         playerId,
-        rewardType,
-        seq: locationId,
+        typeGid: rewardType,
+        achievementId: locationId,
       },
       include: {
         achievement: true,
       },
     });
 
-    if (!status || status.isUsed) {
+    if (!status || status.isGiftReceived) {
       return null;
     }
 
     await (tx.playerAchievementStatus as any).updateMany({
       where: {
         playerId,
-        rewardType,
-        seq: locationId,
+        typeGid: rewardType,
+        achievementId: locationId,
       },
-      data: { isUsed: true, updatedAt: new Date() },
+      data: { isGiftReceived: true, updatedAt: new Date() },
     });
 
     const rewardAmount =
-      status.rewardAmount ?? status.achievement?.rewardAmount ?? 0;
+      status.achievement?.rewardAmount ?? status.rewardAmount ?? 0;
 
     if (rewardAmount > 0) {
       await tx.player.update({
@@ -246,7 +277,7 @@ export const claimReward = async (
       });
     }
 
-    return { ...status, isUsed: true };
+    return { ...status, isGiftReceived: true };
   });
 
   if (achievement) {
