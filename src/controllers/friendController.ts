@@ -250,7 +250,7 @@ export const sendMessageController = async (
 ): Promise<void> => {
   const senderId = Number(req.body.senderId ?? req.params.senderId);
   const receiverId = Number(req.body.receiverId ?? req.params.receiverId);
-  const { message } = req.body;
+  const message = req.body.content;
   const itemId =
     req.body.itemId !== undefined ? Number(req.body.itemId) : undefined;
   const seqId =

@@ -20,7 +20,7 @@ export const claimAchievementReward = async (req: Request, res: Response) => {
 
     if (
       typeof playerId !== 'number' ||
-      typeof typeGid !== 'number' ||
+      typeof typeGid !== 'string' ||
       typeof achievementId !== 'number'
     ) {
       res

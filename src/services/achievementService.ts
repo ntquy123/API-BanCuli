@@ -99,7 +99,7 @@ export const listPlayerAchievements = async (playerId: number) => {
 
 export const claimAchievement = async (
   playerId: number,
-  typeGid: number,
+  typeGid: string,
   achievementId: number,
 ) => {
   const result = await prisma.$transaction(async (tx) => {
