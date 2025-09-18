@@ -161,6 +161,7 @@ model PlayerAchievement {
   locationId   Int?
   rewardAmount Int?
   itemId       Int?
+  countGif       Int?
   isUsed       Boolean  @default(false)
   achievedAt   DateTime @default(now())
 
