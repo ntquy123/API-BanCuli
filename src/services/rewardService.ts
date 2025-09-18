@@ -9,6 +9,9 @@ type RewardRecord = {
   itemId: number | null;
   rewardAmount: number;
   isUsed: boolean;
+  isGiftReceived: boolean;
+  isComplete: boolean;
+  updatedAt: Date | null;
 };
 
 const buildRewardRecord = (
@@ -61,12 +64,37 @@ const buildRewardRecord = (
     return false;
   })();
 
+  const isGiftReceived =
+    typeof status?.isGiftReceived === 'boolean' ? status.isGiftReceived : false;
+
+  const isComplete =
+    typeof status?.isComplete === 'boolean' ? status.isComplete : false;
+
+  const updatedAt = (() => {
+    const value = status?.updatedAt;
+
+    if (!value) {
+      return null;
+    }
+
+    if (value instanceof Date) {
+      return value;
+    }
+
+    const parsed = new Date(value);
+
+    return Number.isNaN(parsed.valueOf()) ? null : parsed;
+  })();
+
   return {
     seq: resolvedSeq,
     locationId,
     itemId,
     rewardAmount,
     isUsed,
+    isGiftReceived,
+    isComplete,
+    updatedAt,
   };
 };
 
