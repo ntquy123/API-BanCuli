@@ -158,7 +158,7 @@ export const listRewardPlayerAchievements = async (
   playerId: number,
   rewardType: string,
 ): Promise<PlayerAchievementWithStatus[]> => {
-  await ensureBaseAchievements(rewardType, prisma);
+ 
 
   const achievements = await (prisma.playerAchievement as any).findMany({
     where: { rewardType },
