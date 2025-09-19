@@ -21,6 +21,7 @@ type RewardRecord = {
   isUsed: boolean;
   isGiftReceived: boolean;
   isComplete: boolean;
+  countGif: number | null;
   updatedAt: Date | null;
 };
 
@@ -61,7 +62,10 @@ const buildRewardRecord = (
     status?.rewardAmount ??
     relatedAchievement?.rewardAmount ??
     0;
-
+ const countGif =
+    status?.countGif ??
+    relatedAchievement?.countGif ??
+    null;
   const isUsed = (() => {
     if (typeof status?.isGiftReceived === 'boolean') {
       return status.isGiftReceived;
@@ -108,6 +112,7 @@ const buildRewardRecord = (
     isUsed,
     isGiftReceived,
     isComplete,
+    countGif,
     updatedAt,
   };
 };
