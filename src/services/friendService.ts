@@ -168,12 +168,23 @@ export const getPendingFriendRequests = async (
 
 export const getFriendMessages = async (receiverId: number) => {
   try {
-    const messages = await prisma.friendMessage.findMany({
-      where: { receiverId },
-      include: { sender: true },
-    });
-    return { success: true, data: messages };
+    const latestMessages = await prisma.$queryRaw`
+      SELECT DISTINCT ON ("senderId")
+        "senderId",
+        "message",
+        "createdAt",
+        "status",
+        "receiverId",
+        "seqMess"
+      FROM "FriendMessage"
+      WHERE "receiverId" = ${receiverId}
+      ORDER BY "senderId", "createdAt" DESC;
+    `;
+
+    return { success: true, data: latestMessages };
+    
   } catch (error: any) {
+    console.error(error); 
     return { success: false, message: error.message };
   }
 };
