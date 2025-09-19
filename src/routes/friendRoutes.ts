@@ -10,6 +10,7 @@ import {
   getFriendListController,
   getPendingFriendRequestsController,
   getFriendMessagesController,
+  getSystemMessagesController,
   getConversationHistoryController,
   deleteFriendMessageController,
   searchPlayerByIdController,
@@ -29,6 +30,10 @@ router.get('/friend-requests/:receiverId', getPendingFriendRequestsController);
 router.get(
   '/messages/conversation/:playerId/:friendId',
   getConversationHistoryController
+);
+router.get(
+  '/messages/system/:receiverId',
+  getSystemMessagesController
 );
 router.get('/messages/:receiverId', getFriendMessagesController);
 router.delete('/messages/:senderId/:seqMess', deleteFriendMessageController);

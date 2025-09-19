@@ -184,9 +184,35 @@ ORDER BY a."senderId", a."createdAt" DESC;
     `;
 
     return { success: true, data: latestMessages };
-    
+
   } catch (error: any) {
-    console.error(error); 
+    console.error(error);
+    return { success: false, message: error.message };
+  }
+};
+
+export const getSystemMessages = async (receiverId: number) => {
+  try {
+    const messages = await prisma.friendMessage.findMany({
+      where: {
+        senderId: 0,
+        OR: [{ receiverId }, { receiverId: 0 }],
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        senderId: true,
+        receiverId: true,
+        message: true,
+        status: true,
+        createdAt: true,
+        seqMess: true,
+        itemId: true,
+        seqId: true,
+      },
+    });
+
+    return { success: true, data: messages };
+  } catch (error: any) {
     return { success: false, message: error.message };
   }
 };

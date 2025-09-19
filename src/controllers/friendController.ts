@@ -10,6 +10,7 @@ import {
   getFriendList,
   getPendingFriendRequests,
   getFriendMessages,
+  getSystemMessages,
   getConversationHistory,
   searchPlayerById,
 } from '../services/friendService';
@@ -172,6 +173,27 @@ export const getFriendMessagesController = async (
       return;
     }
     const result = await getFriendMessages(receiverId);
+    if (result.success) {
+      res.json(result.data);
+      return;
+    }
+    res.status(400).json({ message: result.message });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getSystemMessagesController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const receiverId = Number(req.params.receiverId);
+    if (isNaN(receiverId)) {
+      res.status(400).json({ message: 'Invalid receiverId' });
+      return;
+    }
+    const result = await getSystemMessages(receiverId);
     if (result.success) {
       res.json(result.data);
       return;
