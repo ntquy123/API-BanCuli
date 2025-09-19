@@ -1,4 +1,6 @@
+import type { Prisma } from '@prisma/client';
 import prisma from '../models/prismaClient';
+import { addItemToInventory } from './playerItemService';
 import { getPlayerByListId } from './playerService';
 
 export const searchPlayerById = async (id: number) => {
@@ -208,6 +210,9 @@ export const getSystemMessages = async (receiverId: number) => {
         seqMess: true,
         itemId: true,
         seqId: true,
+        ringBallReward: true,
+        moneyReward: true,
+        itemRewardId: true,
       },
     });
 
@@ -243,7 +248,12 @@ export const sendMessage = async (
   receiverId: number,
   message: string,
   itemId?: number,
-  seqId?: number
+  seqId?: number,
+  rewards?: {
+    ringBallReward?: number;
+    moneyReward?: number;
+    itemRewardId?: number | null;
+  }
 ) => {
   try {
     const messageCount = await prisma.friendMessage.count({
@@ -262,8 +272,27 @@ export const sendMessage = async (
 
     const seqMess = (last?.seqMess ?? 0) + 1;
 
+    const createData: Prisma.FriendMessageUncheckedCreateInput = {
+      senderId,
+      receiverId,
+      message,
+      itemId: itemId ?? null,
+      seqId: seqId ?? null,
+      seqMess,
+    };
+
+    if (senderId === 0) {
+      createData.ringBallReward = rewards?.ringBallReward ?? 0;
+      createData.moneyReward = rewards?.moneyReward ?? 0;
+      const normalizedItemReward = rewards?.itemRewardId ?? null;
+      createData.itemRewardId =
+        normalizedItemReward && normalizedItemReward > 0
+          ? normalizedItemReward
+          : null;
+    }
+
     const msg = await prisma.friendMessage.create({
-      data: { senderId, receiverId, message, itemId, seqId, seqMess },
+      data: createData,
     });
 
     return { success: true, data: msg };
@@ -360,6 +389,129 @@ export const receiveItems = async (
       }
     });
     return { success: true };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+};
+
+export const claimSystemMessageReward = async (
+  receiverId: number,
+  seqMess: number,
+  postedRewards?: {
+    ringBallReward?: number;
+    moneyReward?: number;
+    itemRewardId?: number | null;
+  }
+) => {
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const message = await tx.friendMessage.findFirst({
+        where: {
+          seqMess,
+          OR: [{ receiverId }, { receiverId: 0 }],
+        },
+      });
+
+      if (!message) {
+        throw new Error('System message not found');
+      }
+
+      if (message.senderId !== 0) {
+        throw new Error('Not a system message');
+      }
+
+      if (message.receiverId !== receiverId && message.receiverId !== 0) {
+        throw new Error('Message not available for this player');
+      }
+
+      if (message.status !== 'PENDING') {
+        throw new Error('Reward already claimed');
+      }
+
+      const ringBallReward = message.ringBallReward ?? 0;
+      const moneyReward = message.moneyReward ?? 0;
+      const itemRewardId = message.itemRewardId ?? null;
+
+      if (
+        postedRewards?.ringBallReward !== undefined &&
+        postedRewards.ringBallReward !== ringBallReward
+      ) {
+        throw new Error('Reward mismatch');
+      }
+
+      if (
+        postedRewards?.moneyReward !== undefined &&
+        postedRewards.moneyReward !== moneyReward
+      ) {
+        throw new Error('Reward mismatch');
+      }
+
+      if (postedRewards?.itemRewardId !== undefined) {
+        const normalizedPostedItemId =
+          postedRewards.itemRewardId && postedRewards.itemRewardId > 0
+            ? postedRewards.itemRewardId
+            : null;
+        if (normalizedPostedItemId !== itemRewardId) {
+          throw new Error('Reward mismatch');
+        }
+      }
+
+      const playerUpdateData: Prisma.PlayerUpdateInput = {};
+
+      if (ringBallReward > 0) {
+        playerUpdateData.RingBall = { increment: ringBallReward };
+      }
+
+      if (moneyReward > 0) {
+        playerUpdateData.Money = { increment: moneyReward };
+      }
+
+      const playerExists = await tx.player.findUnique({
+        where: { id: receiverId },
+        select: { id: true },
+      });
+
+      if (!playerExists) {
+        throw new Error('Player not found');
+      }
+
+      if (Object.keys(playerUpdateData).length > 0) {
+        await tx.player.update({
+          where: { id: receiverId },
+          data: playerUpdateData,
+        });
+      }
+
+      if (itemRewardId && itemRewardId > 0) {
+        await addItemToInventory(receiverId, itemRewardId, tx);
+      }
+
+      const updatedMessage = await tx.friendMessage.update({
+        where: {
+          senderId_seqMess: {
+            senderId: message.senderId,
+            seqMess: message.seqMess,
+          },
+        },
+        data: {
+          status: 'READ',
+          ringBallReward: 0,
+          moneyReward: 0,
+          itemRewardId: null,
+        },
+      });
+
+      return {
+        message: updatedMessage,
+        rewards: {
+          ringBallReward,
+          moneyReward,
+          itemRewardId,
+        },
+      };
+    });
+
+    return { success: true, data: result };
   } catch (error: any) {
     return { success: false, message: error.message };
   }

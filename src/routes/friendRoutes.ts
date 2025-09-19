@@ -13,6 +13,7 @@ import {
   getSystemMessagesController,
   getConversationHistoryController,
   deleteFriendMessageController,
+  claimSystemMessageRewardController,
   searchPlayerByIdController,
 } from '../controllers/friendController';
 
@@ -34,6 +35,10 @@ router.get(
 router.get(
   '/messages/system/:receiverId',
   getSystemMessagesController
+);
+router.post(
+  '/messages/system/claim',
+  claimSystemMessageRewardController
 );
 router.get('/messages/:receiverId', getFriendMessagesController);
 router.delete('/messages/:senderId/:seqMess', deleteFriendMessageController);

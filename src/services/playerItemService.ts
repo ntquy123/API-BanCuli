@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import prisma from '../models/prismaClient';
 
 export const buyItem = async (playerId: number, itemId: number) => {
@@ -215,9 +216,10 @@ export const levelUpPlayerItem = async (
 
 export const addItemToInventory = async (
   playerId: number,
-  itemId: number
+  itemId: number,
+  txClient?: Prisma.TransactionClient
 ) => {
-  return prisma.$transaction(async (tx) => {
+  const execute = async (tx: Prisma.TransactionClient) => {
     const lastSeq = await tx.playerItem.findFirst({
       where: {
         playerId,
@@ -238,5 +240,11 @@ export const addItemToInventory = async (
         description: '',
       },
     });
-  });
+  };
+
+  if (txClient) {
+    return execute(txClient);
+  }
+
+  return prisma.$transaction(async (tx) => execute(tx));
 };

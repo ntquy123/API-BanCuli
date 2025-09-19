@@ -250,6 +250,9 @@ model FriendMessage {
   message    String
   itemId     Int?
   seqId      Int?
+  ringBallReward Int    @default(0)
+  moneyReward    Int    @default(0)
+  itemRewardId   Int?
   createdAt  DateTime @default(now())
   sender     Player   @relation("MessagesSent", fields: [senderId], references: [id])
   receiver   Player   @relation("MessagesReceived", fields: [receiverId], references: [id])

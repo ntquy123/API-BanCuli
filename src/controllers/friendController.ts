@@ -12,6 +12,7 @@ import {
   getFriendMessages,
   getSystemMessages,
   getConversationHistory,
+  claimSystemMessageReward,
   searchPlayerById,
 } from '../services/friendService';
 
@@ -302,25 +303,66 @@ export const sendMessageController = async (
     req.body.itemId !== undefined ? Number(req.body.itemId) : undefined;
   const seqId =
     req.body.seqId !== undefined ? Number(req.body.seqId) : undefined;
+  const ringBallRewardRaw = req.body.ringBallReward;
+  const moneyRewardRaw = req.body.moneyReward;
+  const itemRewardIdRaw = req.body.itemRewardId;
+  const ringBallReward =
+    ringBallRewardRaw !== undefined ? Number(ringBallRewardRaw) : undefined;
+  const moneyReward =
+    moneyRewardRaw !== undefined ? Number(moneyRewardRaw) : undefined;
+  let itemRewardId: number | null | undefined;
+  if (itemRewardIdRaw !== undefined) {
+    if (itemRewardIdRaw === null) {
+      itemRewardId = null;
+    } else {
+      const parsed = Number(itemRewardIdRaw);
+      itemRewardId = parsed;
+    }
+  }
 
   if (
     isNaN(senderId) ||
     isNaN(receiverId) ||
     typeof message !== 'string' ||
     (itemId !== undefined && isNaN(itemId)) ||
-    (seqId !== undefined && isNaN(seqId))
+    (seqId !== undefined && isNaN(seqId)) ||
+    (ringBallRewardRaw !== undefined && isNaN(ringBallReward)) ||
+    (moneyRewardRaw !== undefined && isNaN(moneyReward)) ||
+    (itemRewardIdRaw !== undefined &&
+      itemRewardIdRaw !== null &&
+      (itemRewardId === undefined || isNaN(itemRewardId)))
   ) {
     res.status(400).json({ message: 'Invalid parameters' });
     return;
   }
 
   try {
+    const rewardPayload: {
+      ringBallReward?: number;
+      moneyReward?: number;
+      itemRewardId?: number | null;
+    } = {};
+
+    if (ringBallRewardRaw !== undefined) {
+      rewardPayload.ringBallReward = ringBallReward ?? 0;
+    }
+
+    if (moneyRewardRaw !== undefined) {
+      rewardPayload.moneyReward = moneyReward ?? 0;
+    }
+
+    if (itemRewardIdRaw !== undefined) {
+      rewardPayload.itemRewardId =
+        itemRewardIdRaw === null ? null : itemRewardId ?? null;
+    }
+
     const result = await sendMessage(
       senderId,
       receiverId,
       message,
       itemId,
-      seqId
+      seqId,
+      Object.keys(rewardPayload).length > 0 ? rewardPayload : undefined
     );
     if (result.success) {
       res.json(result.data);
@@ -378,6 +420,105 @@ export const receiveItemsController = async (
       return;
     }
     res.status(400).json({ message: result.message });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const claimSystemMessageRewardController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const receiverId = Number(req.body.receiverId ?? req.params.receiverId);
+    const seqMessRaw =
+      req.body.seqMess ??
+      req.params.seqMess ??
+      req.body.messageSeq ??
+      req.params.messageSeq;
+    const seqMess = Number(seqMessRaw);
+
+    const ringBallRewardRaw = req.body.ringBallReward;
+    const moneyRewardRaw = req.body.moneyReward;
+    const itemRewardIdRaw = req.body.itemRewardId;
+
+    if (isNaN(receiverId) || seqMessRaw === undefined || isNaN(seqMess)) {
+      res.status(400).json({ message: 'Invalid receiverId or seqMess' });
+      return;
+    }
+
+    const ringBallReward =
+      ringBallRewardRaw !== undefined ? Number(ringBallRewardRaw) : undefined;
+    const moneyReward =
+      moneyRewardRaw !== undefined ? Number(moneyRewardRaw) : undefined;
+    let itemRewardId: number | null | undefined;
+    if (itemRewardIdRaw !== undefined) {
+      if (itemRewardIdRaw === null) {
+        itemRewardId = null;
+      } else {
+        const parsed = Number(itemRewardIdRaw);
+        itemRewardId = parsed;
+      }
+    }
+
+    if (
+      (ringBallRewardRaw !== undefined && isNaN(ringBallReward)) ||
+      (moneyRewardRaw !== undefined && isNaN(moneyReward)) ||
+      (itemRewardIdRaw !== undefined &&
+        itemRewardIdRaw !== null &&
+        (itemRewardId === undefined || isNaN(itemRewardId)))
+    ) {
+      res.status(400).json({ message: 'Invalid reward metadata' });
+      return;
+    }
+
+    const postedRewards: {
+      ringBallReward?: number;
+      moneyReward?: number;
+      itemRewardId?: number | null;
+    } = {};
+
+    if (ringBallRewardRaw !== undefined) {
+      postedRewards.ringBallReward = ringBallReward ?? 0;
+    }
+
+    if (moneyRewardRaw !== undefined) {
+      postedRewards.moneyReward = moneyReward ?? 0;
+    }
+
+    if (itemRewardIdRaw !== undefined) {
+      postedRewards.itemRewardId =
+        itemRewardIdRaw === null ? null : itemRewardId ?? null;
+    }
+
+    const result = await claimSystemMessageReward(
+      receiverId,
+      seqMess,
+      Object.keys(postedRewards).length > 0 ? postedRewards : undefined
+    );
+
+    if (result.success) {
+      res.json(result.data);
+      return;
+    }
+
+    const status = (() => {
+      switch (result.message) {
+        case 'System message not found':
+        case 'Player not found':
+          return 404;
+        case 'Message not available for this player':
+          return 403;
+        case 'Reward already claimed':
+          return 409;
+        case 'Reward mismatch':
+          return 400;
+        default:
+          return 400;
+      }
+    })();
+
+    res.status(status).json({ message: result.message });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
