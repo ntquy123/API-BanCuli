@@ -169,16 +169,18 @@ export const getPendingFriendRequests = async (
 export const getFriendMessages = async (receiverId: number) => {
   try {
     const latestMessages = await prisma.$queryRaw`
-      SELECT DISTINCT ON ("senderId")
-        "senderId",
-        "message",
-        "createdAt",
-        "status",
-        "receiverId",
-        "seqMess"
-      FROM "FriendMessage"
-      WHERE "receiverId" = ${receiverId}
-      ORDER BY "senderId", "createdAt" DESC;
+     SELECT DISTINCT ON (a."senderId")
+    a."senderId",
+    b."PlayerName",
+    a."message",
+    a."createdAt",
+    a."status",
+    a."receiverId",
+    a."seqMess"
+FROM "FriendMessage" a
+JOIN "Player" b ON a."senderId" = b."id"
+WHERE a."receiverId" = ${receiverId}
+ORDER BY a."senderId", a."createdAt" DESC;
     `;
 
     return { success: true, data: latestMessages };
