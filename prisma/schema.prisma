@@ -253,6 +253,8 @@ model FriendMessage {
   ringBallReward Int    @default(0)
   moneyReward    Int    @default(0)
   itemRewardId   Int?
+  isSenderDelete   Boolean @default(false)
+  isReceiverDelete Boolean @default(false)
   createdAt  DateTime @default(now())
   sender     Player   @relation("MessagesSent", fields: [senderId], references: [id])
   receiver   Player   @relation("MessagesReceived", fields: [receiverId], references: [id])
