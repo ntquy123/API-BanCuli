@@ -182,6 +182,7 @@ export const getFriendMessages = async (receiverId: number) => {
 FROM "FriendMessage" a
 JOIN "Player" b ON a."senderId" = b."id"
 WHERE a."receiverId" = ${receiverId}
+  AND a."isReceiverDelete" = false
 ORDER BY a."senderId", a."createdAt" DESC;
     `;
 
@@ -198,6 +199,7 @@ export const getSystemMessages = async (receiverId: number) => {
     const messages = await prisma.friendMessage.findMany({
       where: {
         senderId: 0,
+        isReceiverDelete: false,
         OR: [{ receiverId }, { receiverId: 0 }],
       },
       orderBy: { createdAt: 'desc' },
@@ -230,8 +232,16 @@ export const getConversationHistory = async (
     const messages = await prisma.friendMessage.findMany({
       where: {
         OR: [
-          { senderId: playerId, receiverId: friendId },
-          { senderId: friendId, receiverId: playerId },
+          {
+            senderId: playerId,
+            receiverId: friendId,
+            isSenderDelete: false,
+          },
+          {
+            senderId: friendId,
+            receiverId: playerId,
+            isReceiverDelete: false,
+          },
         ],
       },
       include: { sender: true },
