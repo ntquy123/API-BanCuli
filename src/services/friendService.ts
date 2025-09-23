@@ -528,93 +528,84 @@ export const claimSystemMessageReward = async (
 };
 
 export const deleteFriendMessage = async (
-  senderId: number,
-  seqMess: number,
-  requesterId: number
+  requesterId: number,
+  partnerId: number
 ) => {
   try {
-    const message = await prisma.friendMessage.findUnique({
-      where: { senderId_seqMess: { senderId, seqMess } },
-      select: {
-        senderId: true,
-        receiverId: true,
-        isSenderDelete: true,
-        isReceiverDelete: true,
-      },
+    const result = await prisma.$transaction(async (tx) => {
+      const conversation = await tx.friendMessage.findMany({
+        where: {
+          OR: [
+            { senderId: requesterId, receiverId: partnerId },
+            { senderId: partnerId, receiverId: requesterId },
+          ],
+        },
+        select: {
+          senderId: true,
+          receiverId: true,
+          seqMess: true,
+          isSenderDelete: true,
+          isReceiverDelete: true,
+        },
+      });
+
+      if (conversation.length === 0) {
+        return { success: false as const, message: 'Message not found' };
+      }
+
+      const participates = conversation.some(
+        (message) =>
+          message.senderId === requesterId || message.receiverId === requesterId
+      );
+
+      if (!participates) {
+        return { success: false as const, message: 'Forbidden' };
+      }
+
+      const deleteSent = await tx.friendMessage.deleteMany({
+        where: {
+          senderId: requesterId,
+          receiverId: partnerId,
+          isReceiverDelete: true,
+        },
+      });
+
+      const deleteReceived = await tx.friendMessage.deleteMany({
+        where: {
+          senderId: partnerId,
+          receiverId: requesterId,
+          isSenderDelete: true,
+        },
+      });
+
+      const hideSent = await tx.friendMessage.updateMany({
+        where: {
+          senderId: requesterId,
+          receiverId: partnerId,
+          isSenderDelete: false,
+        },
+        data: { isSenderDelete: true },
+      });
+
+      const hideReceived = await tx.friendMessage.updateMany({
+        where: {
+          senderId: partnerId,
+          receiverId: requesterId,
+          isReceiverDelete: false,
+        },
+        data: { isReceiverDelete: true },
+      });
+
+      return {
+        success: true as const,
+        data: {
+          hiddenCount: hideSent.count + hideReceived.count,
+          hardDeletedCount: deleteSent.count + deleteReceived.count,
+        },
+      };
     });
 
-    if (!message) {
-      return { success: false, message: 'Message not found' };
-    }
-
-    const isSender = requesterId === message.senderId;
-    const isReceiver = requesterId === message.receiverId;
-
-    if (!isSender && !isReceiver) {
-      return { success: false, message: 'Forbidden' };
-    }
-
-    const requesterRole: 'sender' | 'receiver' = isSender ? 'sender' : 'receiver';
-
-    const newSenderDelete = isSender ? true : message.isSenderDelete;
-    const newReceiverDelete = isReceiver ? true : message.isReceiverDelete;
-
-    if (newSenderDelete && newReceiverDelete) {
-      await prisma.friendMessage.delete({
-        where: { senderId_seqMess: { senderId, seqMess } },
-      });
-
-      return {
-        success: true,
-        data: {
-          deleted: true,
-          isSenderDelete: true,
-          isReceiverDelete: true,
-          requesterRole,
-        },
-      };
-    }
-
-    const updateData: Prisma.FriendMessageUpdateInput = {};
-
-    if (isSender && !message.isSenderDelete) {
-      updateData.isSenderDelete = true;
-    }
-
-    if (isReceiver && !message.isReceiverDelete) {
-      updateData.isReceiverDelete = true;
-    }
-
-    if (Object.keys(updateData).length > 0) {
-      const updated = await prisma.friendMessage.update({
-        where: { senderId_seqMess: { senderId, seqMess } },
-        data: updateData,
-        select: {
-          isSenderDelete: true,
-          isReceiverDelete: true,
-        },
-      });
-
-      return {
-        success: true,
-        data: {
-          deleted: false,
-          isSenderDelete: updated.isSenderDelete,
-          isReceiverDelete: updated.isReceiverDelete,
-          requesterRole,
-        },
-      };
-    }
-
-    return {
-      success: true,
-      data: {
-        deleted: false,
-        isSenderDelete: message.isSenderDelete,
-        isReceiverDelete: message.isReceiverDelete,
-        requesterRole,
-      },
-    };
+    return result;
   } catch (error: any) {
     return { success: false, message: error.message };
   }

@@ -41,9 +41,9 @@ router.post(
   claimSystemMessageRewardController
 );
 router.get('/messages/:receiverId', getFriendMessagesController);
-// DELETE /messages/:playerId/:senderId/:seqMess
+// DELETE /messages/:playerId/:partnerId
 router.delete(
-  '/messages/:playerId/:senderId/:seqMess',
+  '/messages/:playerId/:partnerId',
   deleteFriendMessageController
 );
 

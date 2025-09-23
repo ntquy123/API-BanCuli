@@ -32,21 +32,52 @@ function createMockFunction() {
 }
 
 const queryRawMock = createMockFunction();
+const transactionMock = createMockFunction();
 const friendMessageFindManyMock = createMockFunction();
+const friendMessageCountMock = createMockFunction();
+const friendMessageFindFirstMock = createMockFunction();
+const friendMessageCreateMock = createMockFunction();
+const friendMessageUpdateManyMock = createMockFunction();
+const friendMessageFindUniqueMock = createMockFunction();
+const friendMessageDeleteMock = createMockFunction();
+const friendMessageUpdateMock = createMockFunction();
+const friendMessageDeleteManyMock = createMockFunction();
 
 const mockPrisma = {
   $queryRaw: queryRawMock,
+  $transaction: transactionMock,
   friendMessage: {
     findMany: friendMessageFindManyMock,
-    count: createMockFunction(),
-    findFirst: createMockFunction(),
-    create: createMockFunction(),
-    updateMany: createMockFunction(),
-    findUnique: createMockFunction(),
-    delete: createMockFunction(),
-    update: createMockFunction(),
+    count: friendMessageCountMock,
+    findFirst: friendMessageFindFirstMock,
+    create: friendMessageCreateMock,
+    updateMany: friendMessageUpdateManyMock,
+    findUnique: friendMessageFindUniqueMock,
+    delete: friendMessageDeleteMock,
+    update: friendMessageUpdateMock,
+    deleteMany: friendMessageDeleteManyMock,
   },
 };
+
+const resetPrismaMocks = () => {
+  queryRawMock.mockReset();
+  transactionMock.mockReset();
+  friendMessageFindManyMock.mockReset();
+  friendMessageCountMock.mockReset();
+  friendMessageFindFirstMock.mockReset();
+  friendMessageCreateMock.mockReset();
+  friendMessageUpdateManyMock.mockReset();
+  friendMessageFindUniqueMock.mockReset();
+  friendMessageDeleteMock.mockReset();
+  friendMessageUpdateMock.mockReset();
+  friendMessageDeleteManyMock.mockReset();
+
+  transactionMock.mockImplementation(async (callback) => callback(mockPrisma));
+  friendMessageDeleteManyMock.mockImplementation(async () => ({ count: 0 }));
+  friendMessageUpdateManyMock.mockImplementation(async () => ({ count: 0 }));
+};
+
+resetPrismaMocks();
 
 const prismaModulePath = require.resolve('../src/models/prismaClient.ts');
 require.cache[prismaModulePath] = {
@@ -60,12 +91,12 @@ const {
   getConversationHistory,
   getFriendMessages,
   getSystemMessages,
+  deleteFriendMessage,
 } = require('../src/services/friendService');
 
 describe('friendService visibility filters', () => {
   beforeEach(() => {
-    queryRawMock.mockReset();
-    friendMessageFindManyMock.mockReset();
+    resetPrismaMocks();
   });
 
   it('excludes receiver-deleted messages in friend inbox query', async () => {
@@ -167,5 +198,160 @@ describe('friendService visibility filters', () => {
       args.where.OR.some((clause) => clause.receiverId === 1),
       'Receiver specific clause should be present'
     );
+  });
+});
+
+describe('deleteFriendMessage conversation cleanup', () => {
+  beforeEach(() => {
+    resetPrismaMocks();
+  });
+
+  it('hides messages for the requesting player when the partner has not deleted them', async () => {
+    friendMessageFindManyMock.mockResolvedValue([
+      {
+        senderId: 1,
+        receiverId: 2,
+        seqMess: 10,
+        isSenderDelete: false,
+        isReceiverDelete: false,
+      },
+      {
+        senderId: 2,
+        receiverId: 1,
+        seqMess: 11,
+        isSenderDelete: false,
+        isReceiverDelete: false,
+      },
+    ]);
+
+    friendMessageDeleteManyMock.mockImplementation(async (args) => {
+      if (args.where.senderId === 1) {
+        assert.deepEqual(args.where, {
+          senderId: 1,
+          receiverId: 2,
+          isReceiverDelete: true,
+        });
+        return { count: 0 };
+      }
+
+      if (args.where.senderId === 2) {
+        assert.deepEqual(args.where, {
+          senderId: 2,
+          receiverId: 1,
+          isSenderDelete: true,
+        });
+        return { count: 0 };
+      }
+
+      throw new Error('Unexpected deleteMany invocation');
+    });
+
+    friendMessageUpdateManyMock.mockImplementation(async (args) => {
+      if (args.where.senderId === 1) {
+        assert.deepEqual(args.where, {
+          senderId: 1,
+          receiverId: 2,
+          isSenderDelete: false,
+        });
+        assert.deepEqual(args.data, { isSenderDelete: true });
+        return { count: 1 };
+      }
+
+      if (args.where.senderId === 2) {
+        assert.deepEqual(args.where, {
+          senderId: 2,
+          receiverId: 1,
+          isReceiverDelete: false,
+        });
+        assert.deepEqual(args.data, { isReceiverDelete: true });
+        return { count: 1 };
+      }
+
+      throw new Error('Unexpected updateMany invocation');
+    });
+
+    const result = await deleteFriendMessage(1, 2);
+
+    assert.equal(result.success, true);
+    assert.deepEqual(result.data, { hiddenCount: 2, hardDeletedCount: 0 });
+    assert.equal(transactionMock.mock.calls.length, 1);
+    assert.equal(friendMessageDeleteManyMock.mock.calls.length, 2);
+    assert.equal(friendMessageUpdateManyMock.mock.calls.length, 2);
+  });
+
+  it('removes messages once both participants have deleted them', async () => {
+    friendMessageFindManyMock.mockResolvedValue([
+      {
+        senderId: 1,
+        receiverId: 2,
+        seqMess: 20,
+        isSenderDelete: false,
+        isReceiverDelete: true,
+      },
+      {
+        senderId: 2,
+        receiverId: 1,
+        seqMess: 21,
+        isSenderDelete: true,
+        isReceiverDelete: false,
+      },
+    ]);
+
+    let deleteCalls = 0;
+    friendMessageDeleteManyMock.mockImplementation(async (args) => {
+      if (args.where.senderId === 1) {
+        deleteCalls += 1;
+        assert.deepEqual(args.where, {
+          senderId: 1,
+          receiverId: 2,
+          isReceiverDelete: true,
+        });
+        return { count: 1 };
+      }
+
+      if (args.where.senderId === 2) {
+        deleteCalls += 1;
+        assert.deepEqual(args.where, {
+          senderId: 2,
+          receiverId: 1,
+          isSenderDelete: true,
+        });
+        return { count: 1 };
+      }
+
+      throw new Error('Unexpected deleteMany invocation');
+    });
+
+    friendMessageUpdateManyMock.mockImplementation(async (args) => {
+      if (args.where.senderId === 1) {
+        assert.deepEqual(args.where, {
+          senderId: 1,
+          receiverId: 2,
+          isSenderDelete: false,
+        });
+        assert.deepEqual(args.data, { isSenderDelete: true });
+        return { count: 0 };
+      }
+
+      if (args.where.senderId === 2) {
+        assert.deepEqual(args.where, {
+          senderId: 2,
+          receiverId: 1,
+          isReceiverDelete: false,
+        });
+        assert.deepEqual(args.data, { isReceiverDelete: true });
+        return { count: 0 };
+      }
+
+      throw new Error('Unexpected updateMany invocation');
+    });
+
+    const result = await deleteFriendMessage(1, 2);
+
+    assert.equal(result.success, true);
+    assert.deepEqual(result.data, { hiddenCount: 0, hardDeletedCount: 2 });
+    assert.equal(transactionMock.mock.calls.length, 1);
+    assert.equal(deleteCalls, 2);
+    assert.equal(friendMessageUpdateManyMock.mock.calls.length, 2);
   });
 });

@@ -314,34 +314,38 @@ export const deleteFriendMessageController = async (
 ): Promise<void> => {
   try {
     const requesterId = parseNumericParam(
-      req.params.playerId,
-      req.body.playerId,
       req.body.requesterId,
+      req.query.requesterId,
+      req.body.playerId,
       req.query.playerId,
-      req.query.requesterId
+      req.params.playerId
     );
-    const senderId = parseNumericParam(
-      req.params.senderId,
-      req.body.senderId,
-      req.query.senderId
+    const partnerId = parseNumericParam(
+      req.params.partnerId,
+      req.body.partnerId,
+      req.query.partnerId
     );
-    const seqMess = parseNumericParam(
-      req.params.seqMess,
-      req.body.seqMess,
-      req.query.seqMess
-    );
+    const routePlayerId = parseNumericParam(req.params.playerId);
 
-    if (
-      requesterId === undefined ||
-      senderId === undefined ||
-      seqMess === undefined
-    ) {
+    if (requesterId === undefined || partnerId === undefined) {
       res
         .status(400)
-        .json({ message: 'Invalid requesterId, senderId or seqMess' });
+        .json({ message: 'Invalid requesterId or partnerId' });
       return;
     }
-    const result = await deleteFriendMessage(senderId, seqMess, requesterId);
+
+    const participants = new Set<number>();
+    if (routePlayerId !== undefined) {
+      participants.add(routePlayerId);
+    }
+    participants.add(partnerId);
+
+    if (!participants.has(requesterId)) {
+      res.status(403).json({ message: 'Forbidden' });
+      return;
+    }
+
+    const result = await deleteFriendMessage(requesterId, partnerId);
     if (result.success) {
       res.json({ success: true, data: result.data });
       return;
