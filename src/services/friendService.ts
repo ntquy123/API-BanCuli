@@ -183,6 +183,7 @@ FROM "FriendMessage" a
 JOIN "Player" b ON a."senderId" = b."id"
 WHERE a."receiverId" = ${receiverId}
   AND a."isReceiverDelete" = false
+  AND a."senderId" != 0
 ORDER BY a."senderId", a."createdAt" DESC;
     `;
 
