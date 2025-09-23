@@ -519,13 +519,92 @@ export const claimSystemMessageReward = async (
 
 export const deleteFriendMessage = async (
   senderId: number,
-  seqMess: number
+  seqMess: number,
+  requesterId: number
 ) => {
   try {
-    await prisma.friendMessage.delete({
+    const message = await prisma.friendMessage.findUnique({
       where: { senderId_seqMess: { senderId, seqMess } },
+      select: {
+        senderId: true,
+        receiverId: true,
+        isSenderDelete: true,
+        isReceiverDelete: true,
+      },
     });
-    return { success: true };
+
+    if (!message) {
+      return { success: false, message: 'Message not found' };
+    }
+
+    const isSender = requesterId === message.senderId;
+    const isReceiver = requesterId === message.receiverId;
+
+    if (!isSender && !isReceiver) {
+      return { success: false, message: 'Forbidden' };
+    }
+
+    const requesterRole: 'sender' | 'receiver' = isSender ? 'sender' : 'receiver';
+
+    const newSenderDelete = isSender ? true : message.isSenderDelete;
+    const newReceiverDelete = isReceiver ? true : message.isReceiverDelete;
+
+    if (newSenderDelete && newReceiverDelete) {
+      await prisma.friendMessage.delete({
+        where: { senderId_seqMess: { senderId, seqMess } },
+      });
+
+      return {
+        success: true,
+        data: {
+          deleted: true,
+          isSenderDelete: true,
+          isReceiverDelete: true,
+          requesterRole,
+        },
+      };
+    }
+
+    const updateData: Prisma.FriendMessageUpdateInput = {};
+
+    if (isSender && !message.isSenderDelete) {
+      updateData.isSenderDelete = true;
+    }
+
+    if (isReceiver && !message.isReceiverDelete) {
+      updateData.isReceiverDelete = true;
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      const updated = await prisma.friendMessage.update({
+        where: { senderId_seqMess: { senderId, seqMess } },
+        data: updateData,
+        select: {
+          isSenderDelete: true,
+          isReceiverDelete: true,
+        },
+      });
+
+      return {
+        success: true,
+        data: {
+          deleted: false,
+          isSenderDelete: updated.isSenderDelete,
+          isReceiverDelete: updated.isReceiverDelete,
+          requesterRole,
+        },
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        deleted: false,
+        isSenderDelete: message.isSenderDelete,
+        isReceiverDelete: message.isReceiverDelete,
+        requesterRole,
+      },
+    };
   } catch (error: any) {
     return { success: false, message: error.message };
   }

@@ -16,6 +16,44 @@ import {
   searchPlayerById,
 } from '../services/friendService';
 
+const parseNumericParam = (...values: unknown[]): number | undefined => {
+  for (const value of values) {
+    if (value === undefined || value === null) {
+      continue;
+    }
+
+    const candidate = Array.isArray(value) ? value[0] : value;
+    if (candidate === undefined || candidate === null) {
+      continue;
+    }
+
+    if (typeof candidate === 'string') {
+      const trimmed = candidate.trim();
+      if (trimmed === '') {
+        continue;
+      }
+      const parsed = Number(trimmed);
+      if (!Number.isNaN(parsed)) {
+        return parsed;
+      }
+      continue;
+    }
+
+    if (typeof candidate === 'number') {
+      if (!Number.isNaN(candidate)) {
+        return candidate;
+      }
+      continue;
+    }
+
+    if (typeof candidate === 'bigint') {
+      return Number(candidate);
+    }
+  }
+
+  return undefined;
+};
+
 export const searchPlayerByIdController = async (
   req: Request,
   res: Response
@@ -275,18 +313,46 @@ export const deleteFriendMessageController = async (
   res: Response
 ): Promise<void> => {
   try {
-    const senderId = Number(req.params.senderId ?? req.body.senderId);
-    const seqMess = Number(req.params.seqMess ?? req.body.seqMess);
-    if (isNaN(senderId) || isNaN(seqMess)) {
-      res.status(400).json({ message: 'Invalid senderId or seqMess' });
+    const requesterId = parseNumericParam(
+      req.params.playerId,
+      req.body.playerId,
+      req.body.requesterId,
+      req.query.playerId,
+      req.query.requesterId
+    );
+    const senderId = parseNumericParam(
+      req.params.senderId,
+      req.body.senderId,
+      req.query.senderId
+    );
+    const seqMess = parseNumericParam(
+      req.params.seqMess,
+      req.body.seqMess,
+      req.query.seqMess
+    );
+
+    if (
+      requesterId === undefined ||
+      senderId === undefined ||
+      seqMess === undefined
+    ) {
+      res
+        .status(400)
+        .json({ message: 'Invalid requesterId, senderId or seqMess' });
       return;
     }
-    const result = await deleteFriendMessage(senderId, seqMess);
+    const result = await deleteFriendMessage(senderId, seqMess, requesterId);
     if (result.success) {
-      res.json({ success: true });
+      res.json({ success: true, data: result.data });
       return;
     }
-    res.status(400).json({ message: result.message });
+    const status =
+      result.message === 'Forbidden'
+        ? 403
+        : result.message === 'Message not found'
+          ? 404
+          : 400;
+    res.status(status).json({ message: result.message });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
