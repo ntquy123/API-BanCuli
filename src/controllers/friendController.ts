@@ -347,7 +347,7 @@ export const deleteFriendMessageController = async (
 
     const result = await deleteFriendMessage(requesterId, partnerId);
     if (result.success) {
-      res.json({ success: true, data: result.data });
+      res.json({ success: true, data: result.message });
       return;
     }
     const status =
