@@ -103,10 +103,13 @@ export const claimAchievement = async (
   achievementId: number,
 ) => {
   const result = await prisma.$transaction(async (tx) => {
-    const record: any = await tx.playerAchievementStatus.findUnique({
+    const record: any = await (tx.playerAchievementStatus as any).findFirst({
       where: {
-        playerId_typeGid_achievementId: { playerId, typeGid, achievementId },
+        playerId,
+        typeGid,
+        achievementId,
       },
+      orderBy: { TransDate: 'desc' },
     });
 
     if (!record || !record.isComplete || record.isGiftReceived) {
@@ -132,7 +135,12 @@ export const claimAchievement = async (
 
     await (tx.playerAchievementStatus as any).update({
       where: {
-        playerId_typeGid_achievementId: { playerId, typeGid, achievementId },
+        playerId_typeGid_achievementId_TransDate: {
+          playerId,
+          typeGid,
+          achievementId,
+          TransDate: record.TransDate,
+        },
       },
       data: { isGiftReceived: true },
     });

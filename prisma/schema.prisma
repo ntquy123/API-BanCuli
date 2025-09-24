@@ -176,6 +176,7 @@ model PlayerAchievementStatus {
   typeGid        String
   achievementId  Int
   itemId         Int
+  TransDate      DateTime          @default(dbgenerated("CURRENT_DATE"))
   isComplete     Boolean           @default(false)
   isGiftReceived Boolean           @default(false)
   updatedAt      DateTime          @default(now())
@@ -183,7 +184,7 @@ model PlayerAchievementStatus {
   item           Item              @relation(fields: [itemId], references: [id])
   achievement    PlayerAchievement @relation("PlayerAchievementToStatus", fields: [typeGid, achievementId], references: [rewardType, seq])
 
-  @@id([playerId, typeGid, achievementId])
+  @@id([playerId, typeGid, achievementId, TransDate])
 }
 
 model DailyRareItem {

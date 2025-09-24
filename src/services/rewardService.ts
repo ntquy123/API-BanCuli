@@ -159,6 +159,7 @@ export const listRewards = async (
     include: {
       statuses: {
         where: { playerId, typeGid: rewardType },
+        orderBy: { TransDate: 'desc' },
         take: 1,
       },
     },
@@ -181,6 +182,7 @@ export const listRewardPlayerAchievements = async (
     include: {
       statuses: {
         where: { playerId },
+        orderBy: { TransDate: 'desc' },
         select: {
           isGiftReceived: true,
           isComplete: true,
@@ -218,7 +220,7 @@ export const insertPlayerAchievement = async (
       where: {
         playerId,
         typeGid: rewardType,
-        updatedAt: {
+        TransDate: {
           gte: startOfDay,
           lte: endOfDay,
         },
@@ -252,6 +254,8 @@ export const refreshRewards = async (
     const rewardLocations = shuffled.slice(3, 7);
 
     const generatedAt = new Date();
+    const baseTransDate = new Date(generatedAt);
+    baseTransDate.setHours(0, 0, 0, 0);
 
     const generatedEntries = locations.map((loc) => {
       const hasItemReward = itemLocations.includes(loc);
@@ -275,6 +279,7 @@ export const refreshRewards = async (
           itemId,
           isComplete: true,
           isGiftReceived: false,
+          TransDate: new Date(baseTransDate),
           updatedAt: generatedAt,
         },
       };
@@ -331,6 +336,7 @@ export const claimReward = async (
         typeGid: rewardType,
         achievementId: locationId,
       },
+      orderBy: { TransDate: 'desc' },
       include: {
         achievement: true,
       },
@@ -375,11 +381,14 @@ export const claimReward = async (
 
     const updatedAt = new Date();
 
-    await (tx.playerAchievementStatus as any).updateMany({
+    await (tx.playerAchievementStatus as any).update({
       where: {
-        playerId,
-        typeGid: rewardType,
-        achievementId: locationId,
+        playerId_typeGid_achievementId_TransDate: {
+          playerId,
+          typeGid: rewardType,
+          achievementId: locationId,
+          TransDate: status.TransDate,
+        },
       },
       data: { isComplete: true, updatedAt },
     });
@@ -416,18 +425,32 @@ export const confirmAdWatch = async (
   achievementId: number,
 ) => {
   const result = await prisma.$transaction(async (tx) => {
-    const [existingStatus, achievement] = await Promise.all([
-      (tx.playerAchievementStatus as any).findUnique({
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date(startOfToday);
+    endOfToday.setHours(23, 59, 59, 999);
+
+    const [todayStatus, latestStatus, achievement] = await Promise.all([
+      (tx.playerAchievementStatus as any).findFirst({
         where: {
-          playerId_typeGid_achievementId: {
-            playerId,
-            typeGid: rewardType,
-            achievementId,
+          playerId,
+          typeGid: rewardType,
+          achievementId,
+          TransDate: {
+            gte: startOfToday,
+            lte: endOfToday,
           },
         },
-        include: {
-          achievement: true,
+        include: { achievement: true },
+      }),
+      (tx.playerAchievementStatus as any).findFirst({
+        where: {
+          playerId,
+          typeGid: rewardType,
+          achievementId,
         },
+        orderBy: { TransDate: 'desc' },
+        include: { achievement: true },
       }),
       (tx.playerAchievement as any).findUnique({
         where: {
@@ -440,69 +463,44 @@ export const confirmAdWatch = async (
       return null;
     }
 
-    const normalizeDate = (value: unknown) => {
-      if (!value) {
-        return null;
-      }
-
-      if (value instanceof Date) {
-        return value;
-      }
-
-      const parsed = new Date(value as string);
-      return Number.isNaN(parsed.valueOf()) ? null : parsed;
-    };
-
-    if (existingStatus) {
-      const today = new Date();
-      const startOfToday = new Date(today);
-      startOfToday.setHours(0, 0, 0, 0);
-      const endOfToday = new Date(today);
-      endOfToday.setHours(23, 59, 59, 999);
-
-      const referenceDates = [
-        existingStatus.updatedAt,
-        (existingStatus as any).achievement?.achievedAt,
-        achievement?.achievedAt,
-      ]
-        .map(normalizeDate)
-        .filter((date): date is Date => Boolean(date));
-
-      const hasRewardToday = referenceDates.some(
-        (date) => date >= startOfToday && date <= endOfToday,
-      );
-
-      if (hasRewardToday) {
-        throw new RewardClaimError('đã nhận quà rồi', 409);
-      }
+    if (todayStatus && todayStatus.isGiftReceived) {
+      throw new RewardClaimError('đã nhận quà rồi', 409);
     }
 
-    const now = new Date();
+    const referenceStatus = todayStatus ?? latestStatus ?? undefined;
+
     const resolvedItemIdRaw =
       achievement?.itemId ??
-      existingStatus?.itemId ??
-      (existingStatus as any)?.achievement?.itemId ??
+      referenceStatus?.itemId ??
+      (referenceStatus as any)?.achievement?.itemId ??
       null;
     const resolvedItemId =
       typeof resolvedItemIdRaw === 'number' &&
-      Number.isFinite(resolvedItemIdRaw)
+      Number.isFinite(resolvedItemIdRaw) &&
+      resolvedItemIdRaw > 0
         ? resolvedItemIdRaw
-        : 0;
+        : null;
 
-    const statusPayload = {
-      itemId: resolvedItemId,
+    const now = new Date();
+
+    const statusPayload: Record<string, any> = {
       isGiftReceived: true,
       isComplete: true,
       updatedAt: now,
     };
 
-    const updatedStatus = existingStatus
+    if (resolvedItemId !== null) {
+      statusPayload.itemId = resolvedItemId;
+    }
+
+    const updatedStatus = todayStatus
       ? await (tx.playerAchievementStatus as any).update({
           where: {
-            playerId_typeGid_achievementId: {
+            playerId_typeGid_achievementId_TransDate: {
               playerId,
               typeGid: rewardType,
               achievementId,
+              TransDate: todayStatus.TransDate,
             },
           },
           data: statusPayload,
@@ -513,14 +511,20 @@ export const confirmAdWatch = async (
             playerId,
             typeGid: rewardType,
             achievementId,
-            ...statusPayload,
+            TransDate: new Date(startOfToday),
+            itemId: resolvedItemId ?? null,
+            isGiftReceived: true,
+            isComplete: true,
+            updatedAt: now,
           },
           include: { achievement: true },
         });
 
     const rewardAmountRaw =
+      (updatedStatus as any)?.achievement?.rewardAmount ??
       achievement?.rewardAmount ??
-      (existingStatus as any)?.achievement?.rewardAmount ??
+      referenceStatus?.rewardAmount ??
+      (referenceStatus as any)?.achievement?.rewardAmount ??
       null;
     const rewardAmount =
       typeof rewardAmountRaw === 'number' && Number.isFinite(rewardAmountRaw)
@@ -534,7 +538,7 @@ export const confirmAdWatch = async (
       });
     }
 
-    if (resolvedItemId > 0) {
+    if (resolvedItemId !== null && resolvedItemId > 0) {
       await addItemToInventory(playerId, resolvedItemId, tx, {
         level: 1,
         price: 0,
