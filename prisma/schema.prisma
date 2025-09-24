@@ -84,7 +84,6 @@ model Item {
   ImpactResistance    Float?
   playerItems         PlayerItem[]
   equipPlayers        EquipPlayer[]
-  achievementStatuses PlayerAchievementStatus[]
 }
 
 model PlayerItem {
@@ -175,13 +174,12 @@ model PlayerAchievementStatus {
   playerId       Int
   typeGid        String
   achievementId  Int
-  itemId         Int
+  itemId         Int?
   TransDate      DateTime          @default(dbgenerated("CURRENT_DATE"))
-  isComplete     Boolean           @default(false)
-  isGiftReceived Boolean           @default(false)
+  isComplete     Boolean?           @default(false)
+  isGiftReceived Boolean?           @default(false)
   updatedAt      DateTime          @default(now())
   player         Player            @relation(fields: [playerId], references: [id])
-  item           Item              @relation(fields: [itemId], references: [id])
   achievement    PlayerAchievement @relation("PlayerAchievementToStatus", fields: [typeGid, achievementId], references: [rewardType, seq])
 
   @@id([playerId, typeGid, achievementId, TransDate])
