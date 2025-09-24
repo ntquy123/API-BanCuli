@@ -214,10 +214,18 @@ export const levelUpPlayerItem = async (
   });
 };
 
+type AddItemOptions = {
+  level?: number;
+  description?: string;
+  price?: number;
+  isSolded?: number;
+};
+
 export const addItemToInventory = async (
   playerId: number,
   itemId: number,
-  txClient?: Prisma.TransactionClient
+  txClient?: Prisma.TransactionClient,
+  options?: AddItemOptions,
 ) => {
   const execute = async (tx: Prisma.TransactionClient) => {
     const lastSeq = await tx.playerItem.findFirst({
@@ -230,14 +238,17 @@ export const addItemToInventory = async (
     });
 
     const seq = lastSeq ? lastSeq.seq + 1 : 0;
+    const { level = 1, description = '', price = 0, isSolded = 0 } = options ?? {};
 
     return tx.playerItem.create({
       data: {
         playerId,
         itemId,
         seq,
-        level: 1,
-        description: '',
+        level,
+        description,
+        Price: price,
+        IsSolded: isSolded,
       },
     });
   };

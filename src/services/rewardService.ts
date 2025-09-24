@@ -415,77 +415,138 @@ export const confirmAdWatch = async (
   rewardType: string,
   achievementId: number,
 ) => {
-  const status = await (prisma.playerAchievementStatus as any).findFirst({
-    where: {
-      playerId,
-      typeGid: rewardType,
-      achievementId,
-    },
-    include: {
-      achievement: true,
-    },
-  });
+  const result = await prisma.$transaction(async (tx) => {
+    const [existingStatus, achievement] = await Promise.all([
+      (tx.playerAchievementStatus as any).findUnique({
+        where: {
+          playerId_typeGid_achievementId: {
+            playerId,
+            typeGid: rewardType,
+            achievementId,
+          },
+        },
+        include: {
+          achievement: true,
+        },
+      }),
+      (tx.playerAchievement as any).findUnique({
+        where: {
+          rewardType_seq: { rewardType, seq: achievementId },
+        },
+      }),
+    ]);
 
-  if (!status) {
-    return null;
-  }
-
-  if (status.isGiftReceived) {
-    return buildRewardRecord(status, status.achievement);
-  }
-
-  const achievement = status.achievement;
-  const limitRaw = achievement?.countGif;
-  const limitValue =
-    limitRaw === null || limitRaw === undefined ? null : Number(limitRaw);
-  const hasLimit =
-    limitValue !== null && Number.isFinite(limitValue) && limitValue >= 0;
-
-  if (hasLimit) {
-    const existingCount = await (prisma.playerAchievementStatus as any).count({
-      where: {
-        typeGid: rewardType,
-        achievementId,
-        isGiftReceived: true,
-      },
-    });
-
-    if (existingCount >= Number(limitValue)) {
-      throw new RewardClaimError(
-        'Ad watch confirmation limit reached for this achievement.',
-        409,
-      );
+    if (!achievement && !existingStatus) {
+      return null;
     }
-  }
 
-  const updatedAt = new Date();
+    const normalizeDate = (value: unknown) => {
+      if (!value) {
+        return null;
+      }
 
-  await (prisma.playerAchievementStatus as any).delete({
-    where: {
-      playerId_typeGid_achievementId: {
-        playerId,
-        typeGid: rewardType,
-        achievementId,
-      },
-    },
-  });
+      if (value instanceof Date) {
+        return value;
+      }
 
-  const createdStatus = await (prisma.playerAchievementStatus as any).create({
-    data: {
-      playerId,
-      typeGid: rewardType,
-      achievementId,
-      itemId: status.itemId ?? achievement?.itemId ?? null,
+      const parsed = new Date(value as string);
+      return Number.isNaN(parsed.valueOf()) ? null : parsed;
+    };
+
+    if (existingStatus) {
+      const today = new Date();
+      const startOfToday = new Date(today);
+      startOfToday.setHours(0, 0, 0, 0);
+      const endOfToday = new Date(today);
+      endOfToday.setHours(23, 59, 59, 999);
+
+      const referenceDates = [
+        existingStatus.updatedAt,
+        (existingStatus as any).achievement?.achievedAt,
+        achievement?.achievedAt,
+      ]
+        .map(normalizeDate)
+        .filter((date): date is Date => Boolean(date));
+
+      const hasRewardToday = referenceDates.some(
+        (date) => date >= startOfToday && date <= endOfToday,
+      );
+
+      if (hasRewardToday) {
+        throw new RewardClaimError('đã nhận quà rồi', 409);
+      }
+    }
+
+    const now = new Date();
+    const resolvedItemIdRaw =
+      achievement?.itemId ??
+      existingStatus?.itemId ??
+      (existingStatus as any)?.achievement?.itemId ??
+      null;
+    const resolvedItemId =
+      typeof resolvedItemIdRaw === 'number' &&
+      Number.isFinite(resolvedItemIdRaw)
+        ? resolvedItemIdRaw
+        : 0;
+
+    const statusPayload = {
+      itemId: resolvedItemId,
       isGiftReceived: true,
-      isComplete: false,
-      updatedAt,
-    },
-    include: {
-      achievement: true,
-    },
+      isComplete: true,
+      updatedAt: now,
+    };
+
+    const updatedStatus = existingStatus
+      ? await (tx.playerAchievementStatus as any).update({
+          where: {
+            playerId_typeGid_achievementId: {
+              playerId,
+              typeGid: rewardType,
+              achievementId,
+            },
+          },
+          data: statusPayload,
+          include: { achievement: true },
+        })
+      : await (tx.playerAchievementStatus as any).create({
+          data: {
+            playerId,
+            typeGid: rewardType,
+            achievementId,
+            ...statusPayload,
+          },
+          include: { achievement: true },
+        });
+
+    const rewardAmountRaw =
+      achievement?.rewardAmount ??
+      (existingStatus as any)?.achievement?.rewardAmount ??
+      null;
+    const rewardAmount =
+      typeof rewardAmountRaw === 'number' && Number.isFinite(rewardAmountRaw)
+        ? rewardAmountRaw
+        : 0;
+
+    if (rewardAmount > 0) {
+      await tx.player.update({
+        where: { id: playerId },
+        data: { RingBall: { increment: rewardAmount } },
+      });
+    }
+
+    if (resolvedItemId > 0) {
+      await addItemToInventory(playerId, resolvedItemId, tx, {
+        level: 1,
+        price: 0,
+        isSolded: 1,
+      });
+    }
+
+    const relatedAchievement =
+      (updatedStatus as any).achievement ?? achievement ?? undefined;
+
+    return buildRewardRecord(updatedStatus, relatedAchievement);
   });
 
-  const relatedAchievement = createdStatus.achievement ?? achievement;
-
-  return buildRewardRecord(createdStatus, relatedAchievement);
+  return result;
 };
