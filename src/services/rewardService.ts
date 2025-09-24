@@ -436,7 +436,7 @@ export const confirmAdWatch = async (
       }),
     ]);
 
-    if (!achievement && !existingStatus) {
+    if (!achievement) {
       return null;
     }
 
