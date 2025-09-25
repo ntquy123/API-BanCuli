@@ -542,7 +542,7 @@ export const confirmAdWatch = async (
       await addItemToInventory(playerId, resolvedItemId, tx, {
         level: 1,
         price: 0,
-        isSolded: 1,
+        isSolded: 3,
       });
     }
 
