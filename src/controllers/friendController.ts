@@ -272,32 +272,23 @@ export const readFriendMessageController = async (
   res: Response
 ): Promise<void> => {
   try {
-    const playerId = Number(req.body.playerId ?? req.params.playerId);
-    const seqMess = Number(req.body.seqMess ?? req.params.seqMess);
-    const receiverIdRaw = req.body.receiverId ?? req.params.receiverId;
-    const receiverId =
-      receiverIdRaw !== undefined ? Number(receiverIdRaw) : undefined;
+    const playerIdRaw = req.body.playerId ?? req.params.playerId;
+    const seqMessRaw = req.body.seqMess ?? req.params.seqMess;
+
+    const playerId = Number(playerIdRaw);
+    const seqMess = Number(seqMessRaw);
 
     if (
-      isNaN(playerId) ||
-      isNaN(seqMess) ||
-      (receiverIdRaw !== undefined && isNaN(receiverId))
+      playerIdRaw === undefined ||
+      seqMessRaw === undefined ||
+      Number.isNaN(playerId) ||
+      Number.isNaN(seqMess)
     ) {
-      res.status(400).json({ message: 'Invalid parameters' });
+      res.status(400).json({ message: 'Invalid playerId or seqMess' });
       return;
     }
 
-    // Optional validation: ensure requester is the intended receiver
-    if (
-      receiverId !== undefined &&
-      Number(req.body.requesterId ?? req.params.requesterId ?? receiverId) !==
-        receiverId
-    ) {
-      res.status(403).json({ message: 'Forbidden' });
-      return;
-    }
-
-    const result = await readMessage(playerId, seqMess, receiverId);
+    const result = await readMessage(playerId, seqMess);
     if (result.success) {
       res.json({ success: true });
       return;

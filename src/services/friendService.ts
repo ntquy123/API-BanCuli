@@ -324,17 +324,12 @@ export const sendMessage = async (
   }
 };
 
-export const readMessage = async (
-  playerId: number,
-  seqMess: number,
-  receiverId?: number
-) => {
+export const readMessage = async (playerId: number, seqMess: number) => {
   try {
     await prisma.friendMessage.updateMany({
       where: {
-        senderId: playerId,
+        receiverId: playerId,
         seqMess,
-        ...(receiverId !== undefined ? { receiverId } : {}),
       },
       data: { status: 'READ' },
     });
