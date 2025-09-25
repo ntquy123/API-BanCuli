@@ -44,7 +44,7 @@ export const buyMarketItem = async (
 
     const buyer = await tx.player.findFirst({
       where: { id: buyerId, IsActive: true },
-      select: { RingBall: true }
+      select: { RingBall: true, PlayerName: true }
     });
 
     if (!buyer) {
@@ -69,9 +69,25 @@ export const buyMarketItem = async (
       where: { id: buyerId },
       data: { RingBall: { decrement: price } }
     });
-    await tx.player.update({
-      where: { id: sellerId },
-      data: { RingBall: { increment: price } }
+
+    const lastSystemMessage = await tx.friendMessage.findFirst({
+      where: { senderId: 0 },
+      orderBy: { seqMess: 'desc' },
+      select: { seqMess: true }
+    });
+
+    const systemSeq = (lastSystemMessage?.seqMess ?? 0) + 1;
+    const buyerName = buyer.PlayerName ?? '';
+
+    await tx.friendMessage.create({
+      data: {
+        senderId: 0,
+        receiverId: sellerId,
+        seqMess: systemSeq,
+        message: `${buyerName}purchased_des`,
+        ringBallReward: price,
+        status: 'PENDING'
+      }
     });
 
     await tx.playerItem.update({
