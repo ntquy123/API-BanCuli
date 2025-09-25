@@ -186,6 +186,7 @@ export const listRewardPlayerAchievements = async (
         select: {
           isGiftReceived: true,
           isComplete: true,
+          TransDate: true,
           updatedAt: true,
         },
         take: 1,
@@ -195,9 +196,35 @@ export const listRewardPlayerAchievements = async (
 
   return achievements.map((achievement: any) => {
     const status = achievement?.statuses?.[0];
-    const normalizedStatus = status
-      ? { ...status, achievementId: achievement.seq }
-      : undefined;
+    const normalizedStatus = (() => {
+      if (!status) {
+        return undefined;
+      }
+
+      const rawTransDate = status.TransDate;
+      if (!rawTransDate) {
+        return undefined;
+      }
+
+      const transDate =
+        rawTransDate instanceof Date ? rawTransDate : new Date(rawTransDate);
+
+      if (Number.isNaN(transDate.valueOf())) {
+        return undefined;
+      }
+
+      const today = new Date();
+      const isSameDay =
+        transDate.getFullYear() === today.getFullYear() &&
+        transDate.getMonth() === today.getMonth() &&
+        transDate.getDate() === today.getDate();
+
+      if (!isSameDay) {
+        return undefined;
+      }
+
+      return { ...status, achievementId: achievement.seq };
+    })();
 
     return {
       rewardType: String(achievement.rewardType ?? rewardType),
