@@ -2,6 +2,10 @@
 import { Request, Response, RequestHandler } from 'express';
 import { getPlayerByAccountId, getPlayerByListId, equipPlayerItem } from '../services/playerService';
 import { getInventoryByPlayer } from '../services/itemService';
+import {
+  countPendingFriendMessages,
+  countPendingFriendRequests,
+} from '../services/friendService';
 
 export const getPlayerController = async (req: Request, res: Response) => {
   try {
@@ -39,8 +43,26 @@ export const getInventoryController: RequestHandler = async (
       res.status(400).json({ message: 'Invalid player id' });
       return;
     }
-    const inventory = await getInventoryByPlayer(id);
-    res.json(inventory);
+    const [inventory, newmessage, newreqfriends] = await Promise.all([
+      getInventoryByPlayer(id),
+      countPendingFriendMessages(id),
+      countPendingFriendRequests(id),
+    ]);
+
+    if (!inventory) {
+      res.status(404).json({
+        message: 'Inventory not found',
+        newmessage,
+        newreqfriends,
+      });
+      return;
+    }
+
+    res.json({
+      ...inventory,
+      newmessage,
+      newreqfriends,
+    });
     return;
   } catch (error: any) {
     res.status(500).json({ message: error.message });

@@ -3,6 +3,18 @@ import prisma from '../models/prismaClient';
 import { addItemToInventory } from './playerItemService';
 import { getPlayerByListId } from './playerService';
 
+export const countPendingFriendMessages = async (receiverId: number) => {
+  return prisma.friendMessage.count({
+    where: { receiverId, status: 'PENDING' },
+  });
+};
+
+export const countPendingFriendRequests = async (receiverId: number) => {
+  return prisma.friendRequest.count({
+    where: { receiverId, status: 'PENDING' },
+  });
+};
+
 export const searchPlayerById = async (id: number) => {
   try {
     const player = await prisma.player.findUnique({
