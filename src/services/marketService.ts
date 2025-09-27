@@ -84,7 +84,7 @@ export const buyMarketItem = async (
         senderId: 0,
         receiverId: sellerId,
         seqMess: systemSeq,
-        message: `${buyerName}purchased_des`,
+        message: `[${buyerName}] (purchased)`,
         ringBallReward: price,
         status: 'PENDING'
       }
