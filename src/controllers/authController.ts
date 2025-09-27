@@ -1,11 +1,28 @@
 import { Request, Response } from 'express';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
-
 import admin from '../config/firebaseAdmin';
 
-const unityIssuer = 'https://player-auth.services.api.unity.com';
-const jwksUri = new URL('https://player-auth.services.api.unity.com/.well-known/jwks.json');
-const jwks = createRemoteJWKSet(jwksUri);
+/**
+ * Unity Authentication (UGS) → Firebase custom token
+ * - Verifies the UGS JWT with Unity's JWKS
+ * - Checks the Project ID claim matches env UGS_PROJECT_ID
+ * - Mints a Firebase Custom Token for the player
+ */
+
+const UNITY_ISSUER = process.env.UNITY_ISSUER || 'https://player-auth.services.api.unity.com';
+const UNITY_JWKS_URL = process.env.UNITY_JWKS_URL || 'https://player-auth.services.api.unity.com/.well-known/jwks.json';
+const UGS_PROJECT_ID = process.env.UGS_PROJECT_ID;
+const UGS_ENVIRONMENT_NAME = process.env.UGS_ENVIRONMENT_NAME || 'production';
+
+// Fail fast if project id is missing
+if (!UGS_PROJECT_ID) {
+  // Throwing here makes the problem obvious at boot time
+  // If you prefer runtime check, move this into the handler.
+  // eslint-disable-next-line no-throw-literal
+  throw new Error('UGS_PROJECT_ID is not configured (set it in environment variables).');
+}
+
+const jwks = createRemoteJWKSet(new URL(UNITY_JWKS_URL));
 
 export const ugsToFirebase = async (req: Request, res: Response): Promise<void> => {
   const { ugsToken } = req.body ?? {};
@@ -15,42 +32,47 @@ export const ugsToFirebase = async (req: Request, res: Response): Promise<void> 
     return;
   }
 
-  const projectId = process.env.UGS_PROJECT_ID;
-
-  if (!projectId) {
-    console.error('UGS_PROJECT_ID environment variable is not configured.');
-    res.status(500).json({ message: 'UGS project ID is not configured.' });
-    return;
-  }
-
-  let verificationResult;
-
   try {
-    verificationResult = await jwtVerify(ugsToken, jwks, {
-      issuer: unityIssuer,
-      audience: projectId,
+    // 1) Verify signature & issuer using Unity JWKS
+    const verification = await jwtVerify(ugsToken, jwks, {
+      issuer: UNITY_ISSUER,
+      // audience: you may add if you enforce an audience
     });
-  } catch (error) {
-    console.error('Failed to verify UGS token', error);
-    res.status(401).json({ message: 'Invalid UGS token.' });
-    return;
-  }
+    const payload: any = verification.payload;
 
-  const playerId = verificationResult.payload.sub;
+    // 2) Extract project id from token claims (pid / projectId / project_id)
+    const tokenProjectId: string | undefined =
+      payload?.pid ?? payload?.projectId ?? payload?.project_id;
 
-  if (typeof playerId !== 'string' || !playerId.trim()) {
-    console.error('UGS token payload is missing subject (playerId).');
-    res.status(400).json({ message: 'UGS token missing subject claim.' });
-    return;
-  }
+    if (!tokenProjectId) {
+      res.status(400).json({ message: 'UGS token missing project claim.' });
+      return;
+    }
+    if (tokenProjectId !== UGS_PROJECT_ID) {
+      res.status(401).json({ message: 'UGS project mismatch.' });
+      return;
+    }
 
-  const uid = `ugs:${playerId}`;
+    // 3) PlayerId is the subject (sub)
+    const playerId: string | undefined = payload?.sub;
+    if (!playerId) {
+      res.status(400).json({ message: 'UGS token missing subject claim.' });
+      return;
+    }
 
-  try {
-    const customToken = await admin.auth().createCustomToken(uid);
+    // 4) Mint Firebase custom token
+    const uid = `ugs:${playerId}`;
+    const developerClaims = {
+      provider: 'ugs',
+      ugsProjectId: tokenProjectId,
+      ugsEnv: UGS_ENVIRONMENT_NAME,
+    };
+
+    const customToken = await admin.auth().createCustomToken(uid, developerClaims);
     res.json({ customToken });
-  } catch (error) {
-    console.error('Failed to create Firebase custom token', error);
-    res.status(500).json({ message: 'Failed to mint Firebase custom token.' });
+  } catch (err) {
+    // jose throws RequestFailed, JWSSignatureVerificationFailed, JWTInvalid, etc.
+    console.error('UGS token verify/mint failed:', err);
+    res.status(401).json({ message: 'Invalid UGS token.' });
   }
 };

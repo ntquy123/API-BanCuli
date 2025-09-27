@@ -37,7 +37,7 @@ app.use('/api', accountRoutes);
 app.use('/api', friendRoutes);
 app.use('/api', rewardRoutes);
 app.use('/api', achievementRoutes);
-app.use(authRoutes);
+app.use('/api', authRoutes);
 
 // KHÔNG CÒN BẤT KỲ ĐOẠN app.listen() hay new WebSocket.Server() nào ở đây
 
