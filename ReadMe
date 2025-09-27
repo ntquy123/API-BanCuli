@@ -52,3 +52,23 @@ Body JSON:
   "typeGid": 1,
   "itemId": 5
 }
+
+## Environment configuration for Firebase authentication bridge
+
+- `UGS_PROJECT_ID` (**required**): Unity Gaming Services project identifier used as the JWT audience when verifying UGS player tokens.
+- `FIREBASE_SERVICE_ACCOUNT_KEY` (optional): JSON string representation of a Firebase service account. When omitted, the Firebase Admin SDK will use the default application credentials available in the environment.
+
+The `/auth/ugs-to-firebase` endpoint exchanges a valid UGS player token for a Firebase custom token. Ensure both the Unity and Firebase credentials above are configured before calling this endpoint.
+
+### Manual verification
+
+After setting the environment variables, start the API and exchange a Unity Gaming Services token for a Firebase custom token:
+
+```bash
+curl -X POST \
+  http://localhost:3000/auth/ugs-to-firebase \
+  -H 'Content-Type: application/json' \
+  -d '{"ugsToken":"<UNITY_PLAYER_TOKEN>"}'
+```
+
+The response should be a JSON payload containing the minted Firebase `customToken` that can be supplied to your client applications.

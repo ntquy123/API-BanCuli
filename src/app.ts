@@ -14,6 +14,7 @@ import accountRoutes from './routes/accountRoutes';
 import friendRoutes from './routes/friendRoutes';
 import rewardRoutes from './routes/rewardRoutes';
 import achievementRoutes from './routes/achievementRoutes';
+import authRoutes from './routes/authRoutes';
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/api', accountRoutes);
 app.use('/api', friendRoutes);
 app.use('/api', rewardRoutes);
 app.use('/api', achievementRoutes);
+app.use(authRoutes);
 
 // KHÔNG CÒN BẤT KỲ ĐOẠN app.listen() hay new WebSocket.Server() nào ở đây
 
