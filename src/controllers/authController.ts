@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Request, Response } from 'express';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import admin from '../config/firebaseAdmin';
@@ -9,10 +10,12 @@ import admin from '../config/firebaseAdmin';
  * - Mints a Firebase Custom Token for the player
  */
 
-const UNITY_ISSUER = process.env.UNITY_ISSUER || 'https://player-auth.services.api.unity.com';
-const UNITY_JWKS_URL = process.env.UNITY_JWKS_URL || 'https://player-auth.services.api.unity.com/.well-known/jwks.json';
-const UGS_PROJECT_ID = process.env.UGS_PROJECT_ID;
-const UGS_ENVIRONMENT_NAME = process.env.UGS_ENVIRONMENT_NAME || 'production';
+const {
+  UNITY_ISSUER = 'https://player-auth.services.api.unity.com',
+  UNITY_JWKS_URL = 'https://player-auth.services.api.unity.com/.well-known/jwks.json',
+  UGS_PROJECT_ID,
+  UGS_ENVIRONMENT_NAME = 'production',
+} = process.env;
 
 // Fail fast if project id is missing
 if (!UGS_PROJECT_ID) {
