@@ -504,23 +504,25 @@ export const claimSystemMessageReward = async (
         await addItemToInventory(receiverId, itemRewardId, tx);
       }
 
-      const updatedMessage = await tx.friendMessage.update({
+      await tx.friendMessage.delete({
         where: {
           senderId_seqMess: {
             senderId: message.senderId,
             seqMess: message.seqMess,
           },
         },
-        data: {
-          status: 'READ',
-          ringBallReward: 0,
-          moneyReward: 0,
-          itemRewardId: null,
-        },
       });
 
+      const sanitizedMessage = {
+        ...message,
+        status: 'READ',
+        ringBallReward: 0,
+        moneyReward: 0,
+        itemRewardId: null,
+      };
+
       return {
-        message: updatedMessage,
+        message: sanitizedMessage,
         rewards: {
           ringBallReward,
           moneyReward,
