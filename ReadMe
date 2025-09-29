@@ -57,6 +57,7 @@ Body JSON:
 
 - `UGS_PROJECT_ID` (**required**): Unity Gaming Services project identifier used as the JWT audience when verifying UGS player tokens.
 - `FIREBASE_SERVICE_ACCOUNT_KEY` (optional): JSON string representation of a Firebase service account. When omitted, the Firebase Admin SDK will use the default application credentials available in the environment.
+- `DATABASE_URL` (**required**): PostgreSQL connection string used by Prisma (e.g. `postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public`). See `.env.example` for the expected format.
 
 The `/auth/ugs-to-firebase` endpoint exchanges a valid UGS player token for a Firebase custom token. Ensure both the Unity and Firebase credentials above are configured before calling this endpoint.
 
