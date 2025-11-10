@@ -25,6 +25,8 @@ model Player {
   TalentPoint            Int?
   IdAccount              String
   IsActive               Boolean
+  Email                  String?
+  ProviderType           String?
   roomUsers              RoomUser[]
   playerItems            PlayerItem[]
   histories              History[]

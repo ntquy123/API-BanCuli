@@ -1,4 +1,5 @@
 // src/services/playerService.ts
+import { Prisma } from '@prisma/client';
 import prisma from '../models/prismaClient'; // Import Prisma Client
 
 // Location id used in EquipPlayer to mark the equipped ball slot
@@ -25,6 +26,57 @@ const BALL_SLOT_LOCATION_ID = 2;
   return `${part1}-${part2}`;
 };
 
+
+const STARTING_EFFECTS = [
+  { level: 0, effectId: 11000001, power: 0, spin: 0, isPassive: true, charges: 0 },
+  { level: 0, effectId: 11000002, power: 0, spin: 0.5, isPassive: true, charges: 0 },
+  { level: 0, effectId: 11000003, power: 0, spin: 0, isPassive: true, charges: 0 },
+  { level: 0, effectId: 11000004, power: 0, spin: 0, isPassive: true, charges: 0 },
+  { level: 0, effectId: 11000005, power: 0, spin: 0, isPassive: true, charges: 0 },
+  { level: 0, effectId: 11000006, power: 0, spin: 0, isPassive: true, charges: 0 },
+  { level: 0, effectId: 11000007, power: 0, spin: 0, isPassive: false, charges: 0 },
+  { level: 1, effectId: 11000008, power: 0, spin: 0, isPassive: false, charges: 4 },
+];
+
+const seedNewPlayerData = async (
+  tx: Prisma.TransactionClient,
+  playerId: number
+) => {
+  await tx.playerItem.create({
+    data: {
+      playerId,
+      itemId: 99000001,
+      seq: 0,
+      level: 1,
+      description: '',
+      Price: 0,
+      IsSolded: 3,
+    },
+  });
+
+  await tx.equipPlayer.create({
+    data: {
+      playerId,
+      locationId: 1,
+      itemId: 99000001,
+      seqItem: 0,
+      createdDate: new Date(),
+    },
+  });
+
+  await tx.effectPlayer.createMany({
+    data: STARTING_EFFECTS.map((effect) => ({
+      playerId,
+      effectId: effect.effectId,
+      power: effect.power,
+      spin: effect.spin,
+      level: effect.level,
+      isPassive: effect.isPassive,
+      charges: effect.charges,
+      description: `Skill ${effect.effectId}`,
+    })),
+  });
+};
 
 
 export const getPlayerByAccountId = async (accountId: string) => {
@@ -221,51 +273,7 @@ export const createAccount = async (idToken: string, playerName: string) => {
           },
         });
 
-        await tx.playerItem.create({
-          data: {
-            playerId: player.id,
-            itemId: 99000001,
-            seq: 0,
-            level: 1,
-            description: '',
-            Price: 0,
-            IsSolded: 3,
-          },
-        });
-
-        await tx.equipPlayer.create({
-          data: {
-            playerId: player.id,
-            locationId: 1,
-            itemId: 99000001,
-            seqItem: 0,
-            createdDate: new Date(),
-          },
-        });
-
-        const effects = [
-          { level: 0, effectId: 11000001, power: 0, spin: 0, isPassive: true, charges: 0 },
-          { level: 0, effectId: 11000002, power: 0, spin: 0.5, isPassive: true, charges: 0 },
-          { level: 0, effectId: 11000003, power: 0, spin: 0, isPassive: true, charges: 0 },
-          { level: 0, effectId: 11000004, power: 0, spin: 0, isPassive: true, charges: 0 },
-          { level: 0, effectId: 11000005, power: 0, spin: 0, isPassive: true, charges: 0 },
-          { level: 0, effectId: 11000006, power: 0, spin: 0, isPassive: true, charges: 0 },
-          { level: 0, effectId: 11000007, power: 0, spin: 0, isPassive: false, charges: 0 },
-          { level: 1, effectId: 11000008, power: 0, spin: 0, isPassive: false, charges: 4 },
-        ];
-
-        await tx.effectPlayer.createMany({
-          data: effects.map((effect) => ({
-            playerId: player.id,
-            effectId: effect.effectId,
-            power: effect.power,
-            spin: effect.spin,
-            level: effect.level,
-            isPassive: effect.isPassive,
-            charges: effect.charges,
-            description: `Skill ${effect.effectId}`, // Mô tả kỹ năng
-          })),
-        });
+        await seedNewPlayerData(tx, player.id);
 
         return player;
       });
@@ -278,6 +286,73 @@ export const createAccount = async (idToken: string, playerName: string) => {
   }
 
   throw new Error('Failed to create account');
+};
+
+
+export const loginOrCreateSocialAccount = async (
+  firebaseUid: string,
+  email: string,
+  providerType: string
+) => {
+  const MAX_ATTEMPTS = 5;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const existing = await tx.player.findFirst({
+          where: {
+            IdAccount: firebaseUid,
+            ProviderType: providerType,
+            IsActive: true,
+          },
+        });
+
+        if (existing) {
+          const updates: Prisma.PlayerUpdateInput = {};
+
+          if (email && email !== existing.Email) {
+            updates.Email = email;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            return tx.player.update({
+              where: { id: existing.id },
+              data: updates,
+            });
+          }
+
+          return existing;
+        }
+
+        const player = await tx.player.create({
+          data: {
+            friendCode: generateFriendCode(),
+            IdAccount: firebaseUid,
+            Email: email || null,
+            ProviderType: providerType,
+            PlayerName: email || null,
+            Level: 1,
+            Exp: 0,
+            Body: 1,
+            RingBall: 20,
+            Money: 0,
+            TalentPoint: 0,
+            IsActive: true,
+          },
+        });
+
+        await seedNewPlayerData(tx, player.id);
+
+        return player;
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error('Failed to login or create social account');
 };
 
 
