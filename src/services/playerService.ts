@@ -85,7 +85,14 @@ export const getPlayerByAccountId = async (accountId: string) => {
   });
 };
 
- 
+export const updatePlayerName = async (playerId: number, playerName: string) => {
+  return prisma.player.update({
+    where: { id: playerId },
+    data: { PlayerName: playerName },
+  });
+};
+
+
 export const getPlayerByListId = async (ids: number[]) => {
   const players = await prisma.player.findMany({
     where: {

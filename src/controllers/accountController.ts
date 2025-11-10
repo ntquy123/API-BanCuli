@@ -3,6 +3,7 @@ import {
   createAccount,
   getPlayerByAccountId,
   loginOrCreateSocialAccount,
+  updatePlayerName,
 } from '../services/playerService';
 
 const VALID_PROVIDER_TYPES = [
@@ -93,6 +94,44 @@ export const socialLoginController = async (req: Request, res: Response) => {
     );
 
     res.json(player);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const confirmSocialLoginNameController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { id, PlayerName, playerName } = req.body ?? {};
+
+    const parsedId =
+      typeof id === 'string' ? Number.parseInt(id, 10) : Number(id);
+
+    if (!Number.isInteger(parsedId) || parsedId <= 0) {
+      res.status(400).json({ message: 'Invalid id' });
+      return;
+    }
+
+    const nameCandidate =
+      typeof PlayerName === 'string' && PlayerName.trim()
+        ? PlayerName
+        : typeof playerName === 'string'
+        ? playerName
+        : undefined;
+
+    if (typeof nameCandidate !== 'string' || !nameCandidate.trim()) {
+      res.status(400).json({ message: 'Invalid PlayerName' });
+      return;
+    }
+
+    const updatedPlayer = await updatePlayerName(
+      parsedId,
+      nameCandidate.trim()
+    );
+
+    res.json(updatedPlayer);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
