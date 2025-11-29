@@ -148,6 +148,8 @@ model EffectPlayer {
   isPassive   Boolean
   charges     Int
   description String
+  IsActive    Boolean @default(false)
+  IsEquiped   Boolean @default(false)
 
   player        Player        @relation(fields: [playerId], references: [id])
   sysMasGeneral SysMasGeneral @relation(fields: [effectId], references: [GenCode])

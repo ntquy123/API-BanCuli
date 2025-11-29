@@ -53,6 +53,58 @@ export const levelUpEffectPlayer = async (
     });
 
     return { TalentPoint: currentTP - 1 };
- 
+
+  });
+};
+
+export const equipEffectPlayer = async (
+  playerId: number,
+  oldEffectId: number,
+  newEffectId: number
+) => {
+  return prisma.$transaction(async (tx) => {
+    const player = await tx.player.findFirst({
+      where: { id: playerId, IsActive: true },
+      select: { id: true },
+    });
+
+    if (!player) {
+      throw new Error('Player not found or inactive');
+    }
+
+    const newEffect = await tx.effectPlayer.findUnique({
+      where: { playerId_effectId: { playerId, effectId: newEffectId } },
+      select: { IsActive: true, IsEquiped: true },
+    });
+
+    if (!newEffect) {
+      throw new Error('Skill not found for player');
+    }
+
+    if (!newEffect.IsActive) {
+      throw new Error('Chỉ có thể trang bị kỹ năng đang hoạt động');
+    }
+
+    await tx.effectPlayer.updateMany({
+      where: { playerId, effectId: oldEffectId },
+      data: { IsEquiped: false },
+    });
+
+    const equippedCount = await tx.effectPlayer.count({
+      where: {
+        playerId,
+        IsEquiped: true,
+        effectId: { not: newEffectId },
+      },
+    });
+
+    if (!newEffect.IsEquiped && equippedCount >= 3) {
+      throw new Error('Người chơi chỉ có thể trang bị tối đa 3 kỹ năng');
+    }
+
+    return tx.effectPlayer.update({
+      where: { playerId_effectId: { playerId, effectId: newEffectId } },
+      data: { IsEquiped: true },
+    });
   });
 };

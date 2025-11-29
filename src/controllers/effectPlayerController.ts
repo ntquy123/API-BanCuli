@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getByPlayerId, levelUpEffectPlayer } from '../services/effectPlayerService';
+import { equipEffectPlayer, getByPlayerId, levelUpEffectPlayer } from '../services/effectPlayerService';
 import { levelUpPlayerItem } from '../services/playerItemService';
 
 export const getEffectPlayers = async (req: Request, res: Response) => {
@@ -58,5 +58,32 @@ export const levelUpItem = async (req: Request, res: Response) => {
     res.json(updated);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const equipEffect = async (req: Request, res: Response) => {
+  try {
+    const playerId = Number(req.body.playerId);
+    const oldEffectId = Number(req.body.oldEffectId);
+    const newEffectId = Number(req.body.newEffectId);
+
+    if (isNaN(playerId) || isNaN(oldEffectId) || isNaN(newEffectId)) {
+      res.status(400).json({ message: 'Invalid parameters' });
+      return;
+    }
+
+    const updated = await equipEffectPlayer(playerId, oldEffectId, newEffectId);
+    res.json(updated);
+  } catch (error: any) {
+    if (
+      error.message === 'Player not found or inactive' ||
+      error.message === 'Skill not found for player' ||
+      error.message === 'Chỉ có thể trang bị kỹ năng đang hoạt động' ||
+      error.message === 'Người chơi chỉ có thể trang bị tối đa 3 kỹ năng'
+    ) {
+      res.status(400).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: error.message });
+    }
   }
 };
