@@ -28,14 +28,17 @@ const BALL_SLOT_LOCATION_ID = 2;
 
 
 const STARTING_EFFECTS = [
-  { level: 0, effectId: 11000001, power: 0, spin: 0, isPassive: true, charges: 0 },
-  { level: 0, effectId: 11000002, power: 0, spin: 0.5, isPassive: true, charges: 0 },
-  { level: 0, effectId: 11000003, power: 0, spin: 0, isPassive: true, charges: 0 },
-  { level: 0, effectId: 11000004, power: 0, spin: 0, isPassive: true, charges: 0 },
-  { level: 0, effectId: 11000005, power: 0, spin: 0, isPassive: true, charges: 0 },
-  { level: 0, effectId: 11000006, power: 0, spin: 0, isPassive: true, charges: 0 },
-  { level: 0, effectId: 11000007, power: 0, spin: 0, isPassive: false, charges: 0 },
-  { level: 1, effectId: 11000008, power: 0, spin: 0, isPassive: false, charges: 4 },
+  { level: 1, effectId: 11000001, power: 0, spin: 0, isPassive: false, IsActive: true, IsEquiped: true, charges: 1 },
+  { level: 1, effectId: 11000002, power: 0, spin: 0.5, isPassive: false,IsActive: true ,IsEquiped: true, charges: 1 },
+  { level: 1, effectId: 11000003, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
+  { level: 1, effectId: 11000004, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
+  { level: 1, effectId: 11000005, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
+  { level: 1, effectId: 11000006, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
+  { level: 1, effectId: 11000007, power: 0, spin: 0, isPassive: false, IsActive: true, IsEquiped: true, charges: 1 },
+  { level: 1, effectId: 11000008, power: 0, spin: 0, isPassive: false, IsActive: true, IsEquiped: true, charges: 4 },
+  { level: 1, effectId: 11000009, power: 0, spin: 0, isPassive: false, charges: 1 },
+  { level: 1, effectId: 11000010, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
+  { level: 1, effectId: 11000011, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
 ];
 
 const seedNewPlayerData = async (
@@ -72,6 +75,8 @@ const seedNewPlayerData = async (
       spin: effect.spin,
       level: effect.level,
       isPassive: effect.isPassive,
+      IsActive: effect.IsActive,
+      IsEquiped: effect.IsEquiped,
       charges: effect.charges,
       description: `Skill ${effect.effectId}`,
     })),
