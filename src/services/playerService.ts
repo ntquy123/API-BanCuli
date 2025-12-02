@@ -35,7 +35,7 @@ const STARTING_EFFECTS = [
   { level: 1, effectId: 11000005, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
   { level: 1, effectId: 11000006, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
   { level: 1, effectId: 11000007, power: 0, spin: 0, isPassive: false, IsActive: true, IsEquiped: true, charges: 1 },
-  { level: 1, effectId: 11000008, power: 0, spin: 0, isPassive: false, IsActive: true, IsEquiped: true, charges: 4 },
+  { level: 1, effectId: 11000008, power: 0, spin: 0, isPassive: true, IsActive: true, charges: 1 },
   { level: 1, effectId: 11000009, power: 0, spin: 0, isPassive: false, charges: 1 },
   { level: 1, effectId: 11000010, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
   { level: 1, effectId: 11000011, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
@@ -122,14 +122,16 @@ export const getPlayerByListId = async (ids: number[]) => {
   return players.map((player) => {
     const totals = player.effectPlayers.reduce(
       (acc, ef) => {
-        acc.totalSpin += ef.spin * ef.level;
-        acc.totalPower += ef.power * ef.level;
+        //acc.totalSpin += ef.spin * ef.level;
+        //acc.totalPower += ef.power * ef.level;
+        acc.totalSpin = 1.5;
+        acc.totalPower = 2;
         return acc;
       },
       { totalSpin: 0, totalPower: 0 }
     );
-    totals.totalSpin += 1;
-    totals.totalPower += 5;
+    //totals.totalSpin += 1;
+    //totals.totalPower += 5;
     const { effectPlayers, ...rest } = player;
     return { ...rest, ...totals };
   });

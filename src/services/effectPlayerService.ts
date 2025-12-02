@@ -71,12 +71,18 @@ export const equipEffectPlayer = async (
     if (!player) {
       throw new Error('Player not found or inactive');
     }
-
+    const OldEffect = await tx.effectPlayer.findUnique({
+      where: { playerId_effectId: { playerId, effectId: oldEffectId } },
+      select: { IsActive: true, IsEquiped: true },
+    });
     const newEffect = await tx.effectPlayer.findUnique({
       where: { playerId_effectId: { playerId, effectId: newEffectId } },
       select: { IsActive: true, IsEquiped: true },
     });
 
+    if (!OldEffect) {
+      throw new Error('Old Skill not found for player');
+    }
     if (!newEffect) {
       throw new Error('Skill not found for player');
     }
