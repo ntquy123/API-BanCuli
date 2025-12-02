@@ -16,9 +16,9 @@ export type InventoryByPlayer = Omit<Player, 'playerItems' | 'equipPlayers'> & {
   equippedItems: EquippedInventoryItem[];
 };
 
-export const getAllItems = async () => {
+export const getAllItems = async (locationGid: number) => {
   return prisma.item.findMany({
-    where: { locationGid: 2, isOpen: true },
+    where: { locationGid, isOpen: true },
     orderBy: { id: 'asc' },
   });
 };
