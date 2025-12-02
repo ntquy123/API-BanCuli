@@ -1,14 +1,16 @@
 import { Request, Response } from 'express';
 import * as ItemService from '../services/itemService';
 
-export const getItems = async (req: Request, res: Response) => {
+export const getItems = async (req: Request, res: Response): Promise<void> => {
   try {
     const locationGidParam = Number(req.query.locationGid ?? 2);
 
     if (Number.isNaN(locationGidParam)) {
-      return res
+      res
         .status(400)
         .json({ message: 'locationGid is required and must be a number' });
+
+      return;
     }
 
     const items = await ItemService.getAllItems(locationGidParam);
