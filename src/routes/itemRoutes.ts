@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import * as ItemController from '../controllers/itemController';
 
-const router = Router();
+const itemRoutes = Router();
 
-router.get('/items', ItemController.getItems);
+itemRoutes.get('/items', ItemController.getItems);
 
-export default router;
+export default itemRoutes;
