@@ -57,16 +57,6 @@ const seedNewPlayerData = async (
     },
   });
 
-  await tx.equipPlayer.create({
-    data: {
-      playerId,
-      locationId: 1,
-      itemId: 99000001,
-      seqItem: 0,
-      createdDate: new Date(),
-    },
-  });
-
   await tx.effectPlayer.createMany({
     data: STARTING_EFFECTS.map((effect) => ({
       playerId,
@@ -94,6 +84,33 @@ export const updatePlayerName = async (playerId: number, playerName: string) => 
   return prisma.player.update({
     where: { id: playerId },
     data: { PlayerName: playerName },
+  });
+};
+
+export const confirmPlayerName = async (
+  playerId: number,
+  playerName: string,
+  companionBallItemId: number
+) => {
+  return prisma.$transaction(async (tx) => {
+    const updatedPlayer = await tx.player.update({
+      where: { id: playerId },
+      data: { PlayerName: playerName },
+    });
+
+    await tx.equipPlayer.upsert({
+      where: { playerId_locationId: { playerId, locationId: 1 } },
+      update: { itemId: companionBallItemId, seqItem: 0 },
+      create: {
+        playerId,
+        locationId: 1,
+        itemId: companionBallItemId,
+        seqItem: 0,
+        createdDate: new Date(),
+      },
+    });
+
+    return updatedPlayer;
   });
 };
 

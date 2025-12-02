@@ -3,7 +3,7 @@ import {
   createAccount,
   getPlayerByAccountId,
   loginOrCreateSocialAccount,
-  updatePlayerName,
+  confirmPlayerName,
 } from '../services/playerService';
 
 const VALID_PROVIDER_TYPES = [
@@ -104,7 +104,13 @@ export const confirmSocialLoginNameController = async (
   res: Response
 ) => {
   try {
-    const { id, PlayerName, playerName } = req.body ?? {};
+    const {
+      id,
+      PlayerName,
+      playerName,
+      CompanionBallItemId,
+      companionBallItemId,
+    } = req.body ?? {};
 
     const parsedId =
       typeof id === 'string' ? Number.parseInt(id, 10) : Number(id);
@@ -126,9 +132,35 @@ export const confirmSocialLoginNameController = async (
       return;
     }
 
-    const updatedPlayer = await updatePlayerName(
+    const parsedCompanionBallItemId = (() => {
+      const rawValue =
+        typeof CompanionBallItemId === 'string' && CompanionBallItemId.trim()
+          ? CompanionBallItemId
+          : typeof companionBallItemId === 'string' && companionBallItemId.trim()
+          ? companionBallItemId
+          : typeof CompanionBallItemId === 'number'
+          ? CompanionBallItemId
+          : typeof companionBallItemId === 'number'
+          ? companionBallItemId
+          : undefined;
+
+      return typeof rawValue === 'string'
+        ? Number.parseInt(rawValue, 10)
+        : rawValue;
+    })();
+
+    if (
+      !Number.isInteger(parsedCompanionBallItemId) ||
+      parsedCompanionBallItemId <= 0
+    ) {
+      res.status(400).json({ message: 'Invalid CompanionBallItemId' });
+      return;
+    }
+
+    const updatedPlayer = await confirmPlayerName(
       parsedId,
-      nameCandidate.trim()
+      nameCandidate.trim(),
+      parsedCompanionBallItemId
     );
 
     res.json(updatedPlayer);
