@@ -45,18 +45,6 @@ const seedNewPlayerData = async (
   tx: Prisma.TransactionClient,
   playerId: number
 ) => {
-  await tx.playerItem.create({
-    data: {
-      playerId,
-      itemId: 99000001,
-      seq: 0,
-      level: 1,
-      description: '',
-      Price: 0,
-      IsSolded: 3,
-    },
-  });
-
   await tx.effectPlayer.createMany({
     data: STARTING_EFFECTS.map((effect) => ({
       playerId,
@@ -96,6 +84,18 @@ export const confirmPlayerName = async (
     const updatedPlayer = await tx.player.update({
       where: { id: playerId },
       data: { PlayerName: playerName },
+    });
+
+    await tx.playerItem.create({
+      data: {
+        playerId,
+        itemId: companionBallItemId,
+        seq: 0,
+        level: 1,
+        description: '',
+        Price: 0,
+        IsSolded: 3,
+      },
     });
 
     await tx.equipPlayer.upsert({
