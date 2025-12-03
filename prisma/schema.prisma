@@ -116,6 +116,7 @@ model History {
   marblesWon   Int
   marblesLost  Int
   expGained    Int
+  rankPoints   Int      @default(0)
   description  String?
   createdAt    DateTime @default(now())
 

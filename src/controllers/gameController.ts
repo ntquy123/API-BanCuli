@@ -8,17 +8,17 @@ export const overGame = async (req: Request, res: Response) => {
       res.status(400).json({ message: 'Request body must be an array' });
       return;
     }
-const generateTransno = (): bigint => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hour = String(now.getHours()).padStart(2, '0');
-  const minute = String(now.getMinutes()).padStart(2, '0');
-  const second = String(now.getSeconds()).padStart(2, '0');
-  const milli = String(now.getMilliseconds()).padStart(3, '0');
-  return BigInt(`${year}${month}${day}${hour}${minute}${second}${milli}`);
-};
+    const generateTransno = (): bigint => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hour = String(now.getHours()).padStart(2, '0');
+      const minute = String(now.getMinutes()).padStart(2, '0');
+      const second = String(now.getSeconds()).padStart(2, '0');
+      const milli = String(now.getMilliseconds()).padStart(3, '0');
+      return BigInt(`${year}${month}${day}${hour}${minute}${second}${milli}`);
+    };
     const transno = generateTransno();
     for (const entry of req.body) {
       const {
@@ -42,6 +42,7 @@ const generateTransno = (): bigint => {
 
       const exp = typeof expGained === 'number' ? expGained : 0;
       const marblesActual = marblesWon > 0 ? marblesWon : -marblesLost;
+      const rankPoints = StatusWin === 1 ? Math.abs(marblesActual) : -Math.abs(marblesActual);
       await updatePlayerStats(playerId, exp, marblesActual);
 
       await createHistory({
@@ -57,6 +58,7 @@ const generateTransno = (): bigint => {
         marblesWon,
         marblesLost,
         expGained: exp,
+        rankPoints,
         description,
       });
     }

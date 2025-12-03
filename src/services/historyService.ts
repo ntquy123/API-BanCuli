@@ -13,6 +13,7 @@ export interface HistoryData {
   marblesWon?: number;
   marblesLost?: number;
   expGained?: number;
+  rankPoints?: number;
   description?: string;
 }
 
@@ -35,9 +36,26 @@ export const createHistory = async (data: HistoryData) => {
       marblesWon: data.marblesWon,
       marblesLost: data.marblesLost,
       expGained: data.expGained,
+      rankPoints: data.rankPoints,
       description: data.description,
     },
   });
+};
+
+export const getHistoryStatsByPlayer = async (playerId: number) => {
+  const [totalMatches, totalWins, rankAggregate] = await Promise.all([
+    prisma.history.count({ where: { playerId } }),
+    prisma.history.count({ where: { playerId, statusWin: 1 } }),
+    prisma.history.aggregate({ where: { playerId }, _sum: { rankPoints: true } }),
+  ]);
+
+  const winRateRaw = totalMatches > 0 ? (totalWins / totalMatches) * 100 : 0;
+  return {
+    playerId,
+    totalMatches,
+    winRate: parseFloat(winRateRaw.toFixed(2)),
+    totalRankPoints: rankAggregate._sum.rankPoints ?? 0,
+  };
 };
 
 export const getHistories = async (skip = 0, take = 10) => {
