@@ -82,3 +82,48 @@ export const getAllHistories = async () => {
     },
   });
 };
+
+export const getRankLeaderboard = async (limit = 100) => {
+  const groupedHistories = await prisma.history.groupBy({
+    by: ['playerId'],
+    _sum: {
+      rankPoints: true,
+    },
+    orderBy: {
+      _sum: {
+        rankPoints: 'desc',
+      },
+    },
+    take: limit,
+  });
+
+  const playerIds = groupedHistories.map((history) => history.playerId);
+
+  const players = await prisma.player.findMany({
+    where: {
+      id: {
+        in: playerIds,
+      },
+    },
+    select: {
+      id: true,
+      PlayerName: true,
+      Level: true,
+      RingBall: true,
+    },
+  });
+
+  const playerMap = new Map(players.map((player) => [player.id, player]));
+
+  return groupedHistories.map((history) => {
+    const player = playerMap.get(history.playerId);
+
+    return {
+      playerId: history.playerId,
+      totalRankPoints: history._sum.rankPoints ?? 0,
+      playerName: player?.PlayerName ?? null,
+      level: player?.Level ?? null,
+      ringBall: player?.RingBall ?? null,
+    };
+  });
+};

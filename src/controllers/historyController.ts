@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import {
   getHistories as getHistoriesService,
   getHistoryStatsByPlayer,
+  getRankLeaderboard,
 } from '../services/historyService';
 
 export const getHistories = async (req: Request, res: Response) => {
@@ -27,6 +28,15 @@ export const getHistoryStats = async (req: Request, res: Response) => {
 
     const stats = await getHistoryStatsByPlayer(playerId);
     res.json(stats);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getHistoryLeaderboard = async (_req: Request, res: Response) => {
+  try {
+    const leaderboard = await getRankLeaderboard();
+    res.json(leaderboard);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
