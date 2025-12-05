@@ -83,7 +83,7 @@ export const getAllHistories = async () => {
   });
 };
 
-export const getRankLeaderboard = async (limit = 100) => {
+export const getRankLeaderboard = async (limit = 100, playerId?: number) => {
   const groupedHistories = await prisma.history.groupBy({
     by: ['playerId'],
     _sum: {
@@ -115,7 +115,7 @@ export const getRankLeaderboard = async (limit = 100) => {
 
   const playerMap = new Map(players.map((player) => [player.id, player]));
 
-  return groupedHistories.map((history) => {
+  const leaderboard = groupedHistories.map((history) => {
     const player = playerMap.get(history.playerId);
 
     return {
@@ -126,4 +126,47 @@ export const getRankLeaderboard = async (limit = 100) => {
       ringBall: player?.RingBall ?? null,
     };
   });
+
+  if (playerId === undefined) {
+    return { leaderboard, playerRank: null };
+  }
+
+  const playerIndex = playerIds.findIndex((id) => id === playerId);
+
+  if (playerIndex !== -1) {
+    return {
+      leaderboard,
+      playerRank: {
+        ...leaderboard[playerIndex],
+        position: playerIndex + 1,
+      },
+    };
+  }
+
+  const [player, playerRankAggregate] = await Promise.all([
+    prisma.player.findUnique({
+      where: { id: playerId },
+      select: {
+        PlayerName: true,
+        Level: true,
+        RingBall: true,
+      },
+    }),
+    prisma.history.aggregate({
+      where: { playerId },
+      _sum: { rankPoints: true },
+    }),
+  ]);
+
+  return {
+    leaderboard,
+    playerRank: {
+      playerId,
+      totalRankPoints: playerRankAggregate._sum.rankPoints ?? 0,
+      playerName: player?.PlayerName ?? null,
+      level: player?.Level ?? null,
+      ringBall: player?.RingBall ?? null,
+      position: 0,
+    },
+  };
 };

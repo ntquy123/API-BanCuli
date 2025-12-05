@@ -33,9 +33,17 @@ export const getHistoryStats = async (req: Request, res: Response) => {
   }
 };
 
-export const getHistoryLeaderboard = async (_req: Request, res: Response) => {
+export const getHistoryLeaderboard = async (req: Request, res: Response) => {
   try {
-    const leaderboard = await getRankLeaderboard();
+    const playerIdParam = req.query.playerId as string | undefined;
+    const playerId = playerIdParam ? parseInt(playerIdParam, 10) : undefined;
+
+    if (playerIdParam !== undefined && Number.isNaN(playerId)) {
+      res.status(400).json({ message: 'playerId must be a number' });
+      return;
+    }
+
+    const leaderboard = await getRankLeaderboard(100, playerId);
     res.json(leaderboard);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
