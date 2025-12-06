@@ -72,6 +72,20 @@ export const getHistories = async (skip = 0, take = 10, playerId?: number) => {
   });
 };
 
+export const getHistoriesByTransno = async (transno: bigint) => {
+  return prisma.history.findMany({
+    include: {
+      player: true,
+    },
+    where: {
+      transno,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+};
+
 // Keep for backward compatibility if other modules use it
 export const getAllHistories = async () => {
   return prisma.history.findMany({

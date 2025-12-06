@@ -3,6 +3,7 @@ import {
   getHistories as getHistoriesService,
   getHistoryStatsByPlayer,
   getRankLeaderboard,
+  getHistoriesByTransno,
 } from '../services/historyService';
 
 export const getHistories = async (req: Request, res: Response) => {
@@ -57,6 +58,36 @@ export const getHistoryLeaderboard = async (req: Request, res: Response) => {
 
     const leaderboard = await getRankLeaderboard(100, playerId);
     res.json(leaderboard);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getHistoriesByTransnoController = async (req: Request, res: Response) => {
+  try {
+    const { transNo: transnoParam } = req.params;
+
+    if (!transnoParam) {
+      res.status(400).json({ message: 'transNo is required' });
+      return;
+    }
+
+    let transno: bigint;
+
+    try {
+      transno = BigInt(transnoParam);
+    } catch {
+      res.status(400).json({ message: 'transNo must be a valid number' });
+      return;
+    }
+
+    const histories = await getHistoriesByTransno(transno);
+    const serializedHistories = histories.map((history) => ({
+      ...history,
+      transno: history.transno.toString(),
+    }));
+
+    res.json(serializedHistories);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
