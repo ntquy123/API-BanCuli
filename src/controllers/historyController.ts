@@ -19,7 +19,11 @@ export const getHistories = async (req: Request, res: Response) => {
 
     const skip = (page - 1) * pageSize;
     const histories = await getHistoriesService(skip, pageSize, playerId);
-    res.json(histories);
+    const serializedHistories = histories.map((history) => ({
+      ...history,
+      transno: history.transno.toString(),
+    }));
+    res.json(serializedHistories);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
