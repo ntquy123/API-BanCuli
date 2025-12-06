@@ -24,7 +24,7 @@ model Player {
   Money                  Int?
   TalentPoint            Int?
   IdAccount              String
-  IsActive               Boolean
+  IsActive               Boolean            
   Email                  String?
   ProviderType           String?
   roomUsers              RoomUser[]
@@ -41,6 +41,10 @@ model Player {
   friends                Friendship[]              @relation("FriendPlayerShips")
   messagesSent           FriendMessage[]           @relation("MessagesSent")
   messagesReceived       FriendMessage[]           @relation("MessagesReceived")
+  @@index([IsActive]) 
+  @@index([IdAccount]) 
+  @@index([ProviderType]) 
+  @@index([Email])
 }
 
 // SYSTEM
@@ -86,6 +90,14 @@ model Item {
   ImpactResistance    Float?
   playerItems         PlayerItem[]
   equipPlayers        EquipPlayer[]
+  @@index([typeGid])
+  @@index([level])
+  @@index([ElementType])
+  @@index([isLevelUp])
+  @@index([isOpen])
+  @@index([locationGid])
+  @@index([Levelrequired])
+ 
 }
 
 model PlayerItem {
@@ -123,6 +135,8 @@ model History {
   player Player @relation(fields: [playerId], references: [id])
 
   @@id([playerId, transno])
+  @@index([statusWin])
+  @@index([createdAt])
 }
 
 model SysMasGeneral {
@@ -156,6 +170,8 @@ model EffectPlayer {
   sysMasGeneral SysMasGeneral @relation(fields: [effectId], references: [GenCode])
 
   @@id([playerId, effectId])
+  @@index([IsActive])
+   @@index([IsEquiped])
 }
 
 model PlayerAchievement {
@@ -221,6 +237,7 @@ model ItemTradeHistory {
   createdAt    DateTime @default(now())
 
   @@id([playerIdBuy, playerIdSold, itemId, seq])
+  @@index([createdAt])
 }
 
 model FriendRequest {
@@ -233,6 +250,7 @@ model FriendRequest {
   receiver Player @relation("ReceivedFriendRequests", fields: [receiverId], references: [id])
 
   @@id([senderId, receiverId])
+   @@index([createdAt])
 }
 
 model Friendship {
@@ -244,6 +262,7 @@ model Friendship {
   friend Player @relation("FriendPlayerShips", fields: [friendId], references: [id])
 
   @@id([playerId, friendId])
+   @@index([since])
 }
 
 model FriendMessage {
@@ -264,4 +283,5 @@ model FriendMessage {
   receiver   Player   @relation("MessagesReceived", fields: [receiverId], references: [id])
 
   @@id([senderId, seqMess])
+   @@index([createdAt])
 }
