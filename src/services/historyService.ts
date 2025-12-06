@@ -58,7 +58,7 @@ export const getHistoryStatsByPlayer = async (playerId: number) => {
   };
 };
 
-export const getHistories = async (skip = 0, take = 10) => {
+export const getHistories = async (skip = 0, take = 10, playerId?: number) => {
   return prisma.history.findMany({
     include: {
       player: true,
@@ -66,6 +66,7 @@ export const getHistories = async (skip = 0, take = 10) => {
     orderBy: {
       createdAt: 'desc',
     },
+    where: playerId ? { playerId } : undefined,
     skip,
     take,
   });
