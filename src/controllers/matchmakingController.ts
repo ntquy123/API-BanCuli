@@ -54,6 +54,58 @@ export const joinRoom: RequestHandler = async (req, res) => {
   }
 };
 
+export const joinRoomBatch: RequestHandler = async (req, res) => {
+  try {
+    const { userIds } = req.body as { userIds: unknown };
+
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      res.status(400).json({ error: 'userIds must be a non-empty array' });
+      return;
+    }
+
+    const results: Array<
+      | { userId: number; room: Awaited<ReturnType<typeof assignRoomToPlayer>>; message: string }
+      | { userId: number; error: string }
+    > = [];
+
+    for (const id of userIds) {
+      const userId = Number(id);
+
+      if (!userId) {
+        results.push({ userId, error: 'userId is required' });
+        continue;
+      }
+
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const room = await assignRoomToPlayer(userId);
+        results.push({ userId, room, message: 'Đã gán phòng thành công' });
+      } catch (error) {
+        if (error instanceof Error && error.message === 'SERVER_CAPACITY_REACHED') {
+          res.status(503).json({
+            error: 'Server đang quá tải, vui lòng thử lại sau.',
+            results,
+          });
+          return;
+        }
+
+        if (error instanceof Error && error.message === 'ROOM_FULL') {
+          results.push({ userId, error: 'Phòng đã đầy, vui lòng thử lại.' });
+          continue;
+        }
+
+        console.error('Lỗi khi join room cho user:', userId, error);
+        results.push({ userId, error: 'Không thể join room' });
+      }
+    }
+
+    res.json({ results });
+  } catch (error) {
+    console.error('Lỗi khi join room hàng loạt:', error);
+    res.status(500).json({ error: 'Không thể join room' });
+  }
+};
+
 export const leaveRoomController: RequestHandler = async (req, res) => {
   try {
     const { roomId, userId } = req.body;
