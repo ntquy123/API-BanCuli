@@ -130,6 +130,51 @@ export const leaveRoomController: RequestHandler = async (req, res) => {
   }
 };
 
+export const leaveRoomBatchController: RequestHandler = async (req, res) => {
+  try {
+    const { roomId, userIds } = req.body as { roomId: unknown; userIds: unknown };
+
+    if (!roomId || !Array.isArray(userIds) || userIds.length === 0) {
+      res.status(400).json({ error: 'roomId và danh sách userIds là bắt buộc' });
+      return;
+    }
+
+    const parsedRoomId = Number(roomId);
+    const results: Array<
+      | { userId: number; room: Awaited<ReturnType<typeof leaveRoom>>; message: string }
+      | { userId: number; error: string }
+    > = [];
+
+    for (const id of userIds) {
+      const userId = Number(id);
+
+      if (!userId) {
+        results.push({ userId, error: 'userId là bắt buộc' });
+        continue;
+      }
+
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const room = await leaveRoom(parsedRoomId, userId);
+        results.push({ userId, room, message: 'Đã rời phòng' });
+      } catch (error) {
+        if (error instanceof Error && error.message === 'ROOM_NOT_FOUND') {
+          res.status(404).json({ error: 'Không tìm thấy phòng', results });
+          return;
+        }
+
+        console.error('Lỗi khi leave room cho user:', userId, error);
+        results.push({ userId, error: 'Không thể rời phòng' });
+      }
+    }
+
+    res.json({ results });
+  } catch (error) {
+    console.error('Lỗi khi leave room hàng loạt:', error);
+    res.status(500).json({ error: 'Không thể rời phòng' });
+  }
+};
+
 export const getEmptyRoomList: RequestHandler = async (_req, res) => {
   try {
     const rooms = await getEmptyRooms();
