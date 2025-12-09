@@ -13,7 +13,9 @@ const DEFAULT_MAX_PLAYERS = Number(process.env.ROOM_MAX_PLAYERS) || 4;
 const DOCKER_RUNTIME = process.env.DOCKER_BIN || 'docker';
 const DOCKER_IMAGE = process.env.ROOM_DOCKER_IMAGE || 'banculi/unity-dedicated:latest';
 const SERVER_PORT_IN_CONTAINER = Number(process.env.ROOM_CONTAINER_PORT) || 27015;
-const EXTRA_SERVER_ARGS = process.env.ROOM_SERVER_ARGS || '-batchmode -nographics -dedicatedServer 1';
+const LOG_PATH = process.env.ROOM_LOG_PATH || '/home/deploy/server/server.log';
+const EXTRA_SERVER_ARGS =
+  process.env.ROOM_SERVER_ARGS || `-batchmode -nographics -dedicatedServer 1 -logfile ${LOG_PATH}`;
 
 async function getAvailablePort(): Promise<number | null> {
   const usedPorts = await prisma.room.findMany({ select: { port: true } });

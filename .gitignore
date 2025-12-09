@@ -8,3 +8,5 @@ generated/
 # Build archives
 BanCuLi.zip
 *.zip
+docker/unity-server/build/*
+!docker/unity-server/build/.gitkeep
