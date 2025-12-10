@@ -49,7 +49,16 @@ async function startRoomContainer(roomName: string, port: number) {
     `${baseCommand} ${EXTRA_SERVER_ARGS} --roomName=${roomName} --port=${port}`.trim();
 
   const { stderr, stdout } = await execPromise(startCommand);
-  if (stderr) {
+  const stderrLines = stderr
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const nonIgnorableErrors = stderrLines.filter(
+    (line) => !line.startsWith('Emulate Docker CLI using podman. Create /etc/containers/nodocker to quiet msg.'),
+  );
+
+  if (nonIgnorableErrors.length > 0) {
     throw new Error(`Docker start error: ${stderr}`);
   }
 
