@@ -20,6 +20,11 @@ export const availableRooms: RequestHandler = async (_req, res) => {
       return;
     }
 
+    if (error instanceof Error && error.message.startsWith('ROOM_INSERT_FAILED')) {
+      res.status(500).json({ error: `Không thể tạo phòng: ${error.message}` });
+      return;
+    }
+
     console.error('Lỗi khi đảm bảo phòng trống:', error);
     res.status(500).json({ error: 'Không thể lấy danh sách phòng' });
   }

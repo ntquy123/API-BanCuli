@@ -36,7 +36,8 @@ function buildContainerName(roomName: string): string {
 async function startRoomContainer(roomName: string, port: number) {
   const containerName = buildContainerName(roomName);
   const baseCommand = `${DOCKER_RUNTIME} run -d --rm --name ${containerName} -p ${port}:${SERVER_PORT_IN_CONTAINER} ${DOCKER_IMAGE}`;
-  const startCommand = `${baseCommand} ${EXTRA_SERVER_ARGS}`.trim();
+  const startCommand =
+    `${baseCommand} ${EXTRA_SERVER_ARGS} --roomName=${roomName} --port=${port}`.trim();
 
   const { stderr } = await execPromise(startCommand);
   if (stderr) {
@@ -61,15 +62,20 @@ async function createEmptyRoom() {
   }
 
   const roomName = crypto.randomUUID();
-
-  const room = await prisma.room.create({
-    data: {
-      roomName,
-      port,
-      maxPlayers: DEFAULT_MAX_PLAYERS,
-      currentPlayers: 0,
-    },
-  });
+  let room;
+  try {
+    room = await prisma.room.create({
+      data: {
+        roomName,
+        port,
+        maxPlayers: DEFAULT_MAX_PLAYERS,
+        currentPlayers: 0,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown insert error';
+    throw new Error(`ROOM_INSERT_FAILED: ${message}`);
+  }
 
   try {
     await startRoomContainer(room.roomName, port);
