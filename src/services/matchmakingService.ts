@@ -80,6 +80,44 @@ async function stopRoomContainer(roomName: string) {
   }
 }
 
+async function stopContainerById(containerId: string) {
+  try {
+    await execPromise(`${DOCKER_RUNTIME} stop ${containerId}`);
+  } catch (error) {
+    console.error(`Không thể dừng container ${containerId}:`, error);
+  }
+}
+
+export async function resetServerPortPoolIfIdle() {
+  const serverPool = await prisma.serverPortPool.findMany();
+
+  if (serverPool.length === 0) {
+    return false;
+  }
+
+  const hasBusyRoom = serverPool.some((record) => record.isBusy !== 0);
+  if (hasBusyRoom) {
+    return false;
+  }
+
+  for (const record of serverPool) {
+    if (record.containerId) {
+      // eslint-disable-next-line no-await-in-loop
+      await stopContainerById(record.containerId);
+      continue;
+    }
+
+    if (record.roomNameRef) {
+      // eslint-disable-next-line no-await-in-loop
+      await stopRoomContainer(record.roomNameRef);
+    }
+  }
+
+  await prisma.serverPortPool.deleteMany();
+
+  return true;
+}
+
 async function createEmptyRoom() {
   const port = await getAvailablePort();
   if (!port) {

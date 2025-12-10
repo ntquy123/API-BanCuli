@@ -6,10 +6,12 @@ import {
   joinUsersToRoomByName,
   leaveRoom,
   leaveRoomAndCleanup,
+  resetServerPortPoolIfIdle,
 } from '../services/matchmakingService';
 
 export const availableRooms: RequestHandler = async (_req, res) => {
   try {
+    await resetServerPortPoolIfIdle();
     const rooms = await ensureEmptyRooms();
     res.json({
       availableRooms: rooms,
