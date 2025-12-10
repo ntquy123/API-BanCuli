@@ -142,13 +142,13 @@ export const getPlayerByListId = async (ids: number[]) => {
         //acc.totalSpin += ef.spin * ef.level;
         //acc.totalPower += ef.power * ef.level;
         acc.totalSpin = 1.5;
-        acc.totalPower = 2;
+        acc.totalPower = 8;
         return acc;
       },
       { totalSpin: 0, totalPower: 0 }
     );
-    //totals.totalSpin += 1;
-    //totals.totalPower += 5;
+    // totals.totalSpin += 1;
+    // totals.totalPower += 3;
     const { effectPlayers, ...rest } = player;
     return { ...rest, ...totals };
   });
