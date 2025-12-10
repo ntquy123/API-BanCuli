@@ -6,8 +6,8 @@ const execPromise = util.promisify(exec); // Chuyển exec thành Promise
 const PORT_RANGE_START = 27015;
 const PORT_RANGE_END = 27100;
 async function getAvailablePort(): Promise<number | null> {
-  const usedPorts = await prisma.room.findMany({ select: { port: true } });
-  const usedSet = new Set(usedPorts.map(r => r.port));
+  const usedPorts = await prisma.serverPortPool.findMany({ select: { portNo: true } });
+  const usedSet = new Set(usedPorts.map(r => r.portNo));
 
   for (let port = PORT_RANGE_START; port <= PORT_RANGE_END; port++) {
     if (!usedSet.has(port)) {
@@ -89,7 +89,6 @@ export const createRoom = async (data: { roomName: string, userId: number }) => 
         maxPlayers: 2,
         // Bắt đầu phòng với 1 người chơi
         currentPlayers: 1,
-        port: 27015, // Giá trị mặc định, có thể thay đổi sau này
       },
     });
 

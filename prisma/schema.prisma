@@ -51,10 +51,17 @@ model Player {
 model Room {
   id             Int        @id @default(autoincrement())
   roomName       String
-  port           Int
   maxPlayers     Int
   currentPlayers Int
   roomUsers      RoomUser[]
+}
+
+model ServerPortPool {
+  portNo      Int       @id
+  isBusy      Int       @default(0)
+  lastUpdate  DateTime?
+  containerId String?
+  roomNameRef String?
 }
 
 model RoomUser {

@@ -17,8 +17,17 @@ const EXTRA_SERVER_ARGS =
   process.env.ROOM_SERVER_ARGS || '-batchmode -nographics -dedicatedServer 1 -logfile -';
 
 async function getAvailablePort(): Promise<number | null> {
-  const usedPorts = await prisma.room.findMany({ select: { port: true } });
-  const usedSet = new Set(usedPorts.map((room) => room.port));
+  const reusablePort = await prisma.serverPortPool.findFirst({
+    where: { isBusy: 0, containerId: null },
+    orderBy: { portNo: 'asc' },
+  });
+
+  if (reusablePort) {
+    return reusablePort.portNo;
+  }
+
+  const usedPorts = await prisma.serverPortPool.findMany({ select: { portNo: true } });
+  const usedSet = new Set(usedPorts.map((room) => room.portNo));
 
   for (let port = PORT_RANGE_START; port <= PORT_RANGE_END; port += 1) {
     if (!usedSet.has(port)) {
@@ -39,10 +48,17 @@ async function startRoomContainer(roomName: string, port: number) {
   const startCommand =
     `${baseCommand} ${EXTRA_SERVER_ARGS} --roomName=${roomName} --port=${port}`.trim();
 
-  const { stderr } = await execPromise(startCommand);
+  const { stderr, stdout } = await execPromise(startCommand);
   if (stderr) {
     throw new Error(`Docker start error: ${stderr}`);
   }
+
+  const containerId = stdout.trim();
+  if (!containerId) {
+    throw new Error('Docker start error: missing container id');
+  }
+
+  return containerId;
 }
 
 async function stopRoomContainer(roomName: string) {
@@ -62,34 +78,35 @@ async function createEmptyRoom() {
   }
 
   const roomName = crypto.randomUUID();
-  let room;
-  try {
-    room = await prisma.room.create({
-      data: {
-        roomName,
-        port,
-        maxPlayers: DEFAULT_MAX_PLAYERS,
-        currentPlayers: 0,
-      },
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown insert error';
-    throw new Error(`ROOM_INSERT_FAILED: ${message}`);
-  }
+  const containerId = await startRoomContainer(roomName, port);
 
-  try {
-    await startRoomContainer(room.roomName, port);
-    return room;
-  } catch (error) {
-    await prisma.room.delete({ where: { id: room.id } });
-    throw error;
-  }
+  const poolRecord = await prisma.serverPortPool.upsert({
+    where: { portNo: port },
+    create: {
+      portNo: port,
+      isBusy: 0,
+      roomNameRef: roomName,
+      containerId,
+      lastUpdate: new Date(),
+    },
+    update: {
+      isBusy: 0,
+      roomNameRef: roomName,
+      containerId,
+      lastUpdate: new Date(),
+    },
+  });
+
+  return poolRecord;
 }
 
 export async function ensureEmptyRooms() {
   const [totalRooms, emptyRooms] = await Promise.all([
-    prisma.room.count(),
-    prisma.room.findMany({ where: { currentPlayers: 0 }, orderBy: { id: 'asc' } }),
+    prisma.serverPortPool.count(),
+    prisma.serverPortPool.findMany({
+      where: { isBusy: 0, containerId: { not: null } },
+      orderBy: { portNo: 'asc' },
+    }),
   ]);
 
   if (emptyRooms.length >= MIN_EMPTY_ROOMS) {
@@ -121,14 +138,36 @@ export async function assignRoomToPlayer(userId: number) {
   const availableRooms = await ensureEmptyRooms();
   const targetRoom = availableRooms[0];
 
+  if (!targetRoom) {
+    throw new Error('SERVER_CAPACITY_REACHED');
+  }
+
   const room = await prisma.$transaction(async (tx) => {
-    const roomRecord = await tx.room.findUnique({ where: { id: targetRoom.id } });
-    if (!roomRecord) {
+    const poolRecord = await tx.serverPortPool.findUnique({ where: { portNo: targetRoom.portNo } });
+
+    if (!poolRecord || poolRecord.isBusy !== 0 || !poolRecord.roomNameRef || !poolRecord.containerId) {
       throw new Error('ROOM_NOT_FOUND');
     }
 
-    if (roomRecord.currentPlayers >= roomRecord.maxPlayers) {
+    let roomRecord = await tx.room.findFirst({ where: { roomName: poolRecord.roomNameRef } });
+
+    if (roomRecord && roomRecord.currentPlayers >= roomRecord.maxPlayers) {
       throw new Error('ROOM_FULL');
+    }
+
+    if (roomRecord) {
+      roomRecord = await tx.room.update({
+        where: { id: roomRecord.id },
+        data: { currentPlayers: { increment: 1 } },
+      });
+    } else {
+      roomRecord = await tx.room.create({
+        data: {
+          roomName: poolRecord.roomNameRef,
+          maxPlayers: DEFAULT_MAX_PLAYERS,
+          currentPlayers: 1,
+        },
+      });
     }
 
     await tx.roomUser.upsert({
@@ -140,17 +179,17 @@ export async function assignRoomToPlayer(userId: number) {
       update: {},
     });
 
-    const updatedRoom = await tx.room.update({
-      where: { id: roomRecord.id },
-      data: { currentPlayers: { increment: 1 } },
+    await tx.serverPortPool.update({
+      where: { portNo: poolRecord.portNo },
+      data: { isBusy: 1, roomNameRef: roomRecord.roomName, lastUpdate: new Date() },
     });
 
-    return updatedRoom;
+    return roomRecord;
   });
 
   await ensureEmptyRooms();
 
-  return room;
+  return { ...room, port: targetRoom.portNo };
 }
 
 export async function leaveRoom(roomId: number, userId: number) {
@@ -182,7 +221,15 @@ export async function leaveRoom(roomId: number, userId: number) {
   });
 
   if (room.currentPlayers <= 0) {
+    const poolRecord = await prisma.serverPortPool.findFirst({ where: { roomNameRef: room.roomName } });
     await stopRoomContainer(room.roomName);
+
+    if (poolRecord) {
+      await prisma.serverPortPool.update({
+        where: { portNo: poolRecord.portNo },
+        data: { isBusy: 0, containerId: null, roomNameRef: null, lastUpdate: new Date() },
+      });
+    }
   }
 
   await ensureEmptyRooms();
@@ -203,12 +250,25 @@ export async function joinUsersToRoomByName(roomName: string, userIds: number[])
     throw new Error('INVALID_USER_IDS');
   }
 
-  const existingRoom = await prisma.room.findFirst({ where: { roomName } });
-  if (!existingRoom) {
+  const portPool = await prisma.serverPortPool.findFirst({ where: { roomNameRef: roomName } });
+
+  if (!portPool || !portPool.containerId) {
     throw new Error('ROOM_NOT_FOUND');
   }
 
   return prisma.$transaction(async (tx) => {
+    let roomRecord = await tx.room.findFirst({ where: { roomName } });
+
+    if (!roomRecord) {
+      roomRecord = await tx.room.create({
+        data: {
+          roomName,
+          maxPlayers: DEFAULT_MAX_PLAYERS,
+          currentPlayers: 0,
+        },
+      });
+    }
+
     let addedCount = 0;
     const results: Array<{ userId: number; message: string } | { userId: number; error: string }> = [];
 
@@ -221,7 +281,7 @@ export async function joinUsersToRoomByName(roomName: string, userIds: number[])
       }
 
       const alreadyJoined = await tx.roomUser.findUnique({
-        where: { roomId_userId: { roomId: existingRoom.id, userId } },
+        where: { roomId_userId: { roomId: roomRecord.id, userId } },
       });
 
       if (alreadyJoined) {
@@ -231,7 +291,7 @@ export async function joinUsersToRoomByName(roomName: string, userIds: number[])
 
       await tx.roomUser.create({
         data: {
-          roomId: existingRoom.id,
+          roomId: roomRecord.id,
           userId,
         },
       });
@@ -241,14 +301,17 @@ export async function joinUsersToRoomByName(roomName: string, userIds: number[])
     }
 
     if (addedCount > 0) {
-      await tx.room.update({
-        where: { id: existingRoom.id },
+      roomRecord = await tx.room.update({
+        where: { id: roomRecord.id },
         data: { currentPlayers: { increment: addedCount } },
       });
     }
 
-    const updatedRoom = await tx.room.findUnique({ where: { id: existingRoom.id } });
+    await tx.serverPortPool.update({
+      where: { portNo: portPool.portNo },
+      data: { isBusy: 1, roomNameRef: roomRecord.roomName, lastUpdate: new Date() },
+    });
 
-    return { room: updatedRoom, results };
+    return { room: { ...roomRecord, port: portPool.portNo }, results };
   });
 }
