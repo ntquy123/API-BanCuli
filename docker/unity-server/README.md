@@ -7,7 +7,7 @@ Dockerfile này đóng gói build headless từ Unity để API matchmaking có 
 2. Copy toàn bộ output (ví dụ: `BanCuLiServer.x86_64`, thư mục `BanCuLiServer_Data`, các file phụ) vào thư mục `docker/unity-server/build/`. Thư mục đã có sẵn `.gitkeep` để không đẩy binary lên repo.
 
 ## Build image
-```bash
+```bash lưu ý mỗi lần deploy server cần chạy lệnh này để build lại nếu không server sẽ không cập nhập mới được
 docker build -f docker/unity-server/Dockerfile -t banculi/unity-dedicated:latest .
 ```
 

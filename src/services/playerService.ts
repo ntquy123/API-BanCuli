@@ -142,7 +142,7 @@ export const getPlayerByListId = async (ids: number[]) => {
         //acc.totalSpin += ef.spin * ef.level;
         //acc.totalPower += ef.power * ef.level;
         acc.totalSpin = 1.5;
-        acc.totalPower = 8;
+        acc.totalPower = 5;
         return acc;
       },
       { totalSpin: 0, totalPower: 0 }
