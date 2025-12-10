@@ -193,3 +193,62 @@ export async function leaveRoom(roomId: number, userId: number) {
 export async function getEmptyRooms() {
   return ensureEmptyRooms();
 }
+
+export async function joinUsersToRoomByName(roomName: string, userIds: number[]) {
+  if (!roomName) {
+    throw new Error('INVALID_ROOM_NAME');
+  }
+
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    throw new Error('INVALID_USER_IDS');
+  }
+
+  const existingRoom = await prisma.room.findFirst({ where: { roomName } });
+  if (!existingRoom) {
+    throw new Error('ROOM_NOT_FOUND');
+  }
+
+  return prisma.$transaction(async (tx) => {
+    let addedCount = 0;
+    const results: Array<{ userId: number; message: string } | { userId: number; error: string }> = [];
+
+    for (const rawId of userIds) {
+      const userId = Number(rawId);
+
+      if (!userId) {
+        results.push({ userId, error: 'userId is required' });
+        continue;
+      }
+
+      const alreadyJoined = await tx.roomUser.findUnique({
+        where: { roomId_userId: { roomId: existingRoom.id, userId } },
+      });
+
+      if (alreadyJoined) {
+        results.push({ userId, message: 'User already in room' });
+        continue;
+      }
+
+      await tx.roomUser.create({
+        data: {
+          roomId: existingRoom.id,
+          userId,
+        },
+      });
+
+      addedCount += 1;
+      results.push({ userId, message: 'Đã gán phòng thành công' });
+    }
+
+    if (addedCount > 0) {
+      await tx.room.update({
+        where: { id: existingRoom.id },
+        data: { currentPlayers: { increment: addedCount } },
+      });
+    }
+
+    const updatedRoom = await tx.room.findUnique({ where: { id: existingRoom.id } });
+
+    return { room: updatedRoom, results };
+  });
+}
