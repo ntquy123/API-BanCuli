@@ -5,6 +5,7 @@ import {
   getEmptyRooms,
   joinUsersToRoomByName,
   leaveRoom,
+  leaveRoomAndCleanup,
 } from '../services/matchmakingService';
 
 export const availableRooms: RequestHandler = async (_req, res) => {
@@ -134,43 +135,32 @@ export const leaveRoomController: RequestHandler = async (req, res) => {
 
 export const leaveRoomBatchController: RequestHandler = async (req, res) => {
   try {
-    const { roomId, userIds } = req.body as { roomId: unknown; userIds: unknown };
+    const { roomId } = req.body as { roomId: unknown };
 
-    if (!roomId || !Array.isArray(userIds) || userIds.length === 0) {
-      res.status(400).json({ error: 'roomId và danh sách userIds là bắt buộc' });
+    if (!roomId) {
+      res.status(400).json({ error: 'roomId là bắt buộc' });
       return;
     }
 
     const parsedRoomId = Number(roomId);
-    const results: Array<
-      | { userId: number; room: Awaited<ReturnType<typeof leaveRoom>>; message: string }
-      | { userId: number; error: string }
-    > = [];
 
-    for (const id of userIds) {
-      const userId = Number(id);
-
-      if (!userId) {
-        results.push({ userId, error: 'userId là bắt buộc' });
-        continue;
-      }
-
-      try {
-        // eslint-disable-next-line no-await-in-loop
-        const room = await leaveRoom(parsedRoomId, userId);
-        results.push({ userId, room, message: 'Đã rời phòng' });
-      } catch (error) {
-        if (error instanceof Error && error.message === 'ROOM_NOT_FOUND') {
-          res.status(404).json({ error: 'Không tìm thấy phòng', results });
-          return;
-        }
-
-        console.error('Lỗi khi leave room cho user:', userId, error);
-        results.push({ userId, error: 'Không thể rời phòng' });
-      }
+    if (!parsedRoomId) {
+      res.status(400).json({ error: 'roomId không hợp lệ' });
+      return;
     }
 
-    res.json({ results });
+    try {
+      const room = await leaveRoomAndCleanup(parsedRoomId);
+      res.json({ room, message: 'Đã giải phóng phòng và container' });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'ROOM_NOT_FOUND') {
+        res.status(404).json({ error: 'Không tìm thấy phòng' });
+        return;
+      }
+
+      console.error('Lỗi khi hủy phòng và container:', error);
+      res.status(500).json({ error: 'Không thể hủy phòng' });
+    }
   } catch (error) {
     console.error('Lỗi khi leave room hàng loạt:', error);
     res.status(500).json({ error: 'Không thể rời phòng' });

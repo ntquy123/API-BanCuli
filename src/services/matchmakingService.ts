@@ -246,6 +246,37 @@ export async function leaveRoom(roomId: number, userId: number) {
   return room;
 }
 
+export async function leaveRoomAndCleanup(roomId: number) {
+  if (!roomId) {
+    throw new Error('INVALID_LEAVE_REQUEST');
+  }
+
+  const room = await prisma.$transaction(async (tx) => {
+    const existing = await tx.room.findUnique({ where: { id: roomId } });
+
+    if (!existing) {
+      throw new Error('ROOM_NOT_FOUND');
+    }
+
+    await tx.roomUser.deleteMany({ where: { roomId } });
+    await tx.room.delete({ where: { id: roomId } });
+
+    return existing;
+  });
+
+  const portPool = await prisma.serverPortPool.findFirst({ where: { roomNameRef: room.roomName } });
+
+  if (portPool && portPool.roomNameRef) {
+    await stopRoomContainer(portPool.roomNameRef);
+
+    await prisma.serverPortPool.delete({ where: { portNo: portPool.portNo } });
+  }
+
+  await ensureEmptyRooms();
+
+  return room;
+}
+
 export async function getEmptyRooms() {
   return ensureEmptyRooms();
 }
