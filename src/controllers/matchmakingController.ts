@@ -88,6 +88,7 @@ export const joinRoomBatch: RequestHandler = async (req, res) => {
 
     try {
       const result = await joinUsersToRoomByName(roomName.trim(), userIds as number[]);
+      await ensureEmptyRooms();
       res.json(result);
     } catch (error) {
       if (error instanceof Error && error.message === 'ROOM_NOT_FOUND') {
@@ -97,6 +98,21 @@ export const joinRoomBatch: RequestHandler = async (req, res) => {
 
       if (error instanceof Error && error.message === 'SERVER_CAPACITY_REACHED') {
         res.status(503).json({ error: 'Server đang quá tải, vui lòng thử lại sau.' });
+        return;
+      }
+
+      if (error instanceof Error && error.message.startsWith('ROOM_INSERT_FAILED')) {
+        res.status(500).json({ error: `Không thể tạo phòng: ${error.message}` });
+        return;
+      }
+
+      if (error instanceof Error && error.message === 'NO_AVAILABLE_PORT') {
+        res.status(503).json({ error: 'Không còn cổng trống để tạo phòng mới.' });
+        return;
+      }
+
+      if (error instanceof Error && error.message.startsWith('Docker start error')) {
+        res.status(500).json({ error: 'Không thể khởi động container phòng.', detail: error.message });
         return;
       }
 
