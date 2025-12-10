@@ -19,8 +19,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 ENV HOME=/root \
-    XDG_CONFIG_HOME=/root/.config \
-    UNITY_LOG_PATH=/home/deploy/server/server.log
+    XDG_CONFIG_HOME=/root/.config
 
 WORKDIR /home/deploy/server
 
@@ -36,4 +35,4 @@ RUN mkdir -p /root/.config/unity3d/GameNhaLam/ServerGame \
 EXPOSE 27015
 
 ENTRYPOINT ["./BanCuLiServer.x86_64"]
-CMD ["-batchmode", "-nographics", "-dedicatedServer", "1", "-logfile", "/home/deploy/server/server.log"]
+CMD ["-batchmode", "-nographics", "-dedicatedServer", "1", "-logfile", "-"]

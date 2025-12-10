@@ -13,5 +13,5 @@ docker build -f docker/unity-server/Dockerfile -t banculi/unity-dedicated:latest
 
 ## Dùng cùng API
 * API sẽ chạy `docker run` với image ở biến môi trường `ROOM_DOCKER_IMAGE` (khớp tag ở trên) và map port host theo `ROOM_CONTAINER_PORT` (mặc định 27015).
-* Tham số khởi động server có thể tùy biến bằng `ROOM_SERVER_ARGS`; path log mặc định có thể chỉnh qua `ROOM_LOG_PATH`.
+* Tham số khởi động server có thể tùy biến bằng `ROOM_SERVER_ARGS`; mặc định log được đẩy ra stdout để xem bằng `docker logs`.
 * Nếu cần đẩy lên registry riêng, hãy đổi tag khi build rồi set lại `ROOM_DOCKER_IMAGE` cho API.
