@@ -6,6 +6,7 @@ import {
   joinRoomBatch,
   leaveRoomController,
   leaveRoomBatchController,
+  shutdownServers,
 } from '../controllers/matchmakingController';
 
 const router = express.Router();
@@ -16,5 +17,6 @@ router.post('/joinRooms', joinRoomBatch);
 router.post('/leaveRoom', leaveRoomController);
 router.post('/leaveRooms', leaveRoomBatchController);
 router.get('/emptyRooms', getEmptyRoomList);
+router.post('/shutdownServers', shutdownServers);
 
 export default router;

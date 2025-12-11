@@ -118,6 +118,40 @@ export async function resetServerPortPoolIfIdle() {
   return true;
 }
 
+export async function shutdownAllServersIfIdle() {
+  const serverPool = await prisma.serverPortPool.findMany();
+
+  if (serverPool.length === 0) {
+    return { deletedRecords: 0, stoppedContainers: 0 };
+  }
+
+  const busyRecords = serverPool.filter((record) => record.isBusy !== 0);
+  if (busyRecords.length > 0) {
+    throw new Error('SERVERS_BUSY');
+  }
+
+  let stoppedContainers = 0;
+
+  for (const record of serverPool) {
+    if (record.containerId) {
+      // eslint-disable-next-line no-await-in-loop
+      await stopContainerById(record.containerId);
+      stoppedContainers += 1;
+      continue;
+    }
+
+    if (record.roomNameRef) {
+      // eslint-disable-next-line no-await-in-loop
+      await stopRoomContainer(record.roomNameRef);
+      stoppedContainers += 1;
+    }
+  }
+
+  const deleteResult = await prisma.serverPortPool.deleteMany();
+
+  return { deletedRecords: deleteResult.count, stoppedContainers };
+}
+
 async function createEmptyRoom() {
   const port = await getAvailablePort();
   if (!port) {

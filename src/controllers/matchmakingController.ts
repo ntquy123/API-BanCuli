@@ -7,6 +7,7 @@ import {
   leaveRoom,
   leaveRoomAndCleanup,
   resetServerPortPoolIfIdle,
+  shutdownAllServersIfIdle,
 } from '../services/matchmakingService';
 
 export const availableRooms: RequestHandler = async (_req, res) => {
@@ -192,5 +193,24 @@ export const getEmptyRoomList: RequestHandler = async (_req, res) => {
   } catch (error) {
     console.error('Lỗi khi lấy phòng trống:', error);
     res.status(500).json({ error: 'Không thể lấy danh sách phòng trống' });
+  }
+};
+
+export const shutdownServers: RequestHandler = async (_req, res) => {
+  try {
+    const result = await shutdownAllServersIfIdle();
+    res.json({
+      message: 'Đã dừng toàn bộ docker và làm trống ServerPortPool',
+      ...result,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'SERVERS_BUSY') {
+      res.status(400).json({ error: 'Không thể tắt server khi vẫn còn phòng đang bận' });
+      return;
+    }
+
+    console.error('Lỗi khi tắt server:', error);
+    const detail = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: 'Không thể tắt server', detail });
   }
 };
