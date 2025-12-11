@@ -427,3 +427,21 @@ export async function joinUsersToRoomByName(roomName: string, userIds: number[])
     return { room: { ...roomRecord, port: portPool.portNo }, results };
   });
 }
+
+export async function findRoomByPlayerId(playerId: number) {
+  if (!playerId) {
+    throw new Error('INVALID_USER');
+  }
+
+  const roomUser = await prisma.roomUser.findFirst({
+    where: { userId: playerId },
+    include: { room: true },
+    orderBy: { joinedAt: 'desc' },
+  });
+
+  if (!roomUser || !roomUser.room) {
+    return null;
+  }
+
+  return { roomUser, room: roomUser.room };
+}

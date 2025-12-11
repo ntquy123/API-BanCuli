@@ -2,6 +2,7 @@ import express from 'express';
 import {
   availableRooms,
   getEmptyRoomList,
+  getPlayerRoom,
   joinRoom,
   joinRoomBatch,
   leaveRoomController,
@@ -18,5 +19,6 @@ router.post('/leaveRoom', leaveRoomController);
 router.post('/leaveRooms', leaveRoomBatchController);
 router.get('/emptyRooms', getEmptyRoomList);
 router.post('/shutdownServers', shutdownServers);
+router.get('/playerRoom/:playerId', getPlayerRoom);
 
 export default router;

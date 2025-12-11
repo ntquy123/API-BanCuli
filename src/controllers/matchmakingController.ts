@@ -4,6 +4,7 @@ import {
   ensureEmptyRooms,
   getEmptyRooms,
   joinUsersToRoomByName,
+  findRoomByPlayerId,
   leaveRoom,
   leaveRoomAndCleanup,
   resetServerPortPoolIfIdle,
@@ -212,5 +213,29 @@ export const shutdownServers: RequestHandler = async (_req, res) => {
     console.error('Lỗi khi tắt server:', error);
     const detail = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: 'Không thể tắt server', detail });
+  }
+};
+
+export const getPlayerRoom: RequestHandler = async (req, res) => {
+  const { playerId: playerIdParam } = req.params;
+  const playerId = Number(playerIdParam);
+
+  if (!playerIdParam || Number.isNaN(playerId)) {
+    res.status(400).json({ error: 'playerId là bắt buộc và phải là số' });
+    return;
+  }
+
+  try {
+    const roomInfo = await findRoomByPlayerId(playerId);
+
+    if (!roomInfo) {
+      res.status(404).json({ message: 'Người chơi không tham gia phòng nào' });
+      return;
+    }
+
+    res.json(roomInfo);
+  } catch (error) {
+    console.error('Lỗi khi lấy phòng của người chơi:', error);
+    res.status(500).json({ error: 'Không thể lấy thông tin phòng của người chơi' });
   }
 };
