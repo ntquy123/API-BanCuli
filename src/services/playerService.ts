@@ -68,6 +68,58 @@ export const getPlayerByAccountId = async (accountId: string) => {
   });
 };
 
+export const markPlayerOnline = async (accountId: string) => {
+  const normalizedId = accountId.trim();
+
+  if (!normalizedId) {
+    throw new Error('Invalid accountId');
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const player = await tx.player.findFirst({
+      where: { IdAccount: normalizedId, IsActive: true },
+    });
+
+    if (!player) {
+      throw new Error('Player not found');
+    }
+
+    if (player.isOnline) {
+      throw new Error('Player is already logged in');
+    }
+
+    return tx.player.update({
+      where: { id: player.id },
+      data: { isOnline: true },
+    });
+  });
+};
+
+export const markPlayerOffline = async (accountId: string) => {
+  const normalizedId = accountId.trim();
+
+  if (!normalizedId) {
+    throw new Error('Invalid accountId');
+  }
+
+  const player = await prisma.player.findFirst({
+    where: { IdAccount: normalizedId, IsActive: true },
+  });
+
+  if (!player) {
+    throw new Error('Player not found');
+  }
+
+  if (!player.isOnline) {
+    return player;
+  }
+
+  return prisma.player.update({
+    where: { id: player.id },
+    data: { isOnline: false },
+  });
+};
+
 export const updatePlayerName = async (playerId: number, playerName: string) => {
   return prisma.player.update({
     where: { id: playerId },
@@ -338,20 +390,20 @@ export const loginOrCreateSocialAccount = async (
         });
 
         if (existing) {
-          const updates: Prisma.PlayerUpdateInput = {};
+          if (existing.isOnline) {
+            throw new Error('Player is already logged in');
+          }
+
+          const updates: Prisma.PlayerUpdateInput = { isOnline: true };
 
           if (email && email !== existing.Email) {
             updates.Email = email;
           }
 
-          if (Object.keys(updates).length > 0) {
-            return tx.player.update({
-              where: { id: existing.id },
-              data: updates,
-            });
-          }
-
-          return existing;
+          return tx.player.update({
+            where: { id: existing.id },
+            data: updates,
+          });
         }
 
         const player = await tx.player.create({
@@ -368,6 +420,7 @@ export const loginOrCreateSocialAccount = async (
             Money: 0,
             TalentPoint: 0,
             IsActive: true,
+            isOnline: true,
           },
         });
 

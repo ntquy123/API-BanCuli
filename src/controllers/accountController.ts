@@ -4,6 +4,8 @@ import {
   getPlayerByAccountId,
   loginOrCreateSocialAccount,
   confirmPlayerName,
+  markPlayerOffline,
+  markPlayerOnline,
 } from '../services/playerService';
 
 const VALID_PROVIDER_TYPES = [
@@ -95,7 +97,8 @@ export const socialLoginController = async (req: Request, res: Response) => {
 
     res.json(player);
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    const status = error.message === 'Player is already logged in' ? 409 : 500;
+    res.status(status).json({ message: error.message });
   }
 };
 
@@ -164,6 +167,50 @@ export const confirmSocialLoginNameController = async (
     );
 
     res.json(updatedPlayer);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const resolveAccountId = (candidate: unknown) =>
+  typeof candidate === 'string' && candidate.trim() ? candidate.trim() : undefined;
+
+export const loginSessionController = async (req: Request, res: Response) => {
+  try {
+    const { idToken, accountId, firebaseUid } = req.body ?? {};
+
+    const resolvedAccountId =
+      resolveAccountId(idToken) || resolveAccountId(accountId) || resolveAccountId(firebaseUid);
+
+    if (!resolvedAccountId) {
+      res.status(400).json({ message: 'Invalid accountId' });
+      return;
+    }
+
+    const player = await markPlayerOnline(resolvedAccountId);
+
+    res.json(player);
+  } catch (error: any) {
+    const status = error.message === 'Player is already logged in' ? 409 : 500;
+    res.status(status).json({ message: error.message });
+  }
+};
+
+export const logoutSessionController = async (req: Request, res: Response) => {
+  try {
+    const { idToken, accountId, firebaseUid } = req.body ?? {};
+
+    const resolvedAccountId =
+      resolveAccountId(idToken) || resolveAccountId(accountId) || resolveAccountId(firebaseUid);
+
+    if (!resolvedAccountId) {
+      res.status(400).json({ message: 'Invalid accountId' });
+      return;
+    }
+
+    const player = await markPlayerOffline(resolvedAccountId);
+
+    res.json(player);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

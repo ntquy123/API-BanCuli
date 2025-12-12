@@ -24,7 +24,8 @@ model Player {
   Money                  Int?
   TalentPoint            Int?
   IdAccount              String
-  IsActive               Boolean            
+  IsActive               Boolean
+  isOnline               Boolean                   @default(false)
   Email                  String?
   ProviderType           String?
   roomUsers              RoomUser[]
@@ -41,10 +42,11 @@ model Player {
   friends                Friendship[]              @relation("FriendPlayerShips")
   messagesSent           FriendMessage[]           @relation("MessagesSent")
   messagesReceived       FriendMessage[]           @relation("MessagesReceived")
-  @@index([IsActive]) 
-  @@index([IdAccount]) 
-  @@index([ProviderType]) 
+  @@index([IsActive])
+  @@index([IdAccount])
+  @@index([ProviderType])
   @@index([Email])
+  @@index([isOnline])
 }
 
 // SYSTEM
