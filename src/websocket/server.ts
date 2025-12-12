@@ -13,17 +13,21 @@ export const initWebSocketServer = (apiServer: http.Server, wsPort: number) => {
       playerId: null
     };
 
-    ws.on('message', (message: string) => {
-      console.log('Received: %s', message);
+    ws.on('message', (message: WebSocket.RawData) => {
+      const payload = typeof message === 'string' ? message : message.toString();
+      console.log('Received: %s', payload);
       let data: any;
       try {
-        data = JSON.parse(message);
+        data = JSON.parse(payload);
       } catch (e) {
         console.error('Error parsing message:', e);
         return;
       }
 
-      handleMessage(ws, players, data, context);
+      handleMessage(ws, players, data, context).catch((error) => {
+        console.error('Error handling message:', error);
+        ws.send(JSON.stringify({ type: 'error', message: 'Internal server error' }));
+      });
     });
 
     ws.on('close', () => {

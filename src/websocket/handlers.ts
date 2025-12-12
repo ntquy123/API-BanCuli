@@ -1,4 +1,5 @@
 import WebSocket from 'ws';
+import { verifyAccessToken } from '../services/authTokenService';
 
 export type PlayerMap = Map<number, WebSocket>;
 
@@ -11,7 +12,7 @@ type MessageHandler = (
   players: PlayerMap,
   data: any,
   context: HandlerContext
-) => void;
+) => void | Promise<void>;
 
 export const handleRegister: MessageHandler = (ws, players, data, context) => {
   const { playerId } = data;
@@ -125,7 +126,39 @@ export const handleFriendChallengeResponse: MessageHandler = (
         accepted,
       })
     );
- 
+
+};
+export const handleHeartbeat: MessageHandler = async (ws, players, data, context) => {
+  const accessToken = typeof data?.accessToken === 'string' ? data.accessToken.trim() : '';
+
+  if (!accessToken) {
+    ws.send(JSON.stringify({ type: 'error', message: 'accessToken is required for heartbeat' }));
+    return;
+  }
+
+  try {
+    const payload = await verifyAccessToken(accessToken);
+    context.playerId = payload.userId;
+    players.set(payload.userId, ws);
+
+    ws.send(
+      JSON.stringify({
+        type: 'heartbeat',
+        status: 'ok',
+        userId: payload.userId,
+        deviceId: payload.deviceId,
+      })
+    );
+  } catch (error: any) {
+    ws.send(
+      JSON.stringify({
+        type: 'error',
+        message: error?.message ?? 'Unauthorized',
+        code: 'unauthorized',
+      })
+    );
+    ws.close(4001, 'unauthorized');
+  }
 };
 export const handleCheckPlayerOnline: MessageHandler = (ws, players, data) => {
   const { playerId } = data;
@@ -142,10 +175,11 @@ const handlers: Record<string, MessageHandler> = {
   invite: handleInvite,
   friend_challenge: handleFriendChallenge,
   friend_challenge_response: handleFriendChallengeResponse,
-  check_player_online: handleCheckPlayerOnline, 
+  heartbeat: handleHeartbeat,
+  check_player_online: handleCheckPlayerOnline,
 };
 
-export const handleMessage = (
+export const handleMessage = async (
   ws: WebSocket,
   players: PlayerMap,
   data: any,
@@ -153,7 +187,7 @@ export const handleMessage = (
 ) => {
   const handler = handlers[data.type];
   if (handler) {
-    handler(ws, players, data, context);
+    await handler(ws, players, data, context);
   } else {
     ws.send(JSON.stringify({ type: 'error', message: 'Unknown message type' }));
   }

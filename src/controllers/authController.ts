@@ -79,3 +79,4 @@ export const ugsToFirebase = async (req: Request, res: Response): Promise<void> 
     res.status(401).json({ message: 'Invalid UGS token.' });
   }
 };
+
