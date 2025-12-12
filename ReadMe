@@ -73,3 +73,56 @@ curl -X POST \
 ```
 
 The response should be a JSON payload containing the minted Firebase `customToken` that can be supplied to your client applications.
+
+## Đăng nhập & quản lý token (accountRoutes)
+
+Các endpoint trong `accountRoutes.ts` đều được mount dưới tiền tố `/api`:
+
+- `POST /api/check-account`: Kiểm tra tài khoản dựa trên `idToken` (Firebase UID). Body:
+
+  ```json
+  { "idToken": "<firebase_uid>" }
+  ```
+
+  - Trả về thông tin người chơi nếu đã tồn tại, hoặc `{ "player": null, "message": "Chưa có tài khoản" }` nếu chưa có.【F:src/controllers/accountController.ts†L24-L44】
+
+- `POST /api/social-login`: Đăng nhập/đăng ký bằng tài khoản mạng xã hội. Body yêu cầu `firebaseUid`, `email`, `providerType` (ví dụ: `Google`, `Facebook`, `Apple`, ...), và `deviceId`.
+  - Server sẽ thu hồi token của các thiết bị khác cùng user và trả về `{ player, tokens }` trong đó `tokens` gồm `accessToken`, `accessTokenExpiresAt`, `refreshToken`, `refreshTokenExpiresAt`.【F:src/controllers/accountController.ts†L55-L85】【F:src/services/authTokenService.ts†L52-L105】
+
+- `POST /api/social-login/confirm-name`: Hoàn tất bước đặt tên và chọn Companion Ball cho tài khoản mới. Body tối thiểu:
+
+  ```json
+  {
+    "id": 1,                      // id người chơi vừa tạo
+    "PlayerName": "Tên muốn đặt",
+    "CompanionBallItemId": 3     // id vật phẩm Companion Ball
+  }
+  ```
+
+  - Chấp nhận key viết hoa/thường (`playerName`, `companionBallItemId`), và trả về bản ghi player đã cập nhật.【F:src/controllers/accountController.ts†L87-L135】
+
+- `POST /api/auth/login`: Chức năng tương tự `social-login`, nhận `firebaseUid`, `email`, `providerType`, `deviceId` và trả về `{ player, tokens }`. Thích hợp cho luồng đăng nhập thông thường với thông tin Firebase đã có sẵn.【F:src/controllers/accountController.ts†L137-L175】
+
+- `POST /api/auth/refresh`: Nhận `refreshToken` và `deviceId`, trả về cặp token mới khi refresh token hợp lệ và đúng thiết bị. Nếu refresh token thuộc thiết bị khác sẽ bị thu hồi và trả 403/401 tương ứng.【F:src/controllers/accountController.ts†L177-L207】【F:src/services/authTokenService.ts†L107-L190】
+
+- `POST /api/auth/logout`: Thu hồi một refresh token, đăng xuất phiên tương ứng. Body: `{ "refreshToken": "..." }`.【F:src/controllers/accountController.ts†L209-L226】
+
+- `POST /api/auth/logout-all`: Thu hồi toàn bộ refresh token của người dùng dựa trên refresh token hiện tại (đăng xuất khỏi mọi thiết bị). Body: `{ "refreshToken": "..." }`.【F:src/controllers/accountController.ts†L228-L240】【F:src/services/authTokenService.ts†L192-L204】
+
+### Sử dụng token
+
+- Mỗi lần đăng nhập thành công (`/social-login` hoặc `/auth/login`), server trả về cặp token:
+  - `accessToken`: JWT ngắn hạn (mặc định 900 giây, cấu hình qua biến môi trường `ACCESS_TOKEN_TTL_SECONDS`).【F:src/services/authTokenService.ts†L5-L40】
+  - `refreshToken`: JWT dài hạn (mặc định 14 ngày, cấu hình qua `REFRESH_TOKEN_TTL_DAYS`) và được lưu trong DB dưới dạng hash để có thể thu hồi theo thiết bị.【F:src/services/authTokenService.ts†L5-L52】【F:src/services/authTokenService.ts†L62-L96】
+
+- Gọi các API yêu cầu bảo vệ bằng access token thì gửi header:
+
+  ```http
+  Authorization: Bearer <accessToken>
+  ```
+
+  Middleware `authMiddleware` sẽ kiểm tra chữ ký, hạn sử dụng và `deviceId` trong token; yêu cầu không hợp lệ sẽ nhận 401 Unauthorized.【F:src/middleware/authMiddleware.ts†L1-L25】【F:src/services/authTokenService.ts†L196-L226】
+
+- Khi access token hết hạn, dùng `POST /api/auth/refresh` với `refreshToken` và `deviceId` gốc để nhận cặp token mới. Refresh token bị dùng sai thiết bị sẽ bị thu hồi và không thể tiếp tục sử dụng.【F:src/controllers/accountController.ts†L177-L207】【F:src/services/authTokenService.ts†L107-L190】
+
+- Muốn đăng xuất chỉ một thiết bị: gọi `/api/auth/logout` với refresh token tương ứng. Muốn đăng xuất mọi nơi: gọi `/api/auth/logout-all` với refresh token đang giữ; server sẽ thu hồi toàn bộ refresh token của user đó.【F:src/controllers/accountController.ts†L209-L240】【F:src/services/authTokenService.ts†L136-L190】
