@@ -1,20 +1,22 @@
 import { Router } from 'express';
 import {
-  createAccountController,
   checkAccountController,
   socialLoginController,
   confirmSocialLoginNameController,
-  loginSessionController,
-  logoutSessionController,
+  loginController,
+  refreshTokenController,
+  logoutController,
+  logoutAllController,
 } from '../controllers/accountController';
 
 const router = Router();
 
-router.post('/create-account', createAccountController);
 router.post('/check-account', checkAccountController);
 router.post('/social-login', socialLoginController);
 router.post('/social-login/confirm-name', confirmSocialLoginNameController);
-router.post('/login', loginSessionController);
-router.post('/logout', logoutSessionController);
+router.post('/auth/login', loginController);
+router.post('/auth/refresh', refreshTokenController);
+router.post('/auth/logout', logoutController);
+router.post('/auth/logout-all', logoutAllController);
 
 export default router;

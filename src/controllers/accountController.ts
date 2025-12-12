@@ -1,12 +1,16 @@
 import { Request, Response } from 'express';
 import {
-  createAccount,
   getPlayerByAccountId,
   loginOrCreateSocialAccount,
   confirmPlayerName,
-  markPlayerOffline,
-  markPlayerOnline,
 } from '../services/playerService';
+import {
+  issueTokensForDevice,
+  refreshTokensForDevice,
+  revokeAllRefreshTokens,
+  revokeRefreshToken,
+  revokeTokensForOtherDevices,
+} from '../services/authTokenService';
 
 const VALID_PROVIDER_TYPES = [
   'Anonymous',
@@ -23,22 +27,6 @@ const VALID_PROVIDER_TYPES = [
   'GameCenter',
   'CustomToken',
 ] as const;
-
-export const createAccountController = async (req: Request, res: Response) => {
-  try {
-    const { idToken, playerName } = req.body;
-
-    if (typeof idToken !== 'string' || typeof playerName !== 'string') {
-      res.status(400).json({ message: 'Invalid idToken or playerName' });
-      return;
-    }
-
-    const player = await createAccount(idToken, playerName);
-    res.json(player);
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
-  }
-};
 
 export const checkAccountController = async (req: Request, res: Response) => {
   try {
@@ -68,7 +56,7 @@ const isValidProviderType = (
 
 export const socialLoginController = async (req: Request, res: Response) => {
   try {
-    const { firebaseUid, email, providerType } = req.body ?? {};
+    const { firebaseUid, email, providerType, deviceId } = req.body ?? {};
 
     if (typeof firebaseUid !== 'string' || !firebaseUid.trim()) {
       res.status(400).json({ message: 'Invalid firebaseUid' });
@@ -85,9 +73,15 @@ export const socialLoginController = async (req: Request, res: Response) => {
       return;
     }
 
+    if (typeof deviceId !== 'string' || !deviceId.trim()) {
+      res.status(400).json({ message: 'Invalid deviceId' });
+      return;
+    }
+
     const normalizedFirebaseUid = firebaseUid.trim();
     const normalizedEmail = email.trim();
     const normalizedProviderType = providerType.trim();
+    const normalizedDeviceId = deviceId.trim();
 
     const player = await loginOrCreateSocialAccount(
       normalizedFirebaseUid,
@@ -95,7 +89,10 @@ export const socialLoginController = async (req: Request, res: Response) => {
       normalizedProviderType
     );
 
-    res.json(player);
+    await revokeTokensForOtherDevices(player.id, normalizedDeviceId);
+    const tokens = await issueTokensForDevice(player.id, normalizedDeviceId);
+
+    res.json({ player, tokens });
   } catch (error: any) {
     const status = error.message === 'Player is already logged in' ? 409 : 500;
     res.status(status).json({ message: error.message });
@@ -172,45 +169,102 @@ export const confirmSocialLoginNameController = async (
   }
 };
 
-const resolveAccountId = (candidate: unknown) =>
-  typeof candidate === 'string' && candidate.trim() ? candidate.trim() : undefined;
-
-export const loginSessionController = async (req: Request, res: Response) => {
+export const loginController = async (req: Request, res: Response) => {
   try {
-    const { idToken, accountId, firebaseUid } = req.body ?? {};
+    const { firebaseUid, email, providerType, deviceId } = req.body ?? {};
 
-    const resolvedAccountId =
-      resolveAccountId(idToken) || resolveAccountId(accountId) || resolveAccountId(firebaseUid);
-
-    if (!resolvedAccountId) {
-      res.status(400).json({ message: 'Invalid accountId' });
+    if (typeof firebaseUid !== 'string' || !firebaseUid.trim()) {
+      res.status(400).json({ message: 'Invalid firebaseUid' });
       return;
     }
 
-    const player = await markPlayerOnline(resolvedAccountId);
+    if (typeof email !== 'string') {
+      res.status(400).json({ message: 'Invalid email' });
+      return;
+    }
 
-    res.json(player);
+    if (typeof providerType !== 'string' || !isValidProviderType(providerType.trim())) {
+      res.status(400).json({ message: 'Invalid providerType' });
+      return;
+    }
+
+    if (typeof deviceId !== 'string' || !deviceId.trim()) {
+      res.status(400).json({ message: 'Invalid deviceId' });
+      return;
+    }
+
+    const normalizedFirebaseUid = firebaseUid.trim();
+    const normalizedEmail = email.trim();
+    const normalizedProviderType = providerType.trim();
+    const normalizedDeviceId = deviceId.trim();
+
+    const player = await loginOrCreateSocialAccount(
+      normalizedFirebaseUid,
+      normalizedEmail,
+      normalizedProviderType
+    );
+
+    await revokeTokensForOtherDevices(player.id, normalizedDeviceId);
+    const tokens = await issueTokensForDevice(player.id, normalizedDeviceId);
+
+    res.json({ player, tokens });
   } catch (error: any) {
-    const status = error.message === 'Player is already logged in' ? 409 : 500;
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const refreshTokenController = async (req: Request, res: Response) => {
+  try {
+    const { refreshToken, deviceId } = req.body ?? {};
+
+    if (typeof refreshToken !== 'string' || !refreshToken.trim()) {
+      res.status(400).json({ message: 'Invalid refreshToken' });
+      return;
+    }
+
+    if (typeof deviceId !== 'string' || !deviceId.trim()) {
+      res.status(400).json({ message: 'Invalid deviceId' });
+      return;
+    }
+
+    const tokens = await refreshTokensForDevice(refreshToken.trim(), deviceId.trim());
+
+    res.json(tokens);
+  } catch (error: any) {
+    const status = error.message.includes('device') ? 403 : 401;
     res.status(status).json({ message: error.message });
   }
 };
 
-export const logoutSessionController = async (req: Request, res: Response) => {
+export const logoutController = async (req: Request, res: Response) => {
   try {
-    const { idToken, accountId, firebaseUid } = req.body ?? {};
+    const { refreshToken } = req.body ?? {};
 
-    const resolvedAccountId =
-      resolveAccountId(idToken) || resolveAccountId(accountId) || resolveAccountId(firebaseUid);
-
-    if (!resolvedAccountId) {
-      res.status(400).json({ message: 'Invalid accountId' });
+    if (typeof refreshToken !== 'string' || !refreshToken.trim()) {
+      res.status(400).json({ message: 'Invalid refreshToken' });
       return;
     }
 
-    const player = await markPlayerOffline(resolvedAccountId);
+    await revokeRefreshToken(refreshToken.trim());
 
-    res.json(player);
+    res.json({ message: 'Logged out' });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const logoutAllController = async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body ?? {};
+
+    if (typeof refreshToken !== 'string' || !refreshToken.trim()) {
+      res.status(400).json({ message: 'Invalid refreshToken' });
+      return;
+    }
+
+    await revokeAllRefreshTokens(refreshToken.trim());
+
+    res.json({ message: 'Logged out from all devices' });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
