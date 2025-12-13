@@ -103,3 +103,128 @@ export const drawReward = async (playerId: number): Promise<RewardResult> => {
   }
   return { type: 'culi', amount };
 };
+
+type LuckyDrawReward =
+  | {
+      rewardType: 'item';
+      itemId: number;
+      isRare: boolean;
+      luckyRate: number;
+    }
+  | {
+      rewardType: 'stats';
+      ringBall: number;
+      exp: number;
+      isRare: false;
+      luckyRate: number;
+    };
+
+const pickByWeight = <T extends { weight: number }>(options: T[]): T => {
+  const total = options.reduce((sum, option) => sum + option.weight, 0);
+  let roll = Math.random() * total;
+
+  for (const option of options) {
+    if (roll < option.weight) {
+      return option;
+    }
+    roll -= option.weight;
+  }
+
+  return options[options.length - 1];
+};
+
+export const luckyDrawAfterMatch = async (
+  playerId: number,
+): Promise<LuckyDrawReward> => {
+  return prisma.$transaction(async (tx) => {
+    const player = await tx.player.findFirst({
+      where: { id: playerId, IsActive: true },
+      select: { LuckyRate: true },
+    });
+
+    if (!player) {
+      throw new Error('Player not found or inactive');
+    }
+
+    let luckyRate = player.LuckyRate ?? 5;
+    const isGuaranteedRare = luckyRate >= 100;
+    const isRare = isGuaranteedRare || Math.random() * 100 < luckyRate;
+
+    if (isRare) {
+      const rareItemIds = [
+        99000006, 99000007, 99000008, 99000009, 99000010,
+        99000011, 99000012, 99000013, 99000014, 99000015,
+      ];
+      const rareItemId =
+        rareItemIds[Math.floor(Math.random() * rareItemIds.length)];
+
+      await addItemToInventory(playerId, rareItemId, tx);
+
+      await tx.player.update({
+        where: { id: playerId },
+        data: { LuckyRate: 0 },
+      });
+
+      return {
+        rewardType: 'item',
+        itemId: rareItemId,
+        isRare: true,
+        luckyRate: 0,
+      };
+    }
+
+    luckyRate = Math.min(luckyRate + 20, 100);
+
+    const chooseItem = Math.random() < 0.5;
+
+    if (chooseItem) {
+      const itemOptions = [
+        { itemId: 98000001, weight: 50 },
+        { itemId: 98000002, weight: 30 },
+        { itemId: 98000003, weight: 10 },
+      ];
+
+      const chosenItem = pickByWeight(itemOptions).itemId;
+
+      await addItemToInventory(playerId, chosenItem, tx);
+
+      await tx.player.update({
+        where: { id: playerId },
+        data: { LuckyRate: luckyRate },
+      });
+
+      return {
+        rewardType: 'item',
+        itemId: chosenItem,
+        isRare: false,
+        luckyRate,
+      };
+    }
+
+    const ringBallOptions = [
+      { amount: 1, weight: 50 },
+      { amount: 2, weight: 30 },
+      { amount: 3, weight: 10 },
+    ];
+
+    const ringBall = pickByWeight(ringBallOptions).amount;
+    const exp = Math.floor(Math.random() * 51) + 50; // 50 - 100 EXP
+
+    await tx.player.update({
+      where: { id: playerId },
+      data: {
+        LuckyRate: luckyRate,
+        RingBall: { increment: ringBall },
+        Exp: { increment: exp },
+      },
+    });
+
+    return {
+      rewardType: 'stats',
+      ringBall,
+      exp,
+      isRare: false,
+      luckyRate,
+    };
+  });
+};

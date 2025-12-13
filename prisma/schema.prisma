@@ -21,6 +21,7 @@ model Player {
   Exp                    Int?
   Body                   Int?
   RingBall               Int?
+  LuckyRate              Int                      @default(5)
   Money                  Int?
   TalentPoint            Int?
   IdAccount              String
