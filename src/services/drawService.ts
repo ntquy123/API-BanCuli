@@ -108,6 +108,7 @@ type LuckyDrawReward =
   | {
       rewardType: 'item';
       itemId: number;
+      itemName: string;
       isRare: boolean;
       luckyRate: number;
     }
@@ -158,6 +159,12 @@ export const luckyDrawAfterMatch = async (
       const rareItemId =
         rareItemIds[Math.floor(Math.random() * rareItemIds.length)];
 
+      const rareItem = await tx.item.findUnique({
+        where: { id: rareItemId },
+        select: { name: true },
+      });
+      const itemName = rareItem?.name ?? 'Unknown Item';
+
       await addItemToInventory(playerId, rareItemId, tx);
 
       await tx.player.update({
@@ -168,6 +175,7 @@ export const luckyDrawAfterMatch = async (
       return {
         rewardType: 'item',
         itemId: rareItemId,
+        itemName,
         isRare: true,
         luckyRate: 0,
       };
@@ -186,6 +194,12 @@ export const luckyDrawAfterMatch = async (
 
       const chosenItem = pickByWeight(itemOptions).itemId;
 
+      const item = await tx.item.findUnique({
+        where: { id: chosenItem },
+        select: { name: true },
+      });
+      const itemName = item?.name ?? 'Unknown Item';
+
       await addItemToInventory(playerId, chosenItem, tx);
 
       await tx.player.update({
@@ -196,6 +210,7 @@ export const luckyDrawAfterMatch = async (
       return {
         rewardType: 'item',
         itemId: chosenItem,
+        itemName,
         isRare: false,
         luckyRate,
       };
