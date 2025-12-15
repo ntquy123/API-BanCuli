@@ -1,6 +1,7 @@
 import { exec } from 'child_process';
 import util from 'util';
 import crypto from 'crypto';
+import { Prisma } from '@prisma/client';
 import prisma from '../models/prismaClient';
 
 const execPromise = util.promisify(exec);
@@ -191,9 +192,9 @@ async function createEmptyRoom(typeMatchGid: number) {
 }
 
 export async function ensureEmptyRooms(typeMatchGid: number = DEFAULT_MATCH_TYPE_GID) {
-  const filter = {
+  const filter: Prisma.ServerPortPoolWhereInput = {
     OR: [{ typeMatchGid }, { typeMatchGid: null }],
-  } as const;
+  };
 
   const [totalRooms, emptyRooms] = await Promise.all([
     prisma.serverPortPool.count({ where: filter }),
