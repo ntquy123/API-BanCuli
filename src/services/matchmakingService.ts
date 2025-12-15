@@ -15,6 +15,12 @@ const DOCKER_IMAGE = process.env.ROOM_DOCKER_IMAGE || 'banculi/unity-dedicated:l
 const SERVER_PORT_IN_CONTAINER = Number(process.env.ROOM_CONTAINER_PORT) || 27015;
 const EXTRA_SERVER_ARGS =
   process.env.ROOM_SERVER_ARGS || '-batchmode -nographics -dedicatedServer 1 -logfile -';
+const DEFAULT_MATCH_TYPE_GID = 10000001; // MatchRandomNormal
+const RANK_MATCH_TYPE_GID = 10000002; // MatchRandomRank
+
+function buildSessionProperties(typeMatchGid: number) {
+  return `MatchRoom=${typeMatchGid}`;
+}
 
 async function getAvailablePort(): Promise<number | null> {
   const reusablePort = await prisma.serverPortPool.findFirst({
@@ -42,11 +48,12 @@ function buildContainerName(roomName: string): string {
   return `banculi-room-${roomName}`;
 }
 
-async function startRoomContainer(roomName: string, port: number) {
+async function startRoomContainer(roomName: string, port: number, sessionProperties?: string) {
   const containerName = buildContainerName(roomName);
+  const sessionPropertyArg = sessionProperties ? `-e SessionProperties=${sessionProperties}` : '';
   const baseCommand = `${DOCKER_RUNTIME} run -d --rm --name ${containerName} -p ${port}:${SERVER_PORT_IN_CONTAINER} ${DOCKER_IMAGE}`;
   const startCommand =
-    `${baseCommand} ${EXTRA_SERVER_ARGS} --roomName=${roomName} --port=${port}`.trim();
+    `${baseCommand} ${sessionPropertyArg} ${EXTRA_SERVER_ARGS} --roomName=${roomName} --port=${port}`.trim();
 
   const { stderr, stdout } = await execPromise(startCommand);
   const stderrLines = stderr
@@ -152,14 +159,14 @@ export async function shutdownAllServersIfIdle() {
   return { deletedRecords: deleteResult.count, stoppedContainers };
 }
 
-async function createEmptyRoom() {
+async function createEmptyRoom(typeMatchGid: number) {
   const port = await getAvailablePort();
   if (!port) {
     throw new Error('NO_AVAILABLE_PORT');
   }
 
   const roomName = crypto.randomUUID();
-  const containerId = await startRoomContainer(roomName, port);
+  const containerId = await startRoomContainer(roomName, port, buildSessionProperties(typeMatchGid));
 
   const poolRecord = await prisma.serverPortPool.upsert({
     where: { portNo: port },
@@ -169,23 +176,29 @@ async function createEmptyRoom() {
       roomNameRef: roomName,
       containerId,
       lastUpdate: new Date(),
+      typeMatchGid,
     },
     update: {
       isBusy: 0,
       roomNameRef: roomName,
       containerId,
       lastUpdate: new Date(),
+      typeMatchGid,
     },
   });
 
   return poolRecord;
 }
 
-export async function ensureEmptyRooms() {
+export async function ensureEmptyRooms(typeMatchGid: number = DEFAULT_MATCH_TYPE_GID) {
+  const filter = {
+    OR: [{ typeMatchGid }, { typeMatchGid: null }],
+  } as const;
+
   const [totalRooms, emptyRooms] = await Promise.all([
-    prisma.serverPortPool.count(),
+    prisma.serverPortPool.count({ where: filter }),
     prisma.serverPortPool.findMany({
-      where: { isBusy: 0, containerId: { not: null } },
+      where: { isBusy: 0, containerId: { not: null }, ...filter },
       orderBy: { portNo: 'asc' },
     }),
   ]);
@@ -204,19 +217,19 @@ export async function ensureEmptyRooms() {
   const createdRooms = [] as typeof emptyRooms;
   for (let i = 0; i < needToCreate; i += 1) {
     // eslint-disable-next-line no-await-in-loop
-    const room = await createEmptyRoom();
+    const room = await createEmptyRoom(typeMatchGid);
     createdRooms.push(room);
   }
 
   return [...emptyRooms, ...createdRooms];
 }
 
-export async function assignRoomToPlayer(userId: number) {
+export async function assignRoomToPlayer(userId: number, typeMatchGid: number = DEFAULT_MATCH_TYPE_GID) {
   if (!userId) {
     throw new Error('INVALID_USER');
   }
 
-  const availableRooms = await ensureEmptyRooms();
+  const availableRooms = await ensureEmptyRooms(typeMatchGid);
   const targetRoom = availableRooms[0];
 
   if (!targetRoom) {
@@ -247,6 +260,7 @@ export async function assignRoomToPlayer(userId: number) {
           roomName: poolRecord.roomNameRef,
           maxPlayers: DEFAULT_MAX_PLAYERS,
           currentPlayers: 1,
+          typeMatchGid,
         },
       });
     }
@@ -262,13 +276,13 @@ export async function assignRoomToPlayer(userId: number) {
 
     await tx.serverPortPool.update({
       where: { portNo: poolRecord.portNo },
-      data: { isBusy: 1, roomNameRef: roomRecord.roomName, lastUpdate: new Date() },
+      data: { isBusy: 1, roomNameRef: roomRecord.roomName, lastUpdate: new Date(), typeMatchGid },
     });
 
     return roomRecord;
   });
 
-  await ensureEmptyRooms();
+  await ensureEmptyRooms(typeMatchGid);
 
   return { ...room, port: targetRoom.portNo };
 }
@@ -308,7 +322,7 @@ export async function leaveRoom(roomId: number, userId: number) {
     if (poolRecord) {
       await prisma.serverPortPool.update({
         where: { portNo: poolRecord.portNo },
-        data: { isBusy: 0, containerId: null, roomNameRef: null, lastUpdate: new Date() },
+        data: { isBusy: 0, containerId: null, roomNameRef: null, lastUpdate: new Date(), typeMatchGid: null },
       });
     }
   }
@@ -377,6 +391,7 @@ export async function joinUsersToRoomByName(roomName: string, userIds: number[])
           roomName,
           maxPlayers: DEFAULT_MAX_PLAYERS,
           currentPlayers: 0,
+          typeMatchGid: portPool.typeMatchGid ?? DEFAULT_MATCH_TYPE_GID,
         },
       });
     }
@@ -421,7 +436,12 @@ export async function joinUsersToRoomByName(roomName: string, userIds: number[])
 
     await tx.serverPortPool.update({
       where: { portNo: portPool.portNo },
-      data: { isBusy: 1, roomNameRef: roomRecord.roomName, lastUpdate: new Date() },
+      data: {
+        isBusy: 1,
+        roomNameRef: roomRecord.roomName,
+        lastUpdate: new Date(),
+        typeMatchGid: portPool.typeMatchGid ?? undefined,
+      },
     });
 
     return { room: { ...roomRecord, port: portPool.portNo }, results };

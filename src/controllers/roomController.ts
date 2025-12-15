@@ -3,14 +3,16 @@ import * as RoomService from '../services/roomService';
 
 export const createRoom: RequestHandler = async (req, res) => {
   try {
-    const { roomName, userId } = req.body;
-    // Gọi service để tạo hoặc cập nhật room
-    const room = await RoomService.createRoom({ roomName, userId });
+    const { roomName, userId, bet, maxPlayer } = req.body;
+    const room = await RoomService.createRoom({ roomName, userId, bet, maxPlayer });
 
-    // Trả về kết quả
     res.json(room);
   } catch (error) {
     console.error('💥 Lỗi trong createRoom:', error);
+    if (error instanceof Error && error.message === 'NO_AVAILABLE_PORT') {
+      res.status(503).json({ error: 'Không còn cổng trống để tạo phòng' });
+      return;
+    }
     res.status(500).json({ error: error.message || 'Database error' });
   }
 };
@@ -48,23 +50,29 @@ export const leaveRoom: RequestHandler = async (
   res
 ): Promise<void> => {
   try {
-  
       // Lấy dữ liệu từ body
      const { roomId, userId } = req.body;
+     const roomIdNumber = Number(roomId);
+     const userIdNumber = Number(userId);
 
     // Kiểm tra nếu roomId hoặc userId không hợp lệ
-    if (isNaN(roomId) || isNaN(userId)) {
+    if (Number.isNaN(roomIdNumber) || Number.isNaN(userIdNumber)) {
       res.status(400).json({ error: 'Invalid roomId or userId' });
       return;
     }
     // Gọi service để xóa người dùng khỏi phòng
-    await RoomService.leaveRoom(roomId, userId);
+    const result = await RoomService.leaveRoom(roomIdNumber, userIdNumber);
 
     // Trả về kết quả thành công
-    res.json({ message: 'User left the room successfully' });
+    res.json(result);
     return;
   } catch (error) {
     console.error('💥 Lỗi trong leaveRoom:', error);
+    if (error instanceof Error && error.message === 'ROOM_NOT_FOUND') {
+      res.status(404).json({ error: 'Room not found' });
+      return;
+    }
+
     res.status(500).json({ error: error.message || 'Room not found or error' });
     return;
   }
@@ -77,19 +85,31 @@ export const joinRoom: RequestHandler = async (
   try {
      // Lấy dữ liệu từ body
      const { roomId, userId } = req.body;
+     const roomIdNumber = Number(roomId);
+     const userIdNumber = Number(userId);
 
     // Kiểm tra nếu roomId hoặc userId không hợp lệ
-    if (isNaN(roomId) || isNaN(userId)) {
+    if (Number.isNaN(roomIdNumber) || Number.isNaN(userIdNumber)) {
       res.status(400).json({ error: 'Invalid roomId or userId' });
       return;
     }
-    await RoomService.joinRoom(roomId, userId);
+    const room = await RoomService.joinRoom(roomIdNumber, userIdNumber);
 
     // Trả về kết quả thành công
-    res.json({ message: 'User join the room successfully' });
+    res.json(room);
     return;
   } catch (error) {
     console.error('💥 Lỗi :', error);
+    if (error instanceof Error && error.message === 'ROOM_NOT_FOUND') {
+      res.status(404).json({ error: 'Room not found' });
+      return;
+    }
+
+    if (error instanceof Error && error.message === 'ROOM_FULL') {
+      res.status(409).json({ error: 'Room is full' });
+      return;
+    }
+
     res.status(500).json({ error: error.message || 'Room not found or error' });
     return;
   }

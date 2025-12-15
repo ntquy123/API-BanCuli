@@ -13,12 +13,14 @@ import {
 
 export const availableRooms: RequestHandler = async (_req, res) => {
   try {
+    const typeMatchGid = Number(_req.query.typeMatchGid) || 10000001;
     await resetServerPortPoolIfIdle();
-    const rooms = await ensureEmptyRooms();
+    const rooms = await ensureEmptyRooms(typeMatchGid);
     res.json({
       availableRooms: rooms,
       minEmptyRooms: 2,
       maxRooms: 20,
+      typeMatchGid,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'SERVER_CAPACITY_REACHED') {
@@ -49,16 +51,18 @@ export const availableRooms: RequestHandler = async (_req, res) => {
 
 export const joinRoom: RequestHandler = async (req, res) => {
   try {
-    const { userId } = req.body;
+    const { userId, typeMatchGid } = req.body;
+    const matchType = Number(typeMatchGid) || 10000001;
     if (!userId) {
       res.status(400).json({ error: 'userId is required' });
       return;
     }
 
-    const room = await assignRoomToPlayer(Number(userId));
+    const room = await assignRoomToPlayer(Number(userId), matchType);
     res.json({
       room,
       message: 'Đã gán phòng thành công',
+      typeMatchGid: matchType,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'SERVER_CAPACITY_REACHED') {
@@ -78,7 +82,8 @@ export const joinRoom: RequestHandler = async (req, res) => {
 
 export const joinRoomBatch: RequestHandler = async (req, res) => {
   try {
-    const { userIds, roomName } = req.body as { userIds: unknown; roomName: unknown };
+    const { userIds, roomName, typeMatchGid } = req.body as { userIds: unknown; roomName: unknown; typeMatchGid?: unknown };
+    const matchType = Number(typeMatchGid) || 10000001;
 
     if (typeof roomName !== 'string' || roomName.trim() === '') {
       res.status(400).json({ error: 'roomName is required' });
@@ -92,7 +97,7 @@ export const joinRoomBatch: RequestHandler = async (req, res) => {
 
     try {
       const result = await joinUsersToRoomByName(roomName.trim(), userIds as number[]);
-      await ensureEmptyRooms();
+      await ensureEmptyRooms(matchType);
       res.json(result);
     } catch (error) {
       if (error instanceof Error && error.message === 'ROOM_NOT_FOUND') {
