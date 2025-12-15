@@ -1,6 +1,7 @@
 import { exec } from 'child_process';
 import util from 'util';
 import crypto from 'crypto';
+import { Prisma } from '@prisma/client';
 import prisma from '../models/prismaClient';
 
 const execPromise = util.promisify(exec);
@@ -191,9 +192,9 @@ async function createEmptyRoom(typeMatchGid: number) {
 }
 
 export async function ensureEmptyRooms(typeMatchGid: number = DEFAULT_MATCH_TYPE_GID) {
-  const filter = {
+  const filter: Prisma.ServerPortPoolWhereInput = {
     OR: [{ typeMatchGid }, { typeMatchGid: null }],
-  } as const;
+  };
 
   const [totalRooms, emptyRooms] = await Promise.all([
     prisma.serverPortPool.count({ where: filter }),
@@ -260,6 +261,7 @@ export async function assignRoomToPlayer(userId: number, typeMatchGid: number = 
           roomName: poolRecord.roomNameRef,
           maxPlayers: DEFAULT_MAX_PLAYERS,
           currentPlayers: 1,
+          createId: userId,
           typeMatchGid,
         },
       });
@@ -386,11 +388,13 @@ export async function joinUsersToRoomByName(roomName: string, userIds: number[])
     let roomRecord = await tx.room.findFirst({ where: { roomName } });
 
     if (!roomRecord) {
+      const creatorId = Number(userIds[0]) || 0;
       roomRecord = await tx.room.create({
         data: {
           roomName,
           maxPlayers: DEFAULT_MAX_PLAYERS,
           currentPlayers: 0,
+          createId: creatorId,
           typeMatchGid: portPool.typeMatchGid ?? DEFAULT_MATCH_TYPE_GID,
         },
       });
