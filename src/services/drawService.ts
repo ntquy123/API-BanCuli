@@ -177,6 +177,7 @@ export const luckyDrawAfterMatch = async (
         itemId: rareItemId,
         itemName,
         isRare: true,
+        isItem: true,
         luckyRate: 0,
       };
     }
@@ -212,6 +213,7 @@ export const luckyDrawAfterMatch = async (
         itemId: chosenItem,
         itemName,
         isRare: false,
+        isItem: true,
         luckyRate,
       };
     }
@@ -236,9 +238,11 @@ export const luckyDrawAfterMatch = async (
 
     return {
       rewardType: 'stats',
+      itemName: '',
       ringBall,
       exp,
       isRare: false,
+      isItem: false,
       luckyRate,
     };
   });
