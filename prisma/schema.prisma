@@ -73,20 +73,25 @@ model Room {
   maxPlayers     Int
   currentPlayers Int
   roomUsers      RoomUser[]
-  bet            Int?       @default(0)
-  createId       Int?
-  createDate     DateTime?  @default(now())
-  typeMatchGid   Int?
-  maxPlayer      Int?
+  bet            Int       @default(0)
+  createId       Int
+  createDate     DateTime  @default(now())
+  typeMatchGid   Int
+  maxPlayer      Int @default(3)
+  @@index([roomName])
+  @@index([typeMatchGid])
 }
 
 model ServerPortPool {
-  portNo      Int       @id
-  isBusy      Int       @default(0)
-  lastUpdate  DateTime?
-  containerId String?
-  roomNameRef String?
-  typeMatchGid Int?
+  portNo      Int      @id
+  isBusy      Int      @default(0) //0: free, 1: busy
+  lastUpdate  DateTime @default(now())
+  containerId String
+  roomNameRef String
+  typeMatchGid Int
+  @@index([containerId])
+  @@index([roomNameRef])
+  @@index([typeMatchGid])
 }
 
 model RoomUser {
