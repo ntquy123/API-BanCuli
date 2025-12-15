@@ -1,6 +1,12 @@
 import prisma from '../models/prismaClient';
 import { Prisma } from '@prisma/client';
 
+export interface ItemPriceOverview {
+  minPrice: number;
+  maxPrice: number;
+  suggestedPrice: number;
+}
+
 export const listItemForSale = async (
   playerId: number,
   itemId: number,
@@ -210,4 +216,41 @@ export const getListedItems = async ({
     skip,
     take,
   });
+};
+
+export const getItemPriceOverview = async (
+  itemId: number,
+  level?: number
+): Promise<ItemPriceOverview> => {
+  const where: Prisma.PlayerItemWhereInput = {
+    itemId,
+    IsSolded: 1,
+    Price: { gt: 0 },
+  };
+
+  if (level !== undefined && !Number.isNaN(level)) {
+    where.level = level;
+  }
+
+  const aggregate = await prisma.playerItem.aggregate({
+    where,
+    _min: { Price: true },
+    _max: { Price: true },
+  });
+
+  const minPrice = aggregate._min.Price ?? 0;
+  const maxPrice = aggregate._max.Price ?? 0;
+
+  let suggestedPrice: number;
+  if (minPrice === 0 && maxPrice === 0) {
+    const fallbackItem = await prisma.item.findUnique({
+      where: { id: itemId },
+      select: { price: true },
+    });
+    suggestedPrice = fallbackItem?.price ?? 0;
+  } else {
+    suggestedPrice = (minPrice + maxPrice) / 2;
+  }
+
+  return { minPrice, maxPrice, suggestedPrice };
 };

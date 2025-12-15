@@ -6,4 +6,5 @@ router.post('/market/sell', marketController.sellOnMarket);
 router.post('/market/buy', marketController.buyOnMarket);
 router.post('/market/cancel', marketController.cancelSell);
 router.get('/market/items', marketController.getListedItems);
+router.get('/market/item-price-overview', marketController.getItemPriceOverview);
 export default router;

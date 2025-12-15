@@ -4,7 +4,8 @@ import {
   buyMarketItem,
   cancelSale,
   getListedItems as getListedItemsService,
-  ListedItemResult
+  ListedItemResult,
+  getItemPriceOverview as getItemPriceOverviewService
 } from '../services/marketService';
 
 export const sellOnMarket = async (req: Request, res: Response) => {
@@ -89,6 +90,23 @@ export const getListedItems = async (req: Request, res: Response) => {
       })
     );
     res.json(response);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getItemPriceOverview = async (req: Request, res: Response) => {
+  try {
+    const itemId = Number(req.query.itemId);
+    const level = req.query.level ? Number(req.query.level) : undefined;
+
+    if (Number.isNaN(itemId)) {
+      res.status(400).json({ message: 'itemId is required and must be a number' });
+      return;
+    }
+
+    const overview = await getItemPriceOverviewService(itemId, level);
+    res.json(overview);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
