@@ -182,6 +182,15 @@ export const joinRoom = async (roomId: number, userId: number) => {
         throw new Error('ROOM_NOT_FOUND');
       }
 
+      const player = await tx.player.findUnique({
+        where: { id: userId },
+        select: { RingBall: true },
+      });
+
+      if (!player || (player.RingBall ?? 0) < room.bet) {
+        throw new Error('NOT_ENOUGH_RINGBALL');
+      }
+
       const existing = await tx.roomUser.findUnique({ where: { roomId_userId: { roomId, userId } } });
       if (existing) {
         return room;
@@ -213,6 +222,10 @@ export const joinRoom = async (roomId: number, userId: number) => {
 
     if (error.message === 'ROOM_FULL') {
       throw new Error('ROOM_FULL');
+    }
+
+    if (error.message === 'NOT_ENOUGH_RINGBALL') {
+      throw new Error('NOT_ENOUGH_RINGBALL');
     }
 
     console.error('💥 Lỗi khi vào phòng:', err);

@@ -142,6 +142,11 @@ export const joinRoom: RequestHandler = async (
       return;
     }
 
+    if (error instanceof Error && error.message === 'NOT_ENOUGH_RINGBALL') {
+      res.status(400).json({ error: 'Not enough RingBall to join the room' });
+      return;
+    }
+
     res.status(500).json({ error: error.message || 'Room not found or error' });
     return;
   }
