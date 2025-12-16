@@ -130,8 +130,8 @@ async function releasePortByRoomName(roomName: string) {
   });
 }
 
-export const createRoom = async (data: {  userId: number; bet?: number; maxPlayer?: number }) => {
-  const { userId, bet = 0, maxPlayer } = data;
+export const createRoom = async (data: {  userId: number; bet?: number; maxPlayer?: number; mapId?: number }) => {
+  const { userId, bet = 0, maxPlayer, mapId } = data;
   const roomName = crypto.randomUUID();
   if (!roomName?.trim()) {
     throw new Error('roomName is required');
@@ -158,6 +158,7 @@ export const createRoom = async (data: {  userId: number; bet?: number; maxPlaye
         createId: userId,
         createDate: new Date(),
         typeMatchGid: MATCH_ROOM_TYPE_GID,
+        mapId: mapId ?? 0,
       },
     });
 
@@ -165,7 +166,7 @@ export const createRoom = async (data: {  userId: number; bet?: number; maxPlaye
       data: { roomId: room.id, userId, joinedAt: new Date() },
     });
 
-    return { message: 'Room created', roomId: room.id, roomName: room.roomName, port };
+    return { message: 'Room created', roomId: room.id, roomName: room.roomName, port, mapId: room.mapId };
   } catch (err) {
     await releasePortByRoomName(normalizedRoomName);
     const error = err as Error;

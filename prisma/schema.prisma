@@ -78,6 +78,7 @@ model Room {
   createDate     DateTime  @default(now())
   typeMatchGid   Int
   maxPlayer      Int @default(3)
+  mapId          Int       @default(0)
   @@index([roomName])
   @@index([typeMatchGid])
 }
