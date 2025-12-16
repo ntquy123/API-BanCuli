@@ -63,7 +63,7 @@ async function stopRoomContainer(roomName: string) {
 
 async function findReusablePort() {
   const reusable = await prisma.serverPortPool.findFirst({
-    where: { isBusy: 0, containerId: null },
+    where: { isBusy: 0 },
     orderBy: { portNo: 'asc' },
   });
 
@@ -84,7 +84,7 @@ async function findNewPort() {
 }
 
 async function allocatePort(roomName: string, typeMatchGid: number, sessionProperties: string) {
-  const port = (await findReusablePort()) ?? (await findNewPort());
+  const port = await findNewPort();
 
   if (!port) {
     throw new Error('NO_AVAILABLE_PORT');
@@ -125,15 +125,14 @@ async function releasePortByRoomName(roomName: string) {
     await stopRoomContainer(portRecord.roomNameRef ?? roomName);
   }
 
-  await prisma.serverPortPool.update({
-    where: { portNo: portRecord.portNo },
-    data: { isBusy: 0, containerId: null, roomNameRef: null, lastUpdate: new Date(), typeMatchGid: null },
+  await prisma.serverPortPool.delete({
+    where: { portNo: portRecord.portNo,roomNameRef: roomName},
   });
 }
 
-export const createRoom = async (data: { roomName: string; userId: number; bet?: number; maxPlayer?: number }) => {
-  const { roomName, userId, bet = 0, maxPlayer } = data;
-
+export const createRoom = async (data: {  userId: number; bet?: number; maxPlayer?: number }) => {
+  const { userId, bet = 0, maxPlayer } = data;
+  const roomName = crypto.randomUUID();
   if (!roomName?.trim()) {
     throw new Error('roomName is required');
   }

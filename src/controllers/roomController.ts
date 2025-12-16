@@ -3,8 +3,8 @@ import * as RoomService from '../services/roomService';
 
 export const createRoom: RequestHandler = async (req, res) => {
   try {
-    const { roomName, userId, bet, maxPlayer } = req.body;
-    const room = await RoomService.createRoom({ roomName, userId, bet, maxPlayer });
+    const { userId, bet, maxPlayer } = req.body;
+    const room = await RoomService.createRoom({ userId, bet, maxPlayer });
 
     res.json(room);
   } catch (error) {
