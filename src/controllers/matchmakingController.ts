@@ -82,8 +82,14 @@ export const joinRoom: RequestHandler = async (req, res) => {
 
 export const joinRoomBatch: RequestHandler = async (req, res) => {
   try {
-    const { userIds, roomName, typeMatchGid } = req.body as { userIds: unknown; roomName: unknown; typeMatchGid?: unknown };
+    const { userIds, roomName, typeMatchGid, mapId } = req.body as {
+      userIds: unknown;
+      roomName: unknown;
+      typeMatchGid?: unknown;
+      mapId?: unknown;
+    };
     const matchType = Number(typeMatchGid) || 10000001;
+    const parsedMapId = typeof mapId === 'number' ? mapId : Number(mapId) || undefined;
 
     if (typeof roomName !== 'string' || roomName.trim() === '') {
       res.status(400).json({ error: 'roomName is required' });
@@ -96,7 +102,7 @@ export const joinRoomBatch: RequestHandler = async (req, res) => {
     }
 
     try {
-      const result = await joinUsersToRoomByName(roomName.trim(), userIds as number[]);
+      const result = await joinUsersToRoomByName(roomName.trim(), userIds as number[], parsedMapId);
       await ensureEmptyRooms(matchType);
       res.json(result);
     } catch (error) {

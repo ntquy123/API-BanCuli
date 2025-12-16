@@ -369,7 +369,7 @@ export async function getEmptyRooms() {
   return ensureEmptyRooms();
 }
 
-export async function joinUsersToRoomByName(roomName: string, userIds: number[]) {
+export async function joinUsersToRoomByName(roomName: string, userIds: number[], mapId?: number) {
   if (!roomName) {
     throw new Error('INVALID_ROOM_NAME');
   }
@@ -396,6 +396,7 @@ export async function joinUsersToRoomByName(roomName: string, userIds: number[])
           currentPlayers: 0,
           createId: creatorId,
           typeMatchGid: portPool.typeMatchGid ?? DEFAULT_MATCH_TYPE_GID,
+          mapId: mapId ?? 0,
         },
       });
     }
