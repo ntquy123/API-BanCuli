@@ -10,4 +10,5 @@ router.put('/createroom',RoomController.createRoom);
 router.post('/joinRoom',RoomController.joinRoom);
 router.post('/leaveRoom',RoomController.leaveRoom);
 router.get('/getUserRooms',RoomController.getUserRoomsController);
+router.put('/updateCreateId',RoomController.updateRoomCreator);
 export default router;

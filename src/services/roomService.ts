@@ -274,10 +274,58 @@ export const deleteRoom = async (roomId: number) => {
 };
 
 export const getActiveRooms = async () => {
-  return prisma.room.findMany({
+  const rooms = await prisma.room.findMany({
     where: { typeMatchGid: MATCH_ROOM_TYPE_GID },
     include: { _count: { select: { roomUsers: true } } },
   });
+
+  const creatorIds = Array.from(new Set(rooms.map((room) => room.createId)));
+
+  const creators = await prisma.player.findMany({
+    where: { id: { in: creatorIds } },
+    select: { id: true, PlayerName: true },
+  });
+
+  const creatorNameMap = new Map(creators.map((player) => [player.id, player.PlayerName]));
+
+  return rooms.map((room) => ({
+    ...room,
+    createPlayerName: creatorNameMap.get(room.createId) ?? null,
+  }));
+};
+
+export const updateRoomCreator = async (roomId: number, userId: number) => {
+  try {
+    const updatedRoom = await prisma.$transaction(async (tx) => {
+      const room = await tx.room.findUnique({ where: { id: roomId } });
+
+      if (!room || room.typeMatchGid !== MATCH_ROOM_TYPE_GID) {
+        throw new Error('ROOM_NOT_FOUND');
+      }
+
+      const member = await tx.roomUser.findUnique({ where: { roomId_userId: { roomId, userId } } });
+
+      if (!member) {
+        throw new Error('USER_NOT_IN_ROOM');
+      }
+
+      return tx.room.update({ where: { id: roomId }, data: { createId: userId } });
+    });
+
+    return { message: 'Room creator updated successfully', room: updatedRoom };
+  } catch (err) {
+    const error = err as Error;
+    if (error.message === 'ROOM_NOT_FOUND') {
+      throw new Error('ROOM_NOT_FOUND');
+    }
+
+    if (error.message === 'USER_NOT_IN_ROOM') {
+      throw new Error('USER_NOT_IN_ROOM');
+    }
+
+    console.error('❌ Lỗi khi cập nhật createId:', err);
+    throw new Error('Lỗi khi cập nhật createId');
+  }
 };
 
 export const getUserRooms = async (roomId: number) => {
