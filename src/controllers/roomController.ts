@@ -26,6 +26,38 @@ export const getRooms: RequestHandler = async (_req, res) => {
   }
 };
 
+export const updateRoomCreator: RequestHandler = async (req, res) => {
+  try {
+    const { roomId, userId } = req.body;
+
+    const roomIdNumber = Number(roomId);
+    const userIdNumber = Number(userId);
+
+    if (Number.isNaN(roomIdNumber) || Number.isNaN(userIdNumber)) {
+      res.status(400).json({ error: 'Invalid roomId or userId' });
+      return;
+    }
+
+    const result = await RoomService.updateRoomCreator(roomIdNumber, userIdNumber);
+
+    res.json(result);
+    return;
+  } catch (error) {
+    console.error('💥 Lỗi trong updateRoomCreator:', error);
+    if (error instanceof Error && error.message === 'ROOM_NOT_FOUND') {
+      res.status(404).json({ error: 'Room not found' });
+      return;
+    }
+
+    if (error instanceof Error && error.message === 'USER_NOT_IN_ROOM') {
+      res.status(400).json({ error: 'User is not in the room' });
+      return;
+    }
+
+    res.status(500).json({ error: error.message || 'Database error' });
+  }
+};
+
 export const deleteRoom: RequestHandler = async (
   req,
   res
