@@ -138,6 +138,13 @@ export async function shutdownAllServersIfIdle() {
     throw new Error('SERVERS_BUSY');
   }
 
+  const roomNames = Array.from(
+    new Set(
+      serverPool
+        .map((record) => record.roomNameRef)
+        .filter((roomName): roomName is string => Boolean(roomName)),
+    ),
+  );
   let stoppedContainers = 0;
 
   for (const record of serverPool) {
@@ -152,6 +159,20 @@ export async function shutdownAllServersIfIdle() {
       // eslint-disable-next-line no-await-in-loop
       await stopRoomContainer(record.roomNameRef);
       stoppedContainers += 1;
+    }
+  }
+
+  if (roomNames.length > 0) {
+    const rooms = await prisma.room.findMany({
+      where: { roomName: { in: roomNames } },
+      select: { id: true },
+    });
+
+    const roomIds = rooms.map((room) => room.id);
+
+    if (roomIds.length > 0) {
+      await prisma.roomUser.deleteMany({ where: { roomId: { in: roomIds } } });
+      await prisma.room.deleteMany({ where: { id: { in: roomIds } } });
     }
   }
 
