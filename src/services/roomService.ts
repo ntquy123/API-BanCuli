@@ -234,7 +234,7 @@ export const joinRoom = async (roomId: number, userId: number) => {
   }
 };
 
-export const leaveRoom = async (roomId: number, userId: number) => {
+export const leaveRoom = async (roomId: number, userIds: number[]) => {
   try {
     const result = await prisma.$transaction(async (tx) => {
       const existing = await tx.room.findUnique({ where: { id: roomId } });
@@ -243,7 +243,7 @@ export const leaveRoom = async (roomId: number, userId: number) => {
         throw new Error('ROOM_NOT_FOUND');
       }
 
-      await tx.roomUser.deleteMany({ where: { roomId, userId } });
+      await tx.roomUser.deleteMany({ where: { roomId, userId: { in: userIds } } });
       const remainingPlayers = await tx.roomUser.count({ where: { roomId } });
 
       if (remainingPlayers === 0) {

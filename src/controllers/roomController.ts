@@ -82,18 +82,25 @@ export const leaveRoom: RequestHandler = async (
   res
 ): Promise<void> => {
   try {
-      // Lấy dữ liệu từ body
-     const { roomId, userId } = req.body;
-     const roomIdNumber = Number(roomId);
-     const userIdNumber = Number(userId);
+    // Lấy dữ liệu từ body
+    const { roomId, userId } = req.body;
+
+    const roomIdNumber = Number(roomId);
+    const userIds = Array.isArray(userId) ? userId : [];
+    const parsedUserIds = userIds.map((id) => Number(id));
 
     // Kiểm tra nếu roomId hoặc userId không hợp lệ
-    if (Number.isNaN(roomIdNumber) || Number.isNaN(userIdNumber)) {
+    if (
+      Number.isNaN(roomIdNumber) ||
+      parsedUserIds.length === 0 ||
+      parsedUserIds.some((id) => Number.isNaN(id))
+    ) {
       res.status(400).json({ error: 'Invalid roomId or userId' });
       return;
     }
+
     // Gọi service để xóa người dùng khỏi phòng
-    const result = await RoomService.leaveRoom(roomIdNumber, userIdNumber);
+    const result = await RoomService.leaveRoom(roomIdNumber, parsedUserIds);
 
     // Trả về kết quả thành công
     res.json(result);
