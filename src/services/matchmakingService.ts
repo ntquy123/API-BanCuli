@@ -133,7 +133,7 @@ export async function shutdownAllServersIfIdle() {
     return { deletedRecords: 0, stoppedContainers: 0 };
   }
 
-  const busyRecords = serverPool.filter((record) => record.isBusy !== 0);
+  const busyRecords = serverPool.filter((record) => record.isBusy == 2);
   if (busyRecords.length > 0) {
     throw new Error('SERVERS_BUSY');
   }
