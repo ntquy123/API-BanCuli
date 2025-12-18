@@ -10,15 +10,13 @@ import {
   resetServerPortPoolIfIdle,
   shutdownAllServersIfIdle,
   MAX_ROOMS,
-  MIN_EMPTY_ROOMS,
 } from '../services/matchmakingService';
 import { TypeMatchGid } from '../config/typeMatchGid';
 
 export const availableRooms: RequestHandler = async (_req, res) => {
   try {
-    const typeMatchGid =
-      Number(_req.query.typeMatchGid) || TypeMatchGid.MatchRandomNormal;
     await resetServerPortPoolIfIdle();
+    const minRoomsPerType = 2;
     const typesToWarm: TypeMatchGid[] = [
       TypeMatchGid.MatchRandomNormal,
       TypeMatchGid.MatchRandomRank,
@@ -28,20 +26,19 @@ export const availableRooms: RequestHandler = async (_req, res) => {
     const warmedRooms = await Promise.all(
       typesToWarm.map(async (type) => ({
         type,
-        rooms: await ensureEmptyRooms(type),
+        rooms: await ensureEmptyRooms(type, minRoomsPerType),
       })),
     );
 
-    const rooms = warmedRooms.find((item) => item.type === typeMatchGid)?.rooms ?? [];
+    const warmBuffer = warmedRooms.reduce<Record<number, (typeof warmedRooms)[number]['rooms']>>(
+      (acc, current) => ({ ...acc, [current.type]: current.rooms }),
+      {},
+    );
     res.json({
-      availableRooms: rooms,
-      warmBuffer: warmedRooms.reduce<Record<number, typeof rooms>>(
-        (acc, current) => ({ ...acc, [current.type]: current.rooms }),
-        {},
-      ),
-      minEmptyRooms: MIN_EMPTY_ROOMS,
+      availableRooms: warmBuffer,
+      warmBuffer,
+      minEmptyRooms: minRoomsPerType,
       maxRooms: MAX_ROOMS,
-      typeMatchGid,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'SERVER_CAPACITY_REACHED') {

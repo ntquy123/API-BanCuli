@@ -213,7 +213,10 @@ async function createEmptyRoom(typeMatchGid: number) {
   return poolRecord;
 }
 
-export async function ensureEmptyRooms(typeMatchGid: number = DEFAULT_MATCH_TYPE_GID) {
+export async function ensureEmptyRooms(
+  typeMatchGid: number = DEFAULT_MATCH_TYPE_GID,
+  minEmptyRooms: number = MIN_EMPTY_ROOMS,
+) {
   const filter: Prisma.ServerPortPoolWhereInput = { typeMatchGid, containerId: { not: null } };
 
   const [totalRooms, emptyRooms] = await Promise.all([
@@ -224,12 +227,12 @@ export async function ensureEmptyRooms(typeMatchGid: number = DEFAULT_MATCH_TYPE
     }),
   ]);
 
-  if (emptyRooms.length >= MIN_EMPTY_ROOMS) {
+  if (emptyRooms.length >= minEmptyRooms) {
     return emptyRooms;
   }
 
   const availableSlots = MAX_ROOMS - totalRooms;
-  const needToCreate = Math.min(MIN_EMPTY_ROOMS - emptyRooms.length, availableSlots);
+  const needToCreate = Math.min(minEmptyRooms - emptyRooms.length, availableSlots);
 
   if (needToCreate <= 0) {
     throw new Error('SERVER_CAPACITY_REACHED');
