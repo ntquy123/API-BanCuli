@@ -21,6 +21,27 @@ const EXTRA_SERVER_ARGS =
 const DEFAULT_MATCH_TYPE_GID = TypeMatchGid.MatchRandomNormal;
 const RANK_MATCH_TYPE_GID = TypeMatchGid.MatchRandomRank;
 
+let portAllocationLock: Promise<void> = Promise.resolve();
+
+async function withPortAllocationLock<T>(fn: () => Promise<T>): Promise<T> {
+  let release: () => void;
+
+  const ready = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  const previous = portAllocationLock;
+  portAllocationLock = portAllocationLock.then(() => ready);
+
+  await previous;
+
+  try {
+    return await fn();
+  } finally {
+    release!();
+  }
+}
+
 function buildSessionProperties(typeMatchGid: number) {
   return `MatchRoom=${typeMatchGid}`;
 }
@@ -221,34 +242,36 @@ export async function shutdownAllServersIfIdle() {
 }
 
 async function createEmptyRoom(typeMatchGid: number) {
-  const port = await getAvailablePort(typeMatchGid);
-  if (!port) {
-    throw new Error('NO_AVAILABLE_PORT');
-  }
+  return withPortAllocationLock(async () => {
+    const port = await getAvailablePort(typeMatchGid);
+    if (!port) {
+      throw new Error('NO_AVAILABLE_PORT');
+    }
 
-  const roomName = crypto.randomUUID();
-  const containerId = await startRoomContainer(roomName, port, buildSessionProperties(typeMatchGid));
+    const roomName = crypto.randomUUID();
+    const containerId = await startRoomContainer(roomName, port, buildSessionProperties(typeMatchGid));
 
-  const poolRecord = await prisma.serverPortPool.upsert({
-    where: { portNo: port },
-    create: {
-      portNo: port,
-      isBusy: 0,
-      roomNameRef: roomName,
-      containerId,
-      lastUpdate: new Date(),
-      typeMatchGid,
-    },
-    update: {
-      isBusy: 0,
-      roomNameRef: roomName,
-      containerId,
-      lastUpdate: new Date(),
-      typeMatchGid,
-    },
+    const poolRecord = await prisma.serverPortPool.upsert({
+      where: { portNo: port },
+      create: {
+        portNo: port,
+        isBusy: 0,
+        roomNameRef: roomName,
+        containerId,
+        lastUpdate: new Date(),
+        typeMatchGid,
+      },
+      update: {
+        isBusy: 0,
+        roomNameRef: roomName,
+        containerId,
+        lastUpdate: new Date(),
+        typeMatchGid,
+      },
+    });
+
+    return poolRecord;
   });
-
-  return poolRecord;
 }
 
 export async function ensureEmptyRooms(
