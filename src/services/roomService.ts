@@ -66,7 +66,10 @@ export const createRoom = async (data: {
 
   const { room, port } = await prisma.$transaction(async (tx) => {
     const portPool = await tx.serverPortPool.findFirst({
-      where: { roomNameRef: normalizedRoomName, containerId: { not: '' } },
+      where: {
+        roomNameRef: normalizedRoomName,
+        NOT: [{ containerId: null }, { containerId: '' }],
+      },
     });
 
     if (!portPool) {
