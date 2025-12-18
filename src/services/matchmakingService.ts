@@ -3,21 +3,22 @@ import util from 'util';
 import crypto from 'crypto';
 import { Prisma } from '@prisma/client';
 import prisma from '../models/prismaClient';
+import { TypeMatchGid } from '../config/typeMatchGid';
 
 const execPromise = util.promisify(exec);
 
 const PORT_RANGE_START = Number(process.env.ROOM_PORT_START) || 27015;
 const PORT_RANGE_END = Number(process.env.ROOM_PORT_END) || 27100;
-const MAX_ROOMS = Number(process.env.MAX_ROOMS) || 20;
-const MIN_EMPTY_ROOMS = Number(process.env.MIN_EMPTY_ROOMS) || 2;
+export const MAX_ROOMS = Number(process.env.MAX_ROOMS) || 20;
+export const MIN_EMPTY_ROOMS = Number(process.env.MIN_EMPTY_ROOMS) || 2;
 const DEFAULT_MAX_PLAYERS = Number(process.env.ROOM_MAX_PLAYERS) || 4;
 const DOCKER_RUNTIME = process.env.DOCKER_BIN || 'docker';
 const DOCKER_IMAGE = process.env.ROOM_DOCKER_IMAGE || 'banculi/unity-dedicated:latest';
 const SERVER_PORT_IN_CONTAINER = Number(process.env.ROOM_CONTAINER_PORT) || 27015;
 const EXTRA_SERVER_ARGS =
   process.env.ROOM_SERVER_ARGS || '-batchmode -nographics -dedicatedServer 1 -logfile -';
-const DEFAULT_MATCH_TYPE_GID = 10000001; // MatchRandomNormal
-const RANK_MATCH_TYPE_GID = 10000002; // MatchRandomRank
+const DEFAULT_MATCH_TYPE_GID = TypeMatchGid.MatchRandomNormal;
+const RANK_MATCH_TYPE_GID = TypeMatchGid.MatchRandomRank;
 
 function buildSessionProperties(typeMatchGid: number) {
   return `MatchRoom=${typeMatchGid}`;

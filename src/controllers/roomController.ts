@@ -3,14 +3,22 @@ import * as RoomService from '../services/roomService';
 
 export const createRoom: RequestHandler = async (req, res) => {
   try {
-    const { userId, bet, maxPlayer, mapId } = req.body;
-    const room = await RoomService.createRoom({ userId, bet, maxPlayer, mapId });
+    const { userId, bet, maxPlayer, mapId, roomName } = req.body;
+    const room = await RoomService.createRoom({ userId, bet, maxPlayer, mapId, roomName });
 
     res.json(room);
   } catch (error) {
     console.error('💥 Lỗi trong createRoom:', error);
     if (error instanceof Error && error.message === 'NO_AVAILABLE_PORT') {
       res.status(503).json({ error: 'Không còn cổng trống để tạo phòng' });
+      return;
+    }
+    if (error instanceof Error && error.message === 'ROOM_NOT_READY') {
+      res.status(404).json({ error: 'Không tìm thấy phòng đã được chuẩn bị sẵn' });
+      return;
+    }
+    if (error instanceof Error && error.message === 'ROOM_TYPE_MISMATCH') {
+      res.status(400).json({ error: 'Phòng không thuộc loại MatchRoom' });
       return;
     }
     res.status(500).json({ error: error.message || 'Database error' });

@@ -9,17 +9,38 @@ import {
   leaveRoomAndCleanup,
   resetServerPortPoolIfIdle,
   shutdownAllServersIfIdle,
+  MAX_ROOMS,
+  MIN_EMPTY_ROOMS,
 } from '../services/matchmakingService';
+import { TypeMatchGid } from '../config/typeMatchGid';
 
 export const availableRooms: RequestHandler = async (_req, res) => {
   try {
-    const typeMatchGid = Number(_req.query.typeMatchGid) || 10000001;
+    const typeMatchGid =
+      Number(_req.query.typeMatchGid) || TypeMatchGid.MatchRandomNormal;
     await resetServerPortPoolIfIdle();
-    const rooms = await ensureEmptyRooms(typeMatchGid);
+    const typesToWarm: TypeMatchGid[] = [
+      TypeMatchGid.MatchRandomNormal,
+      TypeMatchGid.MatchRandomRank,
+      TypeMatchGid.MatchRoom,
+    ];
+
+    const warmedRooms = await Promise.all(
+      typesToWarm.map(async (type) => ({
+        type,
+        rooms: await ensureEmptyRooms(type),
+      })),
+    );
+
+    const rooms = warmedRooms.find((item) => item.type === typeMatchGid)?.rooms ?? [];
     res.json({
       availableRooms: rooms,
-      minEmptyRooms: 2,
-      maxRooms: 20,
+      warmBuffer: warmedRooms.reduce<Record<number, typeof rooms>>(
+        (acc, current) => ({ ...acc, [current.type]: current.rooms }),
+        {},
+      ),
+      minEmptyRooms: MIN_EMPTY_ROOMS,
+      maxRooms: MAX_ROOMS,
       typeMatchGid,
     });
   } catch (error) {
@@ -52,7 +73,7 @@ export const availableRooms: RequestHandler = async (_req, res) => {
 export const joinRoom: RequestHandler = async (req, res) => {
   try {
     const { userId, typeMatchGid } = req.body;
-    const matchType = Number(typeMatchGid) || 10000001;
+    const matchType = Number(typeMatchGid) || TypeMatchGid.MatchRandomNormal;
     if (!userId) {
       res.status(400).json({ error: 'userId is required' });
       return;
@@ -88,7 +109,7 @@ export const joinRoomBatch: RequestHandler = async (req, res) => {
       typeMatchGid?: unknown;
       mapId?: unknown;
     };
-    const matchType = Number(typeMatchGid) || 10000001;
+    const matchType = Number(typeMatchGid) || TypeMatchGid.MatchRandomNormal;
     const parsedMapId = typeof mapId === 'number' ? mapId : Number(mapId) || undefined;
 
     if (typeof roomName !== 'string' || roomName.trim() === '') {
