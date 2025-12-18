@@ -494,6 +494,138 @@ h3 {
   border-color: rgba(195, 64, 70, 0.7);
 }
 
+.config-hero {
+  background: linear-gradient(120deg, rgba(109, 195, 131, 0.18), rgba(15, 12, 7, 0.9)),
+    radial-gradient(circle at 90% 20%, rgba(245, 159, 69, 0.18), transparent 35%);
+}
+
+.hero-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.config-layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.form-card {
+  background: linear-gradient(160deg, rgba(245, 159, 69, 0.1), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(245, 159, 69, 0.2);
+}
+
+.table-card {
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.03), rgba(109, 195, 131, 0.07));
+  border: 1px solid rgba(109, 195, 131, 0.18);
+}
+
+.form.vertical {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.chip-button.muted {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--muted);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.chip-button.danger {
+  border-color: rgba(195, 64, 70, 0.3);
+  color: #ffd0d5;
+  background: rgba(195, 64, 70, 0.15);
+}
+
+.config-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.config-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.data-grid {
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.data-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.22);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+}
+
+.row-main {
+  display: grid;
+  grid-template-columns: 140px 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+  flex: 1;
+}
+
+.code-badge {
+  display: inline-flex;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(245, 159, 69, 0.12);
+  color: var(--accent);
+  font-weight: 800;
+  border: 1px solid rgba(245, 159, 69, 0.4);
+  justify-content: center;
+  text-align: center;
+}
+
+.row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.row-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+
+.row-value {
+  margin: 0;
+  font-weight: 700;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.row-actions .chip-button {
+  padding: 10px 12px;
+}
+
 @media (max-width: 700px) {
   .hero,
   .panel-header {
@@ -514,5 +646,17 @@ h3 {
   .cta {
     width: 100%;
     justify-content: center;
+  }
+
+  .config-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .row-main {
+    grid-template-columns: 1fr;
+  }
+
+  .data-row {
+    flex-direction: column;
   }
 }

@@ -13,6 +13,7 @@ const resultDetail = document.getElementById('result-detail');
 const dockerList = document.getElementById('docker-list');
 const dockerCount = document.getElementById('docker-count');
 const refreshContainersButton = document.getElementById('refresh-containers');
+const openLanguageConfigButton = document.getElementById('open-language-config');
 const loadingBackdrop = document.getElementById('loading-backdrop');
 const loadingText = document.getElementById('loading-text');
 const toast = document.getElementById('toast');
@@ -272,5 +273,14 @@ logoutButton.addEventListener('click', () => {
 startButton.addEventListener('click', () => handleAction('start', 'GET', 'Đang bật server và phòng chờ...'));
 shutdownButton.addEventListener('click', () => handleAction('shutdown', 'POST', 'Đang tắt server...'));
 refreshContainersButton?.addEventListener('click', () => fetchDockerContainers(true));
+openLanguageConfigButton?.addEventListener('click', () => {
+  const token = getToken();
+  if (!token) {
+    showToast('Vui lòng đăng nhập trước khi truy cập cấu hình.', 'error');
+    return;
+  }
+
+  window.location.href = './config.html';
+});
 
 restoreSession();

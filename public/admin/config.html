@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ban Culi - Cấu hình hệ thống</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero config-hero">
+        <div>
+          <p class="eyebrow">Cấu hình hệ thống</p>
+          <h1>Quản lý ngôn ngữ</h1>
+          <p class="subtitle">Làm việc trực tiếp với bảng SysMasLanguage bằng giao diện lưới hiện đại.</p>
+        </div>
+        <div class="hero-actions">
+          <button id="back-dashboard" class="chip-action chip-button" type="button">← Quay lại dashboard</button>
+          <div class="hero-badge">
+            <span class="badge-label">Trạng thái</span>
+            <span id="session-state" class="badge-value offline">Đang kiểm tra...</span>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Ngôn ngữ</p>
+              <h2>Grid config ngôn ngữ</h2>
+              <p class="subtitle">Tạo, cập nhật hoặc xóa config ngay trong một màn hình.</p>
+            </div>
+            <div class="admin-chip">
+              <div class="chip-icon">🗂️</div>
+              <div class="chip-text">
+                <span id="admin-name">Admin</span>
+                <small id="admin-meta">Đang xác thực...</small>
+              </div>
+              <button id="logout" class="chip-action" type="button" title="Đăng xuất">✕</button>
+            </div>
+          </div>
+
+          <div class="config-layout">
+            <div class="card form-card">
+              <div class="card-header">
+                <div>
+                  <p class="eyebrow">Biểu mẫu</p>
+                  <h3 id="form-title">Thêm mới config</h3>
+                  <p class="subtitle">Nhập mã code và nội dung song ngữ để lưu xuống cơ sở dữ liệu.</p>
+                </div>
+                <div class="pill neutral" id="form-mode">Thêm mới</div>
+              </div>
+              <form id="language-form" class="form vertical">
+                <label class="field">
+                  <span>Code</span>
+                  <input id="lang-code" name="code" type="text" placeholder="VD: HOME_TITLE" required />
+                </label>
+                <label class="field">
+                  <span>Nội dung tiếng Việt</span>
+                  <input id="lang-vi" name="vietnamText" type="text" placeholder="Xin chào" required />
+                </label>
+                <label class="field">
+                  <span>Nội dung tiếng Anh</span>
+                  <input id="lang-en" name="englishText" type="text" placeholder="Hello" required />
+                </label>
+                <div class="form-actions">
+                  <button id="submit-language" class="cta" type="submit">
+                    <span>Thêm cấu hình</span>
+                    <span class="sparkle">✦</span>
+                  </button>
+                  <button id="cancel-edit" class="chip-action chip-button muted hidden" type="button">Hủy chỉnh sửa</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card table-card">
+              <div class="card-header">
+                <div>
+                  <p class="eyebrow">Danh sách</p>
+                  <h3>Grid SysMasLanguage</h3>
+                  <p class="subtitle">Hiển thị toàn bộ config đang có.</p>
+                </div>
+                <div class="pill warm" id="language-count">0 bản ghi</div>
+              </div>
+              <div class="data-grid" id="language-grid">
+                <div class="docker-loading">Đang tải dữ liệu...</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="loading-backdrop" class="backdrop hidden">
+      <div class="spinner"></div>
+      <p id="loading-text">Đang xử lý...</p>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script type="module" src="./config.js"></script>
+  </body>
+</html>
