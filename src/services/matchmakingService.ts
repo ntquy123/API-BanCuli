@@ -24,9 +24,9 @@ function buildSessionProperties(typeMatchGid: number) {
   return `MatchRoom=${typeMatchGid}`;
 }
 
-async function getAvailablePort(): Promise<number | null> {
+async function getAvailablePort(typeMatchGid: number): Promise<number | null> {
   const reusablePort = await prisma.serverPortPool.findFirst({
-    where: { isBusy: 0, containerId: null },
+    where: { isBusy: 0, containerId: null, typeMatchGid },
     orderBy: { portNo: 'asc' },
   });
 
@@ -183,7 +183,7 @@ export async function shutdownAllServersIfIdle() {
 }
 
 async function createEmptyRoom(typeMatchGid: number) {
-  const port = await getAvailablePort();
+  const port = await getAvailablePort(typeMatchGid);
   if (!port) {
     throw new Error('NO_AVAILABLE_PORT');
   }
@@ -214,14 +214,12 @@ async function createEmptyRoom(typeMatchGid: number) {
 }
 
 export async function ensureEmptyRooms(typeMatchGid: number = DEFAULT_MATCH_TYPE_GID) {
-  const filter: Prisma.ServerPortPoolWhereInput = {
-    OR: [{ typeMatchGid }, { typeMatchGid: null }],
-  };
+  const filter: Prisma.ServerPortPoolWhereInput = { typeMatchGid, containerId: { not: null } };
 
   const [totalRooms, emptyRooms] = await Promise.all([
     prisma.serverPortPool.count({ where: filter }),
     prisma.serverPortPool.findMany({
-      where: { isBusy: 0, containerId: { not: null }, ...filter },
+      where: { isBusy: 0, ...filter },
       orderBy: { portNo: 'asc' },
     }),
   ]);
@@ -339,19 +337,29 @@ export async function leaveRoom(roomId: number, userId: number) {
     return updated;
   });
 
+  let poolRecordForCleanup: { typeMatchGid: number } | null = null;
+
   if (room.currentPlayers <= 0) {
     const poolRecord = await prisma.serverPortPool.findFirst({ where: { roomNameRef: room.roomName } });
+    poolRecordForCleanup = poolRecord ? { typeMatchGid: poolRecord.typeMatchGid } : null;
     await stopRoomContainer(room.roomName);
 
     if (poolRecord) {
       await prisma.serverPortPool.update({
         where: { portNo: poolRecord.portNo },
-        data: { isBusy: 0, containerId: null, roomNameRef: null, lastUpdate: new Date(), typeMatchGid: null },
+        data: {
+          isBusy: 0,
+          containerId: null,
+          roomNameRef: null,
+          lastUpdate: new Date(),
+          typeMatchGid: poolRecord.typeMatchGid,
+        },
       });
     }
   }
 
-  await ensureEmptyRooms();
+  const typeMatchGid = poolRecordForCleanup?.typeMatchGid ?? room.typeMatchGid ?? DEFAULT_MATCH_TYPE_GID;
+  await ensureEmptyRooms(typeMatchGid);
 
   return room;
 }
@@ -382,7 +390,8 @@ export async function leaveRoomAndCleanup(roomId: number) {
     await prisma.serverPortPool.delete({ where: { portNo: portPool.portNo } });
   }
 
-  await ensureEmptyRooms();
+  const typeMatchGid = room.typeMatchGid ?? DEFAULT_MATCH_TYPE_GID;
+  await ensureEmptyRooms(typeMatchGid);
 
   return room;
 }
