@@ -2,6 +2,7 @@ import { RequestHandler } from 'express';
 import prisma from '../models/prismaClient';
 import { buildWarmupSummary } from '../utils/matchmakingWarmup';
 import { shutdownAllServersIfIdle } from '../services/matchmakingService';
+import { listRunningContainers } from '../services/dockerService';
 import { AdminTokenPayload, createAdminToken } from '../middleware/adminAuth';
 
 export const loginAdmin: RequestHandler = async (req, res) => {
@@ -102,5 +103,16 @@ export const shutdownServersAdmin: RequestHandler = async (_req, res) => {
     console.error('Lỗi khi tắt server:', error);
     const detail = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: 'Không thể tắt server', detail });
+  }
+};
+
+export const getActiveContainers: RequestHandler = async (_req, res) => {
+  try {
+    const containers = await listRunningContainers();
+    res.json({ containers });
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách docker đang chạy:', error);
+    const detail = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: 'Không thể lấy danh sách docker đang chạy.', detail });
   }
 };

@@ -10,6 +10,9 @@ const shutdownButton = document.getElementById('shutdown-btn');
 const resultStatus = document.getElementById('result-status');
 const resultMessage = document.getElementById('result-message');
 const resultDetail = document.getElementById('result-detail');
+const dockerList = document.getElementById('docker-list');
+const dockerCount = document.getElementById('docker-count');
+const refreshContainersButton = document.getElementById('refresh-containers');
 const loadingBackdrop = document.getElementById('loading-backdrop');
 const loadingText = document.getElementById('loading-text');
 const toast = document.getElementById('toast');
@@ -43,6 +46,88 @@ const setLoading = (isLoading, message = 'Đang xử lý...') => {
   loadingBackdrop.classList.add('hidden');
 };
 
+const HTML_ESCAPE_MAP = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+
+const escapeHtml = (value = '') =>
+  value.toString().replace(/[&<>"']/g, (char) => HTML_ESCAPE_MAP[char] || char);
+
+const setDockerCount = (count = 0) => {
+  if (dockerCount) {
+    dockerCount.textContent = `${count} đang chạy`;
+  }
+};
+
+const setDockerMessage = (message, className = 'docker-empty') => {
+  if (dockerList) {
+    dockerList.innerHTML = `<div class="${className}">${escapeHtml(message)}</div>`;
+  }
+};
+
+const renderDockerContainers = (containers = []) => {
+  if (!dockerList) return;
+
+  if (!Array.isArray(containers) || containers.length === 0) {
+    setDockerCount(0);
+    setDockerMessage('Không có container nào đang chạy.');
+    return;
+  }
+
+  setDockerCount(containers.length);
+
+  dockerList.innerHTML = containers
+    .map((container) => {
+      const statusText = container.status || 'Unknown';
+      const isUp = /^up\b/i.test(statusText);
+      const statusClass = isUp ? '' : ' danger';
+      const uptime = statusText.replace(/^Up\s*/i, '') || statusText;
+
+      return `
+        <article class="docker-item">
+          <div class="docker-title">
+            <p class="docker-name">${escapeHtml(container.name || container.id)}</p>
+            <div class="docker-badges">
+              <span class="docker-status${statusClass}">
+                <span class="status-dot"></span>
+                ${escapeHtml(isUp ? `Đang chạy · ${uptime}` : statusText)}
+              </span>
+            </div>
+          </div>
+          <div class="docker-meta">
+            <span><strong>Image:</strong> ${escapeHtml(container.image || 'Không rõ')}</span>
+            <span><strong>Port:</strong> ${escapeHtml(container.ports || '—')}</span>
+          </div>
+        </article>
+      `;
+    })
+    .join('');
+};
+
+const clearDockerUI = () => {
+  setDockerCount(0);
+  setDockerMessage('Đăng nhập để xem container đang hoạt động.');
+};
+
+const fetchDockerContainers = async (showLoading = false) => {
+  if (showLoading) {
+    setDockerMessage('Đang tải danh sách container...', 'docker-loading');
+  }
+
+  try {
+    const { containers = [] } = await apiFetch('containers');
+    renderDockerContainers(containers);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Không thể tải danh sách container.';
+    setDockerMessage(message, 'docker-error');
+    showToast(message, 'error');
+  }
+};
+
 const saveToken = (token) => localStorage.setItem(TOKEN_KEY, token);
 const getToken = () => localStorage.getItem(TOKEN_KEY);
 const clearToken = () => localStorage.removeItem(TOKEN_KEY);
@@ -61,6 +146,7 @@ const setAuthenticatedUI = (admin) => {
     : admin?.friendCode ?? '';
   updateSessionState(true, admin);
   loginHint.textContent = 'Đăng nhập thành công! Bạn có thể bật/tắt server ngay bên dưới.';
+  fetchDockerContainers(true);
 };
 
 const setLoggedOutUI = () => {
@@ -69,6 +155,7 @@ const setLoggedOutUI = () => {
   updateSessionState(false);
   clearResult();
   loginHint.textContent = 'Mẹo: chỉ cần friendCode đúng, không cần mật khẩu.';
+  clearDockerUI();
 };
 
 const apiFetch = async (endpoint, options = {}) => {
@@ -119,6 +206,7 @@ const handleAction = async (endpoint, method, loadingLabel) => {
     resultMessage.textContent = result.message || 'Thao tác hoàn tất.';
     resultDetail.textContent = formatDetail(result);
     showToast('Thao tác thành công.', 'success');
+    await fetchDockerContainers();
   } catch (error) {
     resultStatus.className = 'pill danger';
     resultStatus.textContent = 'Thất bại';
@@ -183,5 +271,6 @@ logoutButton.addEventListener('click', () => {
 
 startButton.addEventListener('click', () => handleAction('start', 'GET', 'Đang bật server và phòng chờ...'));
 shutdownButton.addEventListener('click', () => handleAction('shutdown', 'POST', 'Đang tắt server...'));
+refreshContainersButton?.addEventListener('click', () => fetchDockerContainers(true));
 
 restoreSession();

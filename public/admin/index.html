@@ -100,6 +100,30 @@
                 <pre id="result-detail" class="result-detail"></pre>
               </div>
             </div>
+
+            <div class="card docker-card">
+              <div class="card-header">
+                <div>
+                  <p class="eyebrow">Docker</p>
+                  <h3>Container đang chạy</h3>
+                  <p class="subtitle">Theo dõi phòng game và dịch vụ trực tiếp.</p>
+                </div>
+                <div class="docker-tools">
+                  <div class="pill neutral" id="docker-count">0 đang chạy</div>
+                  <button
+                    id="refresh-containers"
+                    class="chip-action chip-button"
+                    type="button"
+                    title="Làm mới danh sách"
+                  >
+                    ↻ Làm mới
+                  </button>
+                </div>
+              </div>
+              <div class="docker-list" id="docker-list">
+                <div class="docker-empty">Đăng nhập để xem container đang hoạt động.</div>
+              </div>
+            </div>
           </div>
         </section>
       </main>
