@@ -1,6 +1,7 @@
 import { exec } from 'child_process';
 import util from 'util';
 import crypto from 'crypto';
+import net from 'net';
 import { Prisma } from '@prisma/client';
 import prisma from '../models/prismaClient';
 import { TypeMatchGid } from '../config/typeMatchGid';
@@ -24,6 +25,26 @@ function buildSessionProperties(typeMatchGid: number) {
   return `MatchRoom=${typeMatchGid}`;
 }
 
+async function isPortAvailable(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const tester = net
+      .createServer()
+      .once('error', (error: NodeJS.ErrnoException) => {
+        if (error.code === 'EADDRINUSE' || error.code === 'EACCES') {
+          resolve(false);
+          return;
+        }
+
+        resolve(false);
+      })
+      .once('listening', () => {
+        tester.close(() => resolve(true));
+      });
+
+    tester.listen(port, '0.0.0.0');
+  });
+}
+
 async function getAvailablePort(typeMatchGid: number): Promise<number | null> {
   const reusablePort = await prisma.serverPortPool.findFirst({
     where: { isBusy: 0, containerId: null, typeMatchGid },
@@ -31,14 +52,31 @@ async function getAvailablePort(typeMatchGid: number): Promise<number | null> {
   });
 
   if (reusablePort) {
-    return reusablePort.portNo;
+    const portIsFree = await isPortAvailable(reusablePort.portNo);
+    if (portIsFree) {
+      return reusablePort.portNo;
+    }
+
+    await prisma.serverPortPool.update({
+      where: { portNo: reusablePort.portNo },
+      data: { isBusy: 1, lastUpdate: new Date() },
+    });
   }
 
   const usedPorts = await prisma.serverPortPool.findMany({ select: { portNo: true } });
   const usedSet = new Set(usedPorts.map((room) => room.portNo));
 
   for (let port = PORT_RANGE_START; port <= PORT_RANGE_END; port += 1) {
-    if (!usedSet.has(port)) {
+    if (usedSet.has(port)) {
+      continue;
+    }
+
+    // Đảm bảo cổng chưa bị chiếm dụng ở tầng hệ điều hành
+    // để tránh trùng cổng khi tạo container mới
+    // (vd: container cũ chưa được ghi nhận trong cơ sở dữ liệu).
+    // eslint-disable-next-line no-await-in-loop
+    const portIsFree = await isPortAvailable(port);
+    if (portIsFree) {
       return port;
     }
   }
