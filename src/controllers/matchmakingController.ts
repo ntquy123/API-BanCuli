@@ -7,39 +7,15 @@ import {
   findRoomByPlayerId,
   leaveRoom,
   leaveRoomAndCleanup,
-  resetServerPortPoolIfIdle,
   shutdownAllServersIfIdle,
-  MAX_ROOMS,
 } from '../services/matchmakingService';
 import { TypeMatchGid } from '../config/typeMatchGid';
+import { buildWarmupSummary } from '../utils/matchmakingWarmup';
 
 export const availableRooms: RequestHandler = async (_req, res) => {
   try {
-    await resetServerPortPoolIfIdle();
-    const minRoomsPerType = 2;
-    const typesToWarm: TypeMatchGid[] = [
-      TypeMatchGid.MatchRandomNormal,
-      TypeMatchGid.MatchRandomRank,
-      TypeMatchGid.MatchRoom,
-    ];
-
-    const warmedRooms = await Promise.all(
-      typesToWarm.map(async (type) => ({
-        type,
-        rooms: await ensureEmptyRooms(type, minRoomsPerType),
-      })),
-    );
-
-    const warmBuffer = warmedRooms.reduce<Record<number, (typeof warmedRooms)[number]['rooms']>>(
-      (acc, current) => ({ ...acc, [current.type]: current.rooms }),
-      {},
-    );
-    res.json({
-      availableRooms: warmBuffer,
-      warmBuffer,
-      minEmptyRooms: minRoomsPerType,
-      maxRooms: MAX_ROOMS,
-    });
+    const summary = await buildWarmupSummary();
+    res.json({ availableRooms: summary.warmBuffer, ...summary });
   } catch (error) {
     if (error instanceof Error && error.message === 'SERVER_CAPACITY_REACHED') {
       res.status(503).json({ error: 'Server đang quá tải, vui lòng thử lại sau.' });

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ban Culi - Quản lý server</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Giao diện quản lý</p>
+          <h1>Ban Culi Server Control</h1>
+          <p class="subtitle">Phong cách miền Tây Việt Nam · Nhanh · Gọn · Trực quan</p>
+        </div>
+        <div class="hero-badge">
+          <span class="badge-label">Trạng thái</span>
+          <span id="session-state" class="badge-value offline">Chưa đăng nhập</span>
+        </div>
+      </header>
+
+      <main>
+        <section id="login-card" class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Bước 1</p>
+              <h2>Đăng nhập quản trị</h2>
+              <p class="subtitle">Sử dụng friendCode có ProviderType = System để vào bảng điều khiển.</p>
+            </div>
+            <div class="watermark">Cửu Long</div>
+          </div>
+          <form id="login-form" class="form">
+            <label class="field">
+              <span>FriendCode</span>
+              <input id="friendCode" name="friendCode" type="text" autocomplete="off" placeholder="Nhập friendCode hệ thống" required />
+            </label>
+            <button class="cta" type="submit">
+              <span>Đăng nhập</span>
+              <span class="sparkle">✦</span>
+            </button>
+          </form>
+          <p id="login-hint" class="hint">Mẹo: chỉ cần friendCode đúng, không cần mật khẩu.</p>
+        </section>
+
+        <section id="dashboard" class="panel hidden">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Bảng điều khiển</p>
+              <h2>Điều hành server tức thì</h2>
+              <p class="subtitle">Bật phòng chờ, tắt server an toàn, xem kết quả ngay.</p>
+            </div>
+            <div class="admin-chip">
+              <div class="chip-icon">🤠</div>
+              <div class="chip-text">
+                <span id="admin-name">Admin</span>
+                <small id="admin-friendcode">FriendCode</small>
+              </div>
+              <button id="logout" class="chip-action" type="button" title="Đăng xuất">✕</button>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div class="card gradient">
+              <div class="card-header">
+                <div>
+                  <p class="eyebrow">Tác vụ nhanh</p>
+                  <h3>Bật / tắt server</h3>
+                </div>
+                <div class="pill warm">Ổn định</div>
+              </div>
+              <div class="actions">
+                <button id="start-btn" class="cta ghost" type="button">
+                  <div class="icon">⚡</div>
+                  <div>
+                    <div>Bật server &amp; phòng chờ</div>
+                    <small>Gọi API /availableRooms</small>
+                  </div>
+                </button>
+                <button id="shutdown-btn" class="cta danger" type="button">
+                  <div class="icon">🌙</div>
+                  <div>
+                    <div>Shutdown server</div>
+                    <small>Gọi API /shutdownServers</small>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <p class="eyebrow">Kết quả</p>
+                  <h3>Phản hồi trực tiếp</h3>
+                </div>
+                <div class="pill neutral" id="result-status">Đang chờ</div>
+              </div>
+              <div class="result">
+                <div id="result-message" class="result-message">Chưa có thao tác.</div>
+                <pre id="result-detail" class="result-detail"></pre>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="loading-backdrop" class="backdrop hidden">
+      <div class="spinner"></div>
+      <p id="loading-text">Đang xử lý...</p>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

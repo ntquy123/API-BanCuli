@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import playerRoutes from './routes/playerRoutes';
 import roomRoutes from './routes/roomRoutes';
 import itemRoutes from './routes/itemRoutes';
@@ -16,6 +17,7 @@ import rewardRoutes from './routes/rewardRoutes';
 import achievementRoutes from './routes/achievementRoutes';
 import authRoutes from './routes/authRoutes';
 import matchmakingRoutes from './routes/matchmakingRoutes';
+import adminRoutes from './routes/adminRoutes';
 
 const app = express();
 
@@ -40,6 +42,8 @@ app.use('/api', rewardRoutes);
 app.use('/api', achievementRoutes);
 app.use('/api', authRoutes);
 app.use('/api', matchmakingRoutes);
+app.use('/admin', adminRoutes);
+app.use('/admin', express.static(path.join(__dirname, '../public/admin')));
 
 // KHÔNG CÒN BẤT KỲ ĐOẠN app.listen() hay new WebSocket.Server() nào ở đây
 
