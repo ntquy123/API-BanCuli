@@ -16,11 +16,18 @@ const formMode = document.getElementById('form-mode');
 const loadingBackdrop = document.getElementById('loading-backdrop');
 const loadingText = document.getElementById('loading-text');
 const toast = document.getElementById('toast');
+const searchInput = document.getElementById('language-search');
+const paginationInfo = document.getElementById('pagination-info');
+const prevPageButton = document.getElementById('prev-page');
+const nextPageButton = document.getElementById('next-page');
 
 const TOKEN_KEY = 'admin_ui_token';
+const PAGE_SIZE = 10;
 
 let languages = [];
 let editingCode = null;
+let searchTerm = '';
+let currentPage = 1;
 
 const HTML_ESCAPE_MAP = {
   '&': '&amp;',
@@ -118,19 +125,54 @@ const ensureSession = async () => {
   }
 };
 
-const updateLanguageCount = () => {
+const updateLanguageCount = (filteredLength = languages.length) => {
+  if (filteredLength !== languages.length) {
+    languageCount.textContent = `${filteredLength}/${languages.length} bản ghi`;
+    return;
+  }
   languageCount.textContent = `${languages.length} bản ghi`;
 };
 
-const renderLanguages = () => {
-  updateLanguageCount();
+const getFilteredLanguages = () => {
+  const keyword = searchTerm.trim().toLowerCase();
+  if (!keyword) return [...languages];
 
-  if (!languages.length) {
-    languageGrid.innerHTML = '<div class="docker-empty">Chưa có cấu hình ngôn ngữ nào.</div>';
+  return languages.filter((language) => {
+    const { code = '', vietnamText = '', englishText = '' } = language;
+    return [code, vietnamText, englishText].some((value) => value.toString().toLowerCase().includes(keyword));
+  });
+};
+
+const updatePaginationControls = (filteredLength, totalPages) => {
+  const hasData = filteredLength > 0;
+  const displayTotalPages = hasData ? totalPages : 0;
+  const displayCurrentPage = hasData ? currentPage : 0;
+
+  paginationInfo.textContent = `Trang ${displayCurrentPage}/${displayTotalPages}`;
+  prevPageButton.disabled = !hasData || currentPage === 1;
+  nextPageButton.disabled = !hasData || currentPage === totalPages;
+};
+
+const renderLanguages = () => {
+  const filtered = getFilteredLanguages();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  currentPage = filtered.length ? Math.min(currentPage, totalPages) : 1;
+
+  updateLanguageCount(filtered.length);
+  updatePaginationControls(filtered.length, totalPages);
+
+  if (!filtered.length) {
+    const message = searchTerm.trim()
+      ? `Không tìm thấy cấu hình cho từ khóa "${escapeHtml(searchTerm)}".`
+      : 'Chưa có cấu hình ngôn ngữ nào.';
+    languageGrid.innerHTML = `<div class="docker-empty">${message}</div>`;
     return;
   }
 
-  languageGrid.innerHTML = languages
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(startIndex, startIndex + PAGE_SIZE);
+
+  languageGrid.innerHTML = pageItems
     .map(
       (language) => `
         <article class="data-row">
@@ -164,6 +206,7 @@ const fetchLanguages = async () => {
   try {
     const data = await apiFetch('languages');
     languages = Array.isArray(data) ? data : data?.languages || [];
+    currentPage = 1;
     renderLanguages();
   } catch (error) {
     languageGrid.innerHTML = `<div class="docker-error">${escapeHtml(
@@ -284,6 +327,26 @@ logoutButton.addEventListener('click', () => {
 
 backDashboardButton.addEventListener('click', () => {
   window.location.href = './index.html';
+});
+
+searchInput.addEventListener('input', (event) => {
+  searchTerm = event.target.value;
+  currentPage = 1;
+  renderLanguages();
+});
+
+prevPageButton.addEventListener('click', () => {
+  if (currentPage === 1) return;
+  currentPage -= 1;
+  renderLanguages();
+});
+
+nextPageButton.addEventListener('click', () => {
+  const filtered = getFilteredLanguages();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  if (currentPage >= totalPages) return;
+  currentPage += 1;
+  renderLanguages();
 });
 
 ensureSession().then(fetchLanguages);
