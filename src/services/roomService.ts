@@ -68,7 +68,8 @@ export const createRoom = async (data: {
     const portPool = await tx.serverPortPool.findFirst({
       where: {
         roomNameRef: normalizedRoomName,
-        NOT: [{ containerId: null }, { containerId: '' }],
+        containerId: { not: '' },
+
       },
     });
 
