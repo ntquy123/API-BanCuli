@@ -217,7 +217,11 @@ export async function ensureEmptyRooms(
   typeMatchGid: number = DEFAULT_MATCH_TYPE_GID,
   minEmptyRooms: number = MIN_EMPTY_ROOMS,
 ) {
-  const filter: Prisma.ServerPortPoolWhereInput = { typeMatchGid, containerId: { not: '' } };
+  const filter: Prisma.ServerPortPoolWhereInput = {
+    typeMatchGid,
+    containerId: { not: '' },
+    roomNameRef: { not: '' },
+  };
 
   const [totalRooms, emptyRooms] = await Promise.all([
     prisma.serverPortPool.count({ where: filter }),
