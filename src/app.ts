@@ -42,8 +42,8 @@ app.use('/api', rewardRoutes);
 app.use('/api', achievementRoutes);
 app.use('/api', authRoutes);
 app.use('/api', matchmakingRoutes);
-app.use('/admin', adminRoutes);
-app.use('/admin', express.static(path.join(__dirname, '../public/admin')));
+app.use('/api', adminRoutes);
+app.use('/api', express.static(path.join(__dirname, '../public/admin')));
 
 // KHÔNG CÒN BẤT KỲ ĐOẠN app.listen() hay new WebSocket.Server() nào ở đây
 

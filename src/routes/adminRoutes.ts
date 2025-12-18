@@ -5,10 +5,10 @@ import { requireAdminAuth } from '../middleware/adminAuth';
 
 const router = express.Router();
 
-router.post('/api/login', loginAdmin);
-router.get('/api/session', requireAdminAuth, getAdminSession);
-router.get('/api/start', requireAdminAuth, startServers);
-router.post('/api/shutdown', requireAdminAuth, shutdownServersAdmin);
+router.post('/admin/login', loginAdmin);
+router.get('/admin/session', requireAdminAuth, getAdminSession);
+router.get('/admin/start', requireAdminAuth, startServers);
+router.post('/admin/shutdown', requireAdminAuth, shutdownServersAdmin);
 
 router.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, '../../public/admin/index.html'));

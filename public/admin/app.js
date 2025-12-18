@@ -82,7 +82,7 @@ const apiFetch = async (endpoint, options = {}) => {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`/admin/api/${endpoint}`, {
+  const response = await fetch(`/api/admin/${endpoint}`, {
     ...options,
     headers,
   });
