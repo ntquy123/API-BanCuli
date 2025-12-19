@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import util from 'util';
 import crypto from 'crypto';
 import net from 'net';
+import dgram from 'dgram';
 import { Prisma } from '@prisma/client';
 import prisma from '../models/prismaClient';
 import { TypeMatchGid } from '../config/typeMatchGid';
@@ -48,21 +49,42 @@ function buildSessionProperties(typeMatchGid: number) {
 
 async function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
-    const tester = net
-      .createServer()
-      .once('error', (error: NodeJS.ErrnoException) => {
-        if (error.code === 'EADDRINUSE' || error.code === 'EACCES') {
-          resolve(false);
-          return;
-        }
+    const tcpTester = net.createServer();
+    const udpTester = dgram.createSocket('udp4');
 
-        resolve(false);
-      })
-      .once('listening', () => {
-        tester.close(() => resolve(true));
-      });
+    let tcpReady = false;
+    let udpReady = false;
+    let resolved = false;
 
-    tester.listen(port, '0.0.0.0');
+    const tryResolve = () => {
+      if (resolved) return;
+
+      if (tcpReady && udpReady) {
+        resolved = true;
+        resolve(true);
+      }
+    };
+
+    const fail = () => {
+      if (resolved) return;
+      resolved = true;
+      tcpTester.close();
+      udpTester.close();
+      resolve(false);
+    };
+
+    tcpTester.once('error', fail).once('listening', () => {
+      tcpReady = true;
+      tcpTester.close(() => tryResolve());
+    });
+
+    udpTester.once('error', fail).once('listening', () => {
+      udpReady = true;
+      udpTester.close(() => tryResolve());
+    });
+
+    tcpTester.listen(port, '0.0.0.0');
+    udpTester.bind(port, '0.0.0.0');
   });
 }
 
@@ -113,7 +135,7 @@ async function startRoomContainer(roomName: string, port: number, sessionPropert
   const containerName = buildContainerName(roomName);
   const sessionPropertyEnv = sessionProperties ? `-e SessionProperties="${sessionProperties}"` : '';
   const startCommand =
-    `${DOCKER_RUNTIME} run -d --rm --name ${containerName} -p ${port}:${SERVER_PORT_IN_CONTAINER} ${sessionPropertyEnv} ${DOCKER_IMAGE} ${EXTRA_SERVER_ARGS} --roomName=${roomName} --port=${port}`.trim();
+    `${DOCKER_RUNTIME} run -d --rm --name ${containerName} -p ${port}:${SERVER_PORT_IN_CONTAINER}/udp ${sessionPropertyEnv} ${DOCKER_IMAGE} ${EXTRA_SERVER_ARGS} --roomName=${roomName} --port=${port}`.trim();
 
   const { stderr, stdout } = await execPromise(startCommand);
   const stderrLines = stderr
