@@ -105,23 +105,24 @@
               <div class="card-header">
                 <div>
                   <p class="eyebrow">Docker</p>
-                  <h3>Container đang chạy</h3>
-                  <p class="subtitle">Theo dõi phòng game và dịch vụ trực tiếp.</p>
+                  <h3>Quản lý container</h3>
+                  <p class="subtitle">Theo dõi trạng thái, tài nguyên và log phòng game.</p>
                 </div>
-                <div class="docker-tools">
-                  <div class="pill neutral" id="docker-count">0 đang chạy</div>
-                  <button
-                    id="refresh-containers"
-                    class="chip-action chip-button"
-                    type="button"
-                    title="Làm mới danh sách"
-                  >
-                    ↻ Làm mới
-                  </button>
-                </div>
+                <div class="pill warm">Mới</div>
               </div>
-              <div class="docker-list" id="docker-list">
-                <div class="docker-empty">Đăng nhập để xem container đang hoạt động.</div>
+
+              <div class="config-card__body">
+                <p>
+                  Tách riêng trang quản lý Docker với bảng dạng lưới, phân trang và xem log chi tiết từng
+                  container.
+                </p>
+                <div class="config-actions">
+                  <button id="open-docker-management" class="cta" type="button">
+                    <span class="icon">🐳</span>
+                    <span>Mở trang Docker</span>
+                  </button>
+                  <small class="subtitle">Yêu cầu đăng nhập quản trị.</small>
+                </div>
               </div>
             </div>
 

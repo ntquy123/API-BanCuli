@@ -2,7 +2,7 @@ import { RequestHandler } from 'express';
 import prisma from '../models/prismaClient';
 import { buildWarmupSummary } from '../utils/matchmakingWarmup';
 import { shutdownAllServersIfIdle } from '../services/matchmakingService';
-import { listRunningContainers } from '../services/dockerService';
+import { fetchContainerLogs, listRunningContainers } from '../services/dockerService';
 import { AdminTokenPayload, createAdminToken } from '../middleware/adminAuth';
 
 export const loginAdmin: RequestHandler = async (req, res) => {
@@ -114,5 +114,24 @@ export const getActiveContainers: RequestHandler = async (_req, res) => {
     console.error('Lỗi khi lấy danh sách docker đang chạy:', error);
     const detail = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: 'Không thể lấy danh sách docker đang chạy.', detail });
+  }
+};
+
+export const getContainerLogs: RequestHandler = async (req, res) => {
+  const containerId = req.params.id;
+  const tail = Number.parseInt((req.query.tail as string) ?? '200', 10);
+
+  if (!containerId) {
+    res.status(400).json({ error: 'Thiếu containerId để xem log.' });
+    return;
+  }
+
+  try {
+    const logs = await fetchContainerLogs(containerId, tail);
+    res.json({ logs });
+  } catch (error) {
+    console.error(`Lỗi khi lấy log cho container ${containerId}:`, error);
+    const detail = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: 'Không thể lấy log container.', detail });
   }
 };

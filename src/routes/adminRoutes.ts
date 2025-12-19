@@ -3,6 +3,7 @@ import path from 'path';
 import {
   getActiveContainers,
   getAdminSession,
+  getContainerLogs,
   loginAdmin,
   shutdownServersAdmin,
   startServers,
@@ -22,6 +23,7 @@ router.get('/admin/session', requireAdminAuth, getAdminSession);
 router.get('/admin/start', requireAdminAuth, startServers);
 router.post('/admin/shutdown', requireAdminAuth, shutdownServersAdmin);
 router.get('/admin/containers', requireAdminAuth, getActiveContainers);
+router.get('/admin/containers/:id/logs', requireAdminAuth, getContainerLogs);
 router.get('/admin/languages', requireAdminAuth, getLanguages);
 router.post('/admin/languages', requireAdminAuth, createLanguage);
 router.put('/admin/languages/:code', requireAdminAuth, updateLanguage);
@@ -33,6 +35,10 @@ router.get('/', (_req, res) => {
 
 router.get('/admin/config', (_req, res) => {
   res.sendFile(path.join(__dirname, '../../public/admin/config.html'));
+});
+
+router.get('/admin/docker', (_req, res) => {
+  res.sendFile(path.join(__dirname, '../../public/admin/docker.html'));
 });
 
 export default router;
