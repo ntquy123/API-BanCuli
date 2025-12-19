@@ -42,7 +42,7 @@ const fetchContainerStats = async (containerIds: string[]): Promise<Record<strin
   }
 
   const { stdout, stderr } = await execPromise(
-    `${DOCKER_RUNTIME} stats --no-stream --format "{{.Container}}|{{.CPUPerc}}|{{.MemUsage}}" ${containerIds.join(' ')}`,
+    `${DOCKER_RUNTIME} stats --no-stream --format "{{.ID}}|{{.CPUPerc}}|{{.MemUsage}}" ${containerIds.join(' ')}`,
   );
 
   parseDockerErrors(stderr);
