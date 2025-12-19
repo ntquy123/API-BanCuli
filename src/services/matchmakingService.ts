@@ -111,9 +111,9 @@ function buildContainerName(roomName: string): string {
 
 async function startRoomContainer(roomName: string, port: number, sessionProperties?: string) {
   const containerName = buildContainerName(roomName);
-  const sessionPropertyArg = sessionProperties ? `--sessionProperties="${sessionProperties}"` : '';
+  const sessionPropertyEnv = sessionProperties ? `-e SessionProperties="${sessionProperties}"` : '';
   const startCommand =
-    `${DOCKER_RUNTIME} run -d --rm --name ${containerName} -p ${port}:${SERVER_PORT_IN_CONTAINER} ${DOCKER_IMAGE} ${EXTRA_SERVER_ARGS} --roomName=${roomName} --port=${port} ${sessionPropertyArg}`.trim();
+    `${DOCKER_RUNTIME} run -d --rm --name ${containerName} -p ${port}:${SERVER_PORT_IN_CONTAINER} ${sessionPropertyEnv} ${DOCKER_IMAGE} ${EXTRA_SERVER_ARGS} --roomName=${roomName} --port=${port}`.trim();
 
   const { stderr, stdout } = await execPromise(startCommand);
   const stderrLines = stderr
