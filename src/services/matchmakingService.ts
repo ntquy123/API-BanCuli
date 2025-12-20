@@ -262,6 +262,80 @@ export async function shutdownAllServersIfIdle() {
   return { deletedRecords: deleteResult.count, stoppedContainers };
 }
 
+export async function shutdownTestServer(typeMatchGid: number = TypeMatchGid.MatchRandomRank) {
+  const records = await prisma.serverPortPool.findMany({ where: { typeMatchGid } });
+
+  if (records.length === 0) {
+    return { deletedRecords: 0, stoppedContainers: 0 };
+  }
+
+  const busyRecords = records.filter((record) => record.isBusy === 2);
+  if (busyRecords.length > 0) {
+    throw new Error('TEST_SERVER_BUSY');
+  }
+
+  const roomNames = Array.from(
+    new Set(records.map((record) => record.roomNameRef).filter((roomName): roomName is string => Boolean(roomName))),
+  );
+  let stoppedContainers = 0;
+
+  for (const record of records) {
+    if (record.containerId) {
+      // eslint-disable-next-line no-await-in-loop
+      await stopContainerById(record.containerId);
+      stoppedContainers += 1;
+      continue;
+    }
+
+    if (record.roomNameRef) {
+      // eslint-disable-next-line no-await-in-loop
+      await stopRoomContainer(record.roomNameRef);
+      stoppedContainers += 1;
+    }
+  }
+
+  if (roomNames.length > 0) {
+    const rooms = await prisma.room.findMany({
+      where: { roomName: { in: roomNames } },
+      select: { id: true },
+    });
+
+    const roomIds = rooms.map((room) => room.id);
+    if (roomIds.length > 0) {
+      await prisma.roomUser.deleteMany({ where: { roomId: { in: roomIds } } });
+      await prisma.room.deleteMany({ where: { id: { in: roomIds } } });
+    }
+  }
+
+  const deleteResult = await prisma.serverPortPool.deleteMany({ where: { typeMatchGid } });
+
+  return { deletedRecords: deleteResult.count, stoppedContainers };
+}
+
+export async function ensureSingleTestServer(typeMatchGid: number = TypeMatchGid.MatchRandomRank) {
+  const filter: Prisma.ServerPortPoolWhereInput = {
+    typeMatchGid,
+    containerId: { not: '' },
+    roomNameRef: { not: '' },
+  };
+
+  const [existingRooms, emptyRooms] = await Promise.all([
+    prisma.serverPortPool.findMany({ where: filter, orderBy: { portNo: 'asc' } }),
+    prisma.serverPortPool.findMany({ where: { isBusy: 0, ...filter }, orderBy: { portNo: 'asc' } }),
+  ]);
+
+  if (existingRooms.length > 0) {
+    if (emptyRooms.length === 0) {
+      throw new Error('TEST_SERVER_BUSY');
+    }
+
+    return { created: false, rooms: emptyRooms } as const;
+  }
+
+  const room = await createEmptyRoom(typeMatchGid);
+  return { created: true, rooms: [room] } as const;
+}
+
 async function createEmptyRoom(typeMatchGid: number) {
   return withPortAllocationLock(async () => {
     const port = await getAvailablePort(typeMatchGid);

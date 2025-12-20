@@ -1,9 +1,14 @@
 import { RequestHandler } from 'express';
 import prisma from '../models/prismaClient';
 import { buildWarmupSummary } from '../utils/matchmakingWarmup';
-import { shutdownAllServersIfIdle } from '../services/matchmakingService';
+import {
+  ensureSingleTestServer,
+  shutdownAllServersIfIdle,
+  shutdownTestServer,
+} from '../services/matchmakingService';
 import { fetchContainerLogs, listRunningContainers } from '../services/dockerService';
 import { AdminTokenPayload, createAdminToken } from '../middleware/adminAuth';
+import { TypeMatchGid } from '../config/typeMatchGid';
 
 export const loginAdmin: RequestHandler = async (req, res) => {
   const { friendCode } = req.body as { friendCode?: unknown };
@@ -87,6 +92,39 @@ export const startServers: RequestHandler = async (_req, res) => {
   }
 };
 
+export const startTestServer: RequestHandler = async (_req, res) => {
+  try {
+    const result = await ensureSingleTestServer(TypeMatchGid.MatchRandomRank);
+    res.json({
+      message: result.created
+        ? 'Đã bật server test Rank (1 phòng trống) với TypeMatchGid = 10000002.'
+        : 'Server test Rank đã sẵn sàng, không cần tạo thêm.',
+      typeMatchGid: TypeMatchGid.MatchRandomRank,
+      ...result,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'TEST_SERVER_BUSY') {
+      res.status(409).json({ error: 'Phòng test đang bận, vui lòng thử lại sau khi trống.' });
+      return;
+    }
+
+    if (error instanceof Error && error.message === 'NO_AVAILABLE_PORT') {
+      res.status(503).json({ error: 'Không còn cổng trống để tạo server test.' });
+      return;
+    }
+
+    if (error instanceof Error && error.message.startsWith('Docker start error')) {
+      res
+        .status(500)
+        .json({ error: 'Không thể khởi động container server test.', detail: error.message });
+      return;
+    }
+
+    console.error('Lỗi khi bật server test:', error);
+    res.status(500).json({ error: 'Không thể bật server test.' });
+  }
+};
+
 export const shutdownServersAdmin: RequestHandler = async (_req, res) => {
   try {
     const result = await shutdownAllServersIfIdle();
@@ -103,6 +141,29 @@ export const shutdownServersAdmin: RequestHandler = async (_req, res) => {
     console.error('Lỗi khi tắt server:', error);
     const detail = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: 'Không thể tắt server', detail });
+  }
+};
+
+export const shutdownTestServerController: RequestHandler = async (_req, res) => {
+  try {
+    const result = await shutdownTestServer(TypeMatchGid.MatchRandomRank);
+    res.json({
+      message:
+        result.deletedRecords > 0
+          ? 'Đã tắt server test Rank và dọn dẹp phòng.'
+          : 'Không có server test Rank nào đang chạy.',
+      typeMatchGid: TypeMatchGid.MatchRandomRank,
+      ...result,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'TEST_SERVER_BUSY') {
+      res.status(400).json({ error: 'Không thể tắt server test khi phòng đang bận.' });
+      return;
+    }
+
+    console.error('Lỗi khi tắt server test:', error);
+    const detail = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: 'Không thể tắt server test.', detail });
   }
 };
 

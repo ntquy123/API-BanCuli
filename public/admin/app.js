@@ -7,6 +7,8 @@ const adminFriendcode = document.getElementById('admin-friendcode');
 const logoutButton = document.getElementById('logout');
 const startButton = document.getElementById('start-btn');
 const shutdownButton = document.getElementById('shutdown-btn');
+const startTestButton = document.getElementById('start-test-btn');
+const shutdownTestButton = document.getElementById('shutdown-test-btn');
 const resultStatus = document.getElementById('result-status');
 const resultMessage = document.getElementById('result-message');
 const resultDetail = document.getElementById('result-detail');
@@ -196,6 +198,12 @@ logoutButton.addEventListener('click', () => {
 
 startButton.addEventListener('click', () => handleAction('start', 'GET', 'Đang bật server và phòng chờ...'));
 shutdownButton.addEventListener('click', () => handleAction('shutdown', 'POST', 'Đang tắt server...'));
+startTestButton?.addEventListener('click', () =>
+  handleAction('test-server/start', 'GET', 'Đang bật server test Rank...'),
+);
+shutdownTestButton?.addEventListener('click', () =>
+  handleAction('test-server/shutdown', 'POST', 'Đang tắt server test Rank...'),
+);
 openLanguageConfigButton?.addEventListener('click', () => {
   const token = getToken();
   if (!token) {

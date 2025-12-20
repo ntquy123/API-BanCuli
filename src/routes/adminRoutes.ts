@@ -6,7 +6,9 @@ import {
   getContainerLogs,
   loginAdmin,
   shutdownServersAdmin,
+  shutdownTestServerController,
   startServers,
+  startTestServer,
 } from '../controllers/adminController';
 import {
   createLanguage,
@@ -21,7 +23,9 @@ const router = express.Router();
 router.post('/admin/login', loginAdmin);
 router.get('/admin/session', requireAdminAuth, getAdminSession);
 router.get('/admin/start', requireAdminAuth, startServers);
+router.get('/admin/test-server/start', requireAdminAuth, startTestServer);
 router.post('/admin/shutdown', requireAdminAuth, shutdownServersAdmin);
+router.post('/admin/test-server/shutdown', requireAdminAuth, shutdownTestServerController);
 router.get('/admin/containers', requireAdminAuth, getActiveContainers);
 router.get('/admin/containers/:id/logs', requireAdminAuth, getContainerLogs);
 router.get('/admin/languages', requireAdminAuth, getLanguages);
