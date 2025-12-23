@@ -87,6 +87,40 @@ h3 {
   overflow: hidden;
 }
 
+.tab-nav {
+  margin: 20px 0 8px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tab-button {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.tab-button.active {
+  border-color: rgba(245, 159, 69, 0.6);
+  box-shadow: 0 8px 22px rgba(243, 111, 56, 0.18);
+  background: linear-gradient(135deg, rgba(243, 111, 56, 0.14), rgba(255, 255, 255, 0.03));
+  transform: translateY(-1px);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
 .panel-header {
   display: flex;
   justify-content: space-between;

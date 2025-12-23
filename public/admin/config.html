@@ -11,8 +11,8 @@
       <header class="hero config-hero">
         <div>
           <p class="eyebrow">Cấu hình hệ thống</p>
-          <h1>Quản lý ngôn ngữ</h1>
-          <p class="subtitle">Làm việc trực tiếp với bảng SysMasLanguage bằng giao diện lưới hiện đại.</p>
+          <h1>Quản lý dữ liệu nền tảng</h1>
+          <p class="subtitle">Làm việc trực tiếp với bảng SysMasLanguage, SysMasGeneral và Item trong cùng một màn hình.</p>
         </div>
         <div class="hero-actions">
           <button id="back-dashboard" class="chip-action chip-button" type="button">← Quay lại dashboard</button>
@@ -24,7 +24,13 @@
       </header>
 
       <main>
-        <section class="panel">
+        <div class="tab-nav">
+          <button class="tab-button active" data-tab="language">Ngôn ngữ</button>
+          <button class="tab-button" data-tab="general">Cấu hình chung</button>
+          <button class="tab-button" data-tab="item">Item</button>
+        </div>
+
+        <section class="panel tab-panel active" data-tab-panel="language">
           <div class="panel-header">
             <div>
               <p class="eyebrow">Ngôn ngữ</p>
@@ -100,6 +106,228 @@
                 </div>
               </div>
               <div class="data-grid" id="language-grid">
+                <div class="docker-loading">Đang tải dữ liệu...</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel tab-panel" data-tab-panel="general">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Cấu hình hệ thống</p>
+              <h2>Grid SysMasGeneral</h2>
+              <p class="subtitle">Thêm, sửa, xóa config code chung cho hệ thống.</p>
+            </div>
+          </div>
+
+          <div class="config-layout">
+            <div class="card form-card">
+              <div class="card-header">
+                <div>
+                  <p class="eyebrow">Biểu mẫu</p>
+                  <h3 id="general-form-title">Thêm mới SysMasGeneral</h3>
+                  <p class="subtitle">Nhập GenCode và thông tin mô tả.</p>
+                </div>
+                <div class="pill neutral" id="general-form-mode">Thêm mới</div>
+              </div>
+              <form id="general-form" class="form vertical">
+                <label class="field">
+                  <span>GenCode</span>
+                  <input id="general-code" name="GenCode" type="number" placeholder="VD: 1001" required />
+                </label>
+                <label class="field">
+                  <span>GenName</span>
+                  <input id="general-name" name="GenName" type="text" placeholder="Tên config" required />
+                </label>
+                <label class="field">
+                  <span>ParentCode (tùy chọn)</span>
+                  <input id="general-parent" name="ParentCode" type="number" placeholder="Mã cha nếu có" />
+                </label>
+                <label class="field">
+                  <span>Mô tả</span>
+                  <input id="general-description" name="description" type="text" placeholder="Diễn giải" />
+                </label>
+                <div class="form-actions">
+                  <button id="submit-general" class="cta" type="submit">
+                    <span>Thêm SysMasGeneral</span>
+                    <span class="sparkle">✦</span>
+                  </button>
+                  <button id="cancel-general-edit" class="chip-action chip-button muted hidden" type="button">
+                    Hủy chỉnh sửa
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card table-card">
+              <div class="card-header">
+                <div>
+                  <p class="eyebrow">Danh sách</p>
+                  <h3>Grid SysMasGeneral</h3>
+                  <p class="subtitle">Quản lý toàn bộ cấu hình code chung.</p>
+                </div>
+                <div class="pill warm" id="general-count">0 bản ghi</div>
+              </div>
+              <div class="table-toolbar">
+                <label class="field compact">
+                  <span>Tìm kiếm</span>
+                  <input
+                    id="general-search"
+                    type="search"
+                    placeholder="Tìm theo GenCode, GenName hoặc mô tả"
+                    autocomplete="off"
+                  />
+                </label>
+                <div class="pagination-controls">
+                  <button id="general-prev" class="chip-action chip-button" type="button">← Trang trước</button>
+                  <div class="pagination-info" id="general-pagination">Trang 1/1</div>
+                  <button id="general-next" class="chip-action chip-button" type="button">Trang tiếp →</button>
+                </div>
+              </div>
+              <div class="data-grid" id="general-grid">
+                <div class="docker-loading">Đang tải dữ liệu...</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel tab-panel" data-tab-panel="item">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Item</p>
+              <h2>Grid Item</h2>
+              <p class="subtitle">Thao tác trực tiếp với bảng Item.</p>
+            </div>
+          </div>
+
+          <div class="config-layout">
+            <div class="card form-card">
+              <div class="card-header">
+                <div>
+                  <p class="eyebrow">Biểu mẫu</p>
+                  <h3 id="item-form-title">Thêm mới Item</h3>
+                  <p class="subtitle">Điền thông tin item bắt buộc và các thuộc tính liên quan.</p>
+                </div>
+                <div class="pill neutral" id="item-form-mode">Thêm mới</div>
+              </div>
+              <form id="item-form" class="form vertical">
+                <label class="field">
+                  <span>ID</span>
+                  <input id="item-id" name="id" type="number" placeholder="Mã item" required />
+                </label>
+                <label class="field">
+                  <span>Tên item</span>
+                  <input id="item-name" name="name" type="text" placeholder="Tên hiển thị" required />
+                </label>
+                <label class="field">
+                  <span>Mô tả</span>
+                  <input id="item-description" name="description" type="text" placeholder="Mô tả chi tiết" required />
+                </label>
+                <label class="field">
+                  <span>Level</span>
+                  <input id="item-level" name="level" type="number" placeholder="Cấp độ" required />
+                </label>
+                <label class="field">
+                  <span>TypeGid</span>
+                  <input id="item-type" name="typeGid" type="number" placeholder="Phân loại" required />
+                </label>
+                <label class="field">
+                  <span>LocationGid</span>
+                  <input id="item-location" name="locationGid" type="number" placeholder="Vị trí" required />
+                </label>
+                <label class="field">
+                  <span>Giá</span>
+                  <input id="item-price" name="price" type="number" placeholder="Giá bán" required />
+                </label>
+                <label class="field">
+                  <span>Giá bằng bi (tùy chọn)</span>
+                  <input id="item-price-ball" name="priceByBall" type="number" placeholder="Giá quy đổi" />
+                </label>
+                <label class="field">
+                  <span>ElementType (tùy chọn)</span>
+                  <input id="item-element" name="ElementType" type="number" placeholder="Nguyên tố" />
+                </label>
+                <label class="field">
+                  <span>Level yêu cầu (tùy chọn)</span>
+                  <input id="item-level-required" name="Levelrequired" type="number" placeholder="Level yêu cầu" />
+                </label>
+                <label class="field">
+                  <span>isLevelUp</span>
+                  <select id="item-is-level-up" name="isLevelUp" required>
+                    <option value="true">Cho phép nâng cấp</option>
+                    <option value="false">Không nâng cấp</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>isOpen</span>
+                  <select id="item-is-open" name="isOpen" required>
+                    <option value="true">Đang mở</option>
+                    <option value="false">Đóng</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Mass (tùy chọn)</span>
+                  <input id="item-mass" name="Mass" type="number" step="0.01" placeholder="Khối lượng" />
+                </label>
+                <label class="field">
+                  <span>GravityScale (tùy chọn)</span>
+                  <input id="item-gravity" name="GravityScale" type="number" step="0.01" placeholder="Gravity" />
+                </label>
+                <label class="field">
+                  <span>Drag (tùy chọn)</span>
+                  <input id="item-drag" name="Drag" type="number" step="0.01" placeholder="Lực cản" />
+                </label>
+                <label class="field">
+                  <span>Bounciness (tùy chọn)</span>
+                  <input id="item-bounciness" name="Bounciness" type="number" step="0.01" placeholder="Độ nảy" />
+                </label>
+                <label class="field">
+                  <span>Elasticity (tùy chọn)</span>
+                  <input id="item-elasticity" name="Elasticity" type="number" step="0.01" placeholder="Độ đàn hồi" />
+                </label>
+                <label class="field">
+                  <span>ImpactResistance (tùy chọn)</span>
+                  <input id="item-impact" name="ImpactResistance" type="number" step="0.01" placeholder="Chống va chạm" />
+                </label>
+                <div class="form-actions">
+                  <button id="submit-item" class="cta" type="submit">
+                    <span>Thêm Item</span>
+                    <span class="sparkle">✦</span>
+                  </button>
+                  <button id="cancel-item-edit" class="chip-action chip-button muted hidden" type="button">
+                    Hủy chỉnh sửa
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card table-card">
+              <div class="card-header">
+                <div>
+                  <p class="eyebrow">Danh sách</p>
+                  <h3>Grid Item</h3>
+                  <p class="subtitle">Quản lý toàn bộ item trong hệ thống.</p>
+                </div>
+                <div class="pill warm" id="item-count">0 bản ghi</div>
+              </div>
+              <div class="table-toolbar">
+                <label class="field compact">
+                  <span>Tìm kiếm</span>
+                  <input
+                    id="item-search"
+                    type="search"
+                    placeholder="Tìm theo ID, tên hoặc mô tả"
+                    autocomplete="off"
+                  />
+                </label>
+                <div class="pagination-controls">
+                  <button id="item-prev" class="chip-action chip-button" type="button">← Trang trước</button>
+                  <div class="pagination-info" id="item-pagination">Trang 1/1</div>
+                  <button id="item-next" class="chip-action chip-button" type="button">Trang tiếp →</button>
+                </div>
+              </div>
+              <div class="data-grid" id="item-grid">
                 <div class="docker-loading">Đang tải dữ liệu...</div>
               </div>
             </div>

@@ -16,6 +16,18 @@ import {
   getLanguages,
   updateLanguage,
 } from '../controllers/languageController';
+import {
+  createGeneral,
+  deleteGeneral,
+  getGenerals,
+  updateGeneral,
+} from '../controllers/generalController';
+import {
+  createItem as createAdminItem,
+  deleteItem as deleteAdminItem,
+  getItems as getAdminItems,
+  updateItem as updateAdminItem,
+} from '../controllers/adminItemController';
 import { requireAdminAuth } from '../middleware/adminAuth';
 
 const router = express.Router();
@@ -32,6 +44,14 @@ router.get('/admin/languages', requireAdminAuth, getLanguages);
 router.post('/admin/languages', requireAdminAuth, createLanguage);
 router.put('/admin/languages/:code', requireAdminAuth, updateLanguage);
 router.delete('/admin/languages/:code', requireAdminAuth, deleteLanguage);
+router.get('/admin/generals', requireAdminAuth, getGenerals);
+router.post('/admin/generals', requireAdminAuth, createGeneral);
+router.put('/admin/generals/:GenCode', requireAdminAuth, updateGeneral);
+router.delete('/admin/generals/:GenCode', requireAdminAuth, deleteGeneral);
+router.get('/admin/items', requireAdminAuth, getAdminItems);
+router.post('/admin/items', requireAdminAuth, createAdminItem);
+router.put('/admin/items/:id', requireAdminAuth, updateAdminItem);
+router.delete('/admin/items/:id', requireAdminAuth, deleteAdminItem);
 
 router.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, '../../public/admin/index.html'));
