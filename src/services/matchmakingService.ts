@@ -134,8 +134,9 @@ function buildContainerName(roomName: string): string {
 async function startRoomContainer(roomName: string, port: number, sessionProperties?: string) {
   const containerName = buildContainerName(roomName);
   const sessionPropertyEnv = sessionProperties ? `-e SessionProperties="${sessionProperties}"` : '';
-  //const portBindings = `-p ${port}:${SERVER_PORT_IN_CONTAINER} -p ${port}:${SERVER_PORT_IN_CONTAINER}/udp`;
-  const portBindings = `-p ${port}:${SERVER_PORT_IN_CONTAINER}`;
+ // const portBindings = `-p ${port}:${SERVER_PORT_IN_CONTAINER} -p ${port}:${SERVER_PORT_IN_CONTAINER}/udp`;
+ //const portBindings = `-p ${port}:${SERVER_PORT_IN_CONTAINER}`;
+ const portBindings = `-p ${port}:${SERVER_PORT_IN_CONTAINER}/udp`;
   const startCommand =
     `${DOCKER_RUNTIME} run -d --rm --name ${containerName} ${portBindings} ${sessionPropertyEnv} ${DOCKER_IMAGE} ${EXTRA_SERVER_ARGS} --roomName=${roomName} --port=${port}`.trim();
 
