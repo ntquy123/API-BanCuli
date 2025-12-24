@@ -142,16 +142,22 @@ export const getPlayerDetail = async (req: Request, res: Response): Promise<void
   }
 };
 
+
+
 export const getPlayerHistories = async (req: Request, res: Response): Promise<void> => {
   const playerId = Number(req.params.id);
+
+  // Kiểm tra playerId hợp lệ
   if (!Number.isInteger(playerId)) {
     res.status(400).json({ error: 'Thiếu ID người chơi.' });
     return;
   }
 
+  // Xử lý limit query parameter
   const limit = Math.min(parseNumber(req.query.limit, 20), MAX_LOG_LIMIT);
 
   try {
+    // Truy vấn lịch sử trận đấu từ cơ sở dữ liệu
     const histories = await prisma.history.findMany({
       where: { playerId },
       orderBy: { createdAt: 'desc' },
@@ -171,10 +177,20 @@ export const getPlayerHistories = async (req: Request, res: Response): Promise<v
         createdAt: true,
       },
     });
+
+    // Nếu không có lịch sử, trả về mảng rỗng
+    if (histories.length === 0) {
+      res.json({ histories: [] });
+      return;
+    }
+
+    // Chuyển đổi transno thành chuỗi nếu cần
     const serializedHistories = histories.map((history) => ({
       ...history,
       transno: history.transno.toString(),
     }));
+
+    // Trả về dữ liệu
     res.json({ histories: serializedHistories });
   } catch (error) {
     console.error('Lỗi khi lấy lịch sử trận đấu:', error);
