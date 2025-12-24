@@ -28,6 +28,14 @@ import {
   getItems as getAdminItems,
   updateItem as updateAdminItem,
 } from '../controllers/adminItemController';
+import {
+  getBalanceHistories,
+  getItemTradeHistories,
+  getPlayerDetail,
+  getPlayerHistories,
+  getPlayers,
+  updatePlayerActiveStatus,
+} from '../controllers/adminPlayerController';
 import { requireAdminAuth } from '../middleware/adminAuth';
 
 const router = express.Router();
@@ -52,6 +60,12 @@ router.get('/admin/items', requireAdminAuth, getAdminItems);
 router.post('/admin/items', requireAdminAuth, createAdminItem);
 router.put('/admin/items/:id', requireAdminAuth, updateAdminItem);
 router.delete('/admin/items/:id', requireAdminAuth, deleteAdminItem);
+router.get('/admin/players', requireAdminAuth, getPlayers);
+router.get('/admin/players/:id', requireAdminAuth, getPlayerDetail);
+router.get('/admin/players/:id/histories', requireAdminAuth, getPlayerHistories);
+router.get('/admin/players/:id/balance-histories', requireAdminAuth, getBalanceHistories);
+router.get('/admin/players/:id/item-trade-histories', requireAdminAuth, getItemTradeHistories);
+router.put('/admin/players/:id/active', requireAdminAuth, updatePlayerActiveStatus);
 
 router.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, '../../public/admin/index.html'));
@@ -64,5 +78,6 @@ router.get('/admin/config', (_req, res) => {
 router.get('/admin/docker', (_req, res) => {
   res.sendFile(path.join(__dirname, '../../public/admin/docker.html'));
 });
+
 
 export default router;

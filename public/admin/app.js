@@ -14,6 +14,7 @@ const resultMessage = document.getElementById('result-message');
 const resultDetail = document.getElementById('result-detail');
 const openLanguageConfigButton = document.getElementById('open-language-config');
 const openDockerManagementButton = document.getElementById('open-docker-management');
+const openPlayerManagementButton = document.getElementById('open-player-management');
 const loadingBackdrop = document.getElementById('loading-backdrop');
 const loadingText = document.getElementById('loading-text');
 const toast = document.getElementById('toast');
@@ -222,6 +223,16 @@ openDockerManagementButton?.addEventListener('click', () => {
   }
 
   window.location.href = './docker.html';
+});
+
+openPlayerManagementButton?.addEventListener('click', () => {
+  const token = getToken();
+  if (!token) {
+    showToast('Vui lòng đăng nhập trước khi truy cập quản lý người chơi.', 'error');
+    return;
+  }
+
+  window.location.href = './players.html';
 });
 
 restoreSession();
