@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../models/prismaClient';
+import { sendMessage } from '../services/friendService';
 
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 50;
@@ -11,6 +12,40 @@ const parseNumber = (value: unknown, fallback: number) => {
     return fallback;
   }
   return Math.floor(parsed);
+};
+
+const parseNonNegativeNumber = (value: unknown) => {
+  if (value === undefined || value === null || value === '') {
+    return 0;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+  return Math.floor(parsed);
+};
+
+const parsePlayerIds = (value: unknown): number[] => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => Number(item))
+      .filter((item) => Number.isInteger(item) && item > 0);
+  }
+  if (value === undefined || value === null || value === '') {
+    return [];
+  }
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return [];
+  }
+  return [parsed];
+};
+
+const parseBooleanValue = (value: unknown) => {
+  if (value === true || value === 'true' || value === 1 || value === '1') {
+    return true;
+  }
+  return false;
 };
 
 const getPagination = (req: Request) => {
@@ -136,7 +171,11 @@ export const getPlayerHistories = async (req: Request, res: Response): Promise<v
         createdAt: true,
       },
     });
-    res.json({ histories });
+    const serializedHistories = histories.map((history) => ({
+      ...history,
+      transno: history.transno.toString(),
+    }));
+    res.json({ histories: serializedHistories });
   } catch (error) {
     console.error('Lỗi khi lấy lịch sử trận đấu:', error);
     res.status(500).json({ error: 'Không thể tải lịch sử trận đấu.' });
@@ -269,5 +308,93 @@ export const updatePlayerActiveStatus = async (req: Request, res: Response): Pro
     }
     console.error('Lỗi khi cập nhật trạng thái tài khoản:', error);
     res.status(500).json({ error: 'Không thể cập nhật trạng thái tài khoản.' });
+  }
+};
+
+export const sendSystemMessage = async (req: Request, res: Response): Promise<void> => {
+  const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
+  if (!message) {
+    res.status(400).json({ error: 'Nội dung tin nhắn không được để trống.' });
+    return;
+  }
+
+  const ringBallReward = parseNonNegativeNumber(req.body?.ringBallReward);
+  const moneyReward = parseNonNegativeNumber(req.body?.moneyReward);
+  if (ringBallReward === null || moneyReward === null) {
+    res.status(400).json({ error: 'Điểm thưởng phải là số không âm.' });
+    return;
+  }
+
+  const rawItemRewardId = req.body?.itemRewardId;
+  const itemRewardId =
+    rawItemRewardId === undefined || rawItemRewardId === null || rawItemRewardId === ''
+      ? null
+      : Number(rawItemRewardId);
+
+  if (itemRewardId !== null && (!Number.isInteger(itemRewardId) || itemRewardId <= 0)) {
+    res.status(400).json({ error: 'Item đính kèm không hợp lệ.' });
+    return;
+  }
+
+  const sendAll = parseBooleanValue(req.body?.sendAll);
+  const playerIds = parsePlayerIds(req.body?.playerIds);
+
+  if (!sendAll && playerIds.length === 0) {
+    res.status(400).json({ error: 'Vui lòng chọn ít nhất một người chơi.' });
+    return;
+  }
+
+  try {
+    let validatedPlayerIds = playerIds;
+
+    if (!sendAll) {
+      const existingPlayers = await prisma.player.findMany({
+        where: { id: { in: playerIds } },
+        select: { id: true },
+      });
+
+      validatedPlayerIds = existingPlayers.map((player) => player.id);
+      if (validatedPlayerIds.length !== playerIds.length) {
+        res.status(404).json({ error: 'Một hoặc nhiều người chơi không tồn tại.' });
+        return;
+      }
+    }
+
+    if (itemRewardId) {
+      const itemExists = await prisma.item.findUnique({
+        where: { id: itemRewardId },
+        select: { id: true },
+      });
+      if (!itemExists) {
+        res.status(404).json({ error: 'Không tìm thấy item đính kèm.' });
+        return;
+      }
+    }
+
+    const receiverIds = sendAll ? [0] : Array.from(new Set(validatedPlayerIds));
+
+    let sentCount = 0;
+    for (const receiverId of receiverIds) {
+      const result = await sendMessage(0, receiverId, message, undefined, undefined, {
+        ringBallReward,
+        moneyReward,
+        itemRewardId,
+      });
+      if (!result.success) {
+        res.status(500).json({ error: result.message ?? 'Không thể gửi tin nhắn.' });
+        return;
+      }
+      sentCount += 1;
+    }
+
+    res.json({
+      message: sendAll
+        ? 'Đã gửi tin nhắn hệ thống tới toàn server.'
+        : `Đã gửi tin nhắn tới ${sentCount} người chơi.`,
+      sentCount,
+    });
+  } catch (error) {
+    console.error('Lỗi khi gửi tin nhắn hệ thống:', error);
+    res.status(500).json({ error: 'Không thể gửi tin nhắn hệ thống.' });
   }
 };

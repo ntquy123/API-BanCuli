@@ -33,6 +33,16 @@ const detailActive = document.getElementById('detail-active');
 const viewLogsButton = document.getElementById('view-logs');
 const toggleActiveButton = document.getElementById('toggle-active');
 const toggleActiveLabel = document.getElementById('toggle-active-label');
+const sendAllCheckbox = document.getElementById('send-all');
+const selectedCount = document.getElementById('selected-count');
+const selectedList = document.getElementById('selected-list');
+const useSelectedPlayerButton = document.getElementById('use-selected-player');
+const clearSelectionButton = document.getElementById('clear-selection');
+const messageContent = document.getElementById('message-content');
+const messageRingBall = document.getElementById('message-ringball');
+const messageMoney = document.getElementById('message-money');
+const messageItem = document.getElementById('message-item');
+const sendMessageButton = document.getElementById('send-message');
 
 const TOKEN_KEY = 'admin_ui_token';
 const PAGE_SIZE = 10;
@@ -41,6 +51,9 @@ let currentPage = 1;
 let totalPages = 1;
 let searchTerm = '';
 let selectedPlayer = null;
+let currentPlayers = new Map();
+const selectedPlayerIds = new Set();
+const selectedPlayers = new Map();
 
 const HTML_ESCAPE_MAP = {
   '&': '&amp;',
@@ -148,6 +161,8 @@ const updatePaginationControls = () => {
 };
 
 const renderPlayers = (players = []) => {
+  currentPlayers = new Map(players.map((player) => [player.id, player]));
+
   if (!players.length) {
     playerGrid.innerHTML = `<div class="docker-empty">Không tìm thấy tài khoản phù hợp.</div>`;
     return;
@@ -178,6 +193,16 @@ const renderPlayers = (players = []) => {
             </div>
           </div>
           <div class="row-actions">
+            <label class="row-select">
+              <input
+                type="checkbox"
+                data-action="select-message"
+                data-id="${player.id}"
+                ${selectedPlayerIds.has(player.id) ? 'checked' : ''}
+                ${sendAllCheckbox?.checked ? 'disabled' : ''}
+              />
+              <span>Chọn gửi</span>
+            </label>
             <button class="chip-action chip-button" data-action="select" data-id="${player.id}">
               Xem chi tiết
             </button>
@@ -242,6 +267,125 @@ const updateSelectedDetail = (player) => {
   detailActive.textContent = player.IsActive ? 'Hoạt động' : 'Đang khóa';
   toggleActiveLabel.textContent = player.IsActive ? 'Khóa tài khoản' : 'Mở khóa tài khoản';
   toggleActiveButton.className = player.IsActive ? 'cta danger' : 'cta';
+};
+
+const updateSelectedList = () => {
+  if (sendAllCheckbox?.checked) {
+    selectedCount.textContent = '0';
+    selectedList.textContent = 'Gửi toàn server (tất cả người chơi).';
+    return;
+  }
+
+  selectedCount.textContent = selectedPlayerIds.size.toString();
+  if (selectedPlayerIds.size === 0) {
+    selectedList.textContent = 'Chưa chọn người chơi.';
+    return;
+  }
+
+  const names = Array.from(selectedPlayerIds).map((id) => {
+    const info = selectedPlayers.get(id);
+    if (info) {
+      return `${info.friendCode}${info.PlayerName ? ` · ${info.PlayerName}` : ''}`;
+    }
+    return `#${id}`;
+  });
+  selectedList.textContent = names.join(', ');
+};
+
+const updateSelectionControls = () => {
+  const isSendAll = sendAllCheckbox?.checked;
+  useSelectedPlayerButton.disabled = !!isSendAll;
+  clearSelectionButton.disabled = !!isSendAll;
+  updateSelectedList();
+};
+
+const togglePlayerSelection = (playerId, isSelected) => {
+  if (!Number.isInteger(playerId)) return;
+  const player = currentPlayers.get(playerId);
+
+  if (isSelected) {
+    selectedPlayerIds.add(playerId);
+    if (player) {
+      selectedPlayers.set(playerId, player);
+    }
+  } else {
+    selectedPlayerIds.delete(playerId);
+    selectedPlayers.delete(playerId);
+  }
+  updateSelectedList();
+};
+
+const loadItems = async () => {
+  try {
+    const items = await apiFetch('items');
+    if (!Array.isArray(items)) return;
+    messageItem.innerHTML =
+      '<option value="">Không đính kèm</option>' +
+      items
+        .map((item) => `<option value="${item.id}">${escapeHtml(item.name || `Item ${item.id}`)}</option>`)
+        .join('');
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+};
+
+const sendSystemMessage = async () => {
+  const message = messageContent.value.trim();
+  if (!message) {
+    showToast('Vui lòng nhập nội dung tin nhắn.', 'error');
+    return;
+  }
+
+  const ringBallReward = Number(messageRingBall.value || 0);
+  const moneyReward = Number(messageMoney.value || 0);
+  if (!Number.isFinite(ringBallReward) || ringBallReward < 0) {
+    showToast('RingBall phải là số không âm.', 'error');
+    return;
+  }
+  if (!Number.isFinite(moneyReward) || moneyReward < 0) {
+    showToast('Money phải là số không âm.', 'error');
+    return;
+  }
+
+  const sendAll = sendAllCheckbox.checked;
+  const targetIds = Array.from(selectedPlayerIds);
+  if (!sendAll && targetIds.length === 0) {
+    showToast('Vui lòng chọn ít nhất một người chơi.', 'error');
+    return;
+  }
+
+  const itemRewardId = messageItem.value ? Number(messageItem.value) : null;
+
+  setLoading(true, 'Đang gửi tin nhắn...');
+  try {
+    const payload = {
+      message,
+      sendAll,
+      playerIds: targetIds,
+      ringBallReward: Math.floor(ringBallReward),
+      moneyReward: Math.floor(moneyReward),
+      itemRewardId,
+    };
+    const data = await apiFetch('players/messages', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    showToast(data.message || 'Đã gửi tin nhắn.', 'success');
+    messageContent.value = '';
+    messageRingBall.value = '0';
+    messageMoney.value = '0';
+    messageItem.value = '';
+    if (!sendAll) {
+      selectedPlayerIds.clear();
+      selectedPlayers.clear();
+      updateSelectedList();
+      renderPlayers(Array.from(currentPlayers.values()));
+    }
+  } catch (error) {
+    showToast(error.message, 'error');
+  } finally {
+    setLoading(false);
+  }
 };
 
 const selectPlayer = async (playerId) => {
@@ -432,6 +576,16 @@ playerGrid.addEventListener('click', (event) => {
   }
 });
 
+playerGrid.addEventListener('change', (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) return;
+  if (target.dataset.action !== 'select-message') return;
+  const id = Number(target.dataset.id);
+  if (Number.isInteger(id)) {
+    togglePlayerSelection(id, target.checked);
+  }
+});
+
 searchButton.addEventListener('click', () => {
   searchTerm = searchInput.value.trim();
   currentPage = 1;
@@ -469,6 +623,31 @@ nextPageButton.addEventListener('click', () => {
 viewLogsButton.addEventListener('click', showLogsPopup);
 toggleActiveButton.addEventListener('click', toggleActiveStatus);
 
+sendAllCheckbox.addEventListener('change', () => {
+  updateSelectionControls();
+  renderPlayers(Array.from(currentPlayers.values()));
+});
+
+useSelectedPlayerButton.addEventListener('click', () => {
+  if (!selectedPlayer) {
+    showToast('Vui lòng chọn người chơi trước.', 'error');
+    return;
+  }
+  selectedPlayerIds.add(selectedPlayer.id);
+  selectedPlayers.set(selectedPlayer.id, selectedPlayer);
+  updateSelectedList();
+  renderPlayers(Array.from(currentPlayers.values()));
+});
+
+clearSelectionButton.addEventListener('click', () => {
+  selectedPlayerIds.clear();
+  selectedPlayers.clear();
+  updateSelectedList();
+  renderPlayers(Array.from(currentPlayers.values()));
+});
+
+sendMessageButton.addEventListener('click', sendSystemMessage);
+
 logoutButton.addEventListener('click', () => {
   clearToken();
   window.location.href = './index.html';
@@ -478,4 +657,6 @@ backDashboardButton.addEventListener('click', () => {
   window.location.href = './index.html';
 });
 
-ensureSession().then(() => loadPlayers(currentPage));
+ensureSession()
+  .then(() => Promise.all([loadPlayers(currentPage), loadItems()]))
+  .then(updateSelectionControls);

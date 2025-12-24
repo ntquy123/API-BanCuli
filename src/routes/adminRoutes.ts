@@ -34,6 +34,7 @@ import {
   getPlayerDetail,
   getPlayerHistories,
   getPlayers,
+  sendSystemMessage,
   updatePlayerActiveStatus,
 } from '../controllers/adminPlayerController';
 import { requireAdminAuth } from '../middleware/adminAuth';
@@ -66,6 +67,7 @@ router.get('/admin/players/:id/histories', requireAdminAuth, getPlayerHistories)
 router.get('/admin/players/:id/balance-histories', requireAdminAuth, getBalanceHistories);
 router.get('/admin/players/:id/item-trade-histories', requireAdminAuth, getItemTradeHistories);
 router.put('/admin/players/:id/active', requireAdminAuth, updatePlayerActiveStatus);
+router.post('/admin/players/messages', requireAdminAuth, sendSystemMessage);
 
 router.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, '../../public/admin/index.html'));

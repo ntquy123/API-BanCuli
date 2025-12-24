@@ -570,6 +570,12 @@ h3 {
   margin-top: 18px;
 }
 
+.player-column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
 .toolbar-actions {
   display: flex;
   align-items: center;
@@ -765,6 +771,76 @@ h3 {
 
 .player-detail-body {
   margin-top: 12px;
+}
+
+.message-card {
+  background: linear-gradient(160deg, rgba(245, 159, 69, 0.12), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(245, 159, 69, 0.25);
+}
+
+.message-body {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.message-targets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px dashed rgba(245, 159, 69, 0.3);
+}
+
+.checkbox-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.message-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.selected-list {
+  font-size: 13px;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.message-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.message-rewards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.player-row .row-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.row-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .player-empty {
