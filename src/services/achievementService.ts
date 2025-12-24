@@ -82,9 +82,7 @@ export const listPlayerAchievements = async (playerId: number) => {
 
   achievements.forEach((achievement: any) => {
     const key = buildAchievementKey(achievement?.rewardType, achievement?.seq);
-    const existing = achievementMap.get(key);
-
-    if (!existing || achievement?.playerId === playerId) {
+    if (!achievementMap.has(key)) {
       achievementMap.set(key, achievement);
     }
   });
@@ -125,9 +123,7 @@ export const claimAchievement = async (
       },
     });
 
-    const achievement =
-      possibleAchievements.find((entry: any) => entry?.playerId === playerId) ??
-      possibleAchievements[0];
+    const achievement = possibleAchievements[0];
 
     const normalizedRecord = normalizeAchievementStatus(record, {
       achievement,

@@ -12,7 +12,10 @@
         <div>
           <p class="eyebrow">Cấu hình hệ thống</p>
           <h1>Quản lý dữ liệu nền tảng</h1>
-          <p class="subtitle">Làm việc trực tiếp với bảng SysMasLanguage, SysMasGeneral và Item trong cùng một màn hình.</p>
+          <p class="subtitle">
+            Làm việc trực tiếp với bảng SysMasLanguage, SysMasGeneral, Item và PlayerAchievement trong cùng một màn
+            hình.
+          </p>
         </div>
         <div class="hero-actions">
           <button id="back-dashboard" class="chip-action chip-button" type="button">← Quay lại dashboard</button>
@@ -28,6 +31,7 @@
           <button class="tab-button active" data-tab="language">Ngôn ngữ</button>
           <button class="tab-button" data-tab="general">Cấu hình chung</button>
           <button class="tab-button" data-tab="item">Item</button>
+          <button class="tab-button" data-tab="achievement">PlayerAchievement</button>
         </div>
 
         <section class="panel tab-panel active" data-tab-panel="language">
@@ -328,6 +332,105 @@
                 </div>
               </div>
               <div class="data-grid" id="item-grid">
+                <div class="docker-loading">Đang tải dữ liệu...</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel tab-panel" data-tab-panel="achievement">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Reward</p>
+              <h2>Grid PlayerAchievement</h2>
+              <p class="subtitle">Cấu hình quà thưởng theo rewardType.</p>
+            </div>
+          </div>
+
+          <div class="config-layout">
+            <div class="card form-card">
+              <div class="card-header">
+                <div>
+                  <p class="eyebrow">Biểu mẫu</p>
+                  <h3 id="achievement-form-title">Thêm mới PlayerAchievement</h3>
+                  <p class="subtitle">Nhập thông tin thưởng rút thăm, xem quảng cáo hoặc điểm danh.</p>
+                </div>
+                <div class="pill neutral" id="achievement-form-mode">Thêm mới</div>
+              </div>
+              <form id="achievement-form" class="form vertical">
+                <label class="field">
+                  <span>RewardType (GenCode)</span>
+                  <input id="achievement-reward-type" name="rewardType" type="number" placeholder="VD: 2001" required />
+                </label>
+                <label class="field">
+                  <span>Seq</span>
+                  <input id="achievement-seq" name="seq" type="number" placeholder="Thứ tự" required />
+                </label>
+                <label class="field">
+                  <span>LocationId (tùy chọn)</span>
+                  <input id="achievement-location" name="locationId" type="number" placeholder="Mốc/ô thưởng" />
+                </label>
+                <label class="field">
+                  <span>RewardAmount (tùy chọn)</span>
+                  <input id="achievement-amount" name="rewardAmount" type="number" placeholder="Số lượng thưởng" />
+                </label>
+                <label class="field">
+                  <span>ItemId (tùy chọn)</span>
+                  <input id="achievement-item" name="itemId" type="number" placeholder="ID item" />
+                </label>
+                <label class="field">
+                  <span>CountGif (tùy chọn)</span>
+                  <input id="achievement-count-gif" name="countGif" type="number" placeholder="Số lượt" />
+                </label>
+                <label class="field">
+                  <span>isUsed</span>
+                  <select id="achievement-is-used" name="isUsed" required>
+                    <option value="false">Chưa dùng</option>
+                    <option value="true">Đã dùng</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>AchievedAt (tùy chọn)</span>
+                  <input id="achievement-date" name="achievedAt" type="datetime-local" />
+                </label>
+                <div class="form-actions">
+                  <button id="submit-achievement" class="cta" type="submit">
+                    <span>Thêm PlayerAchievement</span>
+                    <span class="sparkle">✦</span>
+                  </button>
+                  <button id="cancel-achievement-edit" class="chip-action chip-button muted hidden" type="button">
+                    Hủy chỉnh sửa
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card table-card">
+              <div class="card-header">
+                <div>
+                  <p class="eyebrow">Danh sách</p>
+                  <h3>Grid PlayerAchievement</h3>
+                  <p class="subtitle">Hiển thị quà thưởng theo rewardType.</p>
+                </div>
+                <div class="pill warm" id="achievement-count">0 bản ghi</div>
+              </div>
+              <div class="table-toolbar">
+                <label class="field compact">
+                  <span>Tìm kiếm</span>
+                  <input
+                    id="achievement-search"
+                    type="search"
+                    placeholder="Tìm theo rewardType, seq hoặc item"
+                    autocomplete="off"
+                  />
+                </label>
+                <div class="pagination-controls">
+                  <button id="achievement-prev" class="chip-action chip-button" type="button">← Trang trước</button>
+                  <div class="pagination-info" id="achievement-pagination">Trang 1/1</div>
+                  <button id="achievement-next" class="chip-action chip-button" type="button">Trang tiếp →</button>
+                </div>
+              </div>
+              <div class="data-grid" id="achievement-grid">
                 <div class="docker-loading">Đang tải dữ liệu...</div>
               </div>
             </div>

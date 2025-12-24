@@ -67,6 +67,26 @@ const itemPaginationInfo = document.getElementById('item-pagination');
 const itemPrevButton = document.getElementById('item-prev');
 const itemNextButton = document.getElementById('item-next');
 
+const achievementGrid = document.getElementById('achievement-grid');
+const achievementCount = document.getElementById('achievement-count');
+const achievementForm = document.getElementById('achievement-form');
+const achievementRewardTypeInput = document.getElementById('achievement-reward-type');
+const achievementSeqInput = document.getElementById('achievement-seq');
+const achievementLocationInput = document.getElementById('achievement-location');
+const achievementAmountInput = document.getElementById('achievement-amount');
+const achievementItemInput = document.getElementById('achievement-item');
+const achievementCountInput = document.getElementById('achievement-count-gif');
+const achievementIsUsedSelect = document.getElementById('achievement-is-used');
+const achievementDateInput = document.getElementById('achievement-date');
+const achievementCancelEdit = document.getElementById('cancel-achievement-edit');
+const achievementSubmitButton = document.getElementById('submit-achievement');
+const achievementFormTitle = document.getElementById('achievement-form-title');
+const achievementFormMode = document.getElementById('achievement-form-mode');
+const achievementSearchInput = document.getElementById('achievement-search');
+const achievementPaginationInfo = document.getElementById('achievement-pagination');
+const achievementPrevButton = document.getElementById('achievement-prev');
+const achievementNextButton = document.getElementById('achievement-next');
+
 const loadingBackdrop = document.getElementById('loading-backdrop');
 const loadingText = document.getElementById('loading-text');
 const toast = document.getElementById('toast');
@@ -88,6 +108,11 @@ let items = [];
 let editingItem = null;
 let itemSearchTerm = '';
 let itemPage = 1;
+
+let achievements = [];
+let editingAchievement = null;
+let achievementSearchTerm = '';
+let achievementPage = 1;
 
 const HTML_ESCAPE_MAP = {
   '&': '&amp;',
@@ -662,6 +687,14 @@ const parseOptionalNumber = (value) => {
   return Number.isNaN(parsed) ? null : parsed;
 };
 
+const toDateTimeLocalValue = (value) => {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.valueOf())) return '';
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+};
+
 const buildItemPayload = () => {
   const id = Number(itemIdInput.value);
   const name = itemNameInput.value.trim();
@@ -754,6 +787,241 @@ const startItemEdit = (id) => {
   itemFormMode.className = 'pill warm';
   itemCancelEdit.classList.remove('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+// PlayerAchievement helpers
+const updateAchievementCount = (filteredLength = achievements.length) => {
+  achievementCount.textContent =
+    filteredLength !== achievements.length
+      ? `${filteredLength}/${achievements.length} bản ghi`
+      : `${achievements.length} bản ghi`;
+};
+
+const getFilteredAchievements = () => {
+  const keyword = achievementSearchTerm.trim().toLowerCase();
+  if (!keyword) return [...achievements];
+
+  return achievements.filter((achievement) => {
+    const fields = [
+      achievement.rewardType,
+      achievement.rewardTypeName || '',
+      achievement.seq,
+      achievement.itemId ?? '',
+      achievement.itemName || '',
+    ];
+    return fields
+      .map((value) => value?.toString().toLowerCase())
+      .some((value) => value.includes(keyword));
+  });
+};
+
+const updateAchievementPagination = (filteredLength, totalPages) => {
+  const hasData = filteredLength > 0;
+  const displayTotalPages = hasData ? totalPages : 0;
+  const displayCurrentPage = hasData ? achievementPage : 0;
+
+  achievementPaginationInfo.textContent = `Trang ${displayCurrentPage}/${displayTotalPages}`;
+  achievementPrevButton.disabled = !hasData || achievementPage === 1;
+  achievementNextButton.disabled = !hasData || achievementPage === totalPages;
+};
+
+const renderAchievements = () => {
+  const filtered = getFilteredAchievements();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  achievementPage = filtered.length ? Math.min(achievementPage, totalPages) : 1;
+
+  updateAchievementCount(filtered.length);
+  updateAchievementPagination(filtered.length, totalPages);
+
+  if (!filtered.length) {
+    const message = achievementSearchTerm.trim()
+      ? `Không tìm thấy PlayerAchievement cho từ khóa "${escapeHtml(achievementSearchTerm)}".`
+      : 'Chưa có PlayerAchievement nào.';
+    achievementGrid.innerHTML = `<div class="docker-empty">${message}</div>`;
+    return;
+  }
+
+  const startIndex = (achievementPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(startIndex, startIndex + PAGE_SIZE);
+
+  achievementGrid.innerHTML = pageItems
+    .map((achievement) => {
+      const rewardTypeLabel = achievement.rewardTypeName
+        ? `${achievement.rewardType} · ${achievement.rewardTypeName}`
+        : achievement.rewardType;
+      return `
+        <article class="data-row">
+          <div class="row-main">
+            <div class="code-badge">${escapeHtml(rewardTypeLabel)}</div>
+            <div class="row-text">
+              <p class="row-label">Seq</p>
+              <p class="row-value">${escapeHtml(achievement.seq)}</p>
+            </div>
+            <div class="row-text">
+              <p class="row-label">Item</p>
+              <p class="row-value">${escapeHtml(
+                achievement.itemName ? `${achievement.itemId} · ${achievement.itemName}` : achievement.itemId ?? '—'
+              )}</p>
+            </div>
+            <div class="row-text">
+              <p class="row-label">Reward</p>
+              <p class="row-value">${escapeHtml(achievement.rewardAmount ?? '—')}</p>
+            </div>
+            <div class="row-text">
+              <p class="row-label">Trạng thái</p>
+              <p class="row-value">${achievement.isUsed ? 'Đã dùng' : 'Chưa dùng'}</p>
+            </div>
+          </div>
+          <div class="row-actions">
+            <button class="chip-action chip-button" data-action="edit-achievement" data-reward-type="${escapeHtml(
+              achievement.rewardType
+            )}" data-seq="${escapeHtml(achievement.seq)}">Sửa</button>
+            <button class="chip-action chip-button danger" data-action="delete-achievement" data-reward-type="${escapeHtml(
+              achievement.rewardType
+            )}" data-seq="${escapeHtml(achievement.seq)}">Xóa</button>
+          </div>
+        </article>
+      `;
+    })
+    .join('');
+};
+
+const fetchAchievements = async () => {
+  setLoading(true, 'Đang tải PlayerAchievement...');
+  try {
+    const data = await apiFetch('player-achievements');
+    achievements = Array.isArray(data) ? data : data?.achievements || [];
+    achievementPage = 1;
+    renderAchievements();
+  } catch (error) {
+    achievementGrid.innerHTML = `<div class="docker-error">${escapeHtml(
+      error.message || 'Không thể tải dữ liệu.'
+    )}</div>`;
+    showToast(error.message || 'Không thể tải dữ liệu.', 'error');
+  } finally {
+    setLoading(false);
+  }
+};
+
+const buildAchievementPayload = () => {
+  const rewardType = achievementRewardTypeInput.value.trim();
+  const seq = Number(achievementSeqInput.value);
+  const locationId = parseOptionalNumber(achievementLocationInput.value);
+  const rewardAmount = parseOptionalNumber(achievementAmountInput.value);
+  const itemId = parseOptionalNumber(achievementItemInput.value);
+  const countGif = parseOptionalNumber(achievementCountInput.value);
+  const isUsed = achievementIsUsedSelect.value === 'true';
+  const achievedAt = achievementDateInput.value ? new Date(achievementDateInput.value).toISOString() : null;
+
+  if (!rewardType) {
+    return { error: 'RewardType không được để trống.' };
+  }
+
+  if (!Number.isInteger(seq)) {
+    return { error: 'Seq phải là số nguyên.' };
+  }
+
+  return {
+    rewardType,
+    seq,
+    locationId,
+    rewardAmount,
+    itemId,
+    countGif,
+    isUsed,
+    achievedAt,
+  };
+};
+
+const resetAchievementForm = () => {
+  achievementForm.reset();
+  editingAchievement = null;
+  achievementSubmitButton.textContent = 'Thêm PlayerAchievement';
+  achievementFormTitle.textContent = 'Thêm mới PlayerAchievement';
+  achievementFormMode.textContent = 'Thêm mới';
+  achievementFormMode.className = 'pill neutral';
+  achievementCancelEdit.classList.add('hidden');
+  achievementRewardTypeInput.removeAttribute('readonly');
+  achievementSeqInput.removeAttribute('readonly');
+};
+
+const startAchievementEdit = (rewardType, seq) => {
+  const target = achievements.find(
+    (achievement) => achievement.rewardType === rewardType && Number(achievement.seq) === Number(seq)
+  );
+  if (!target) return;
+
+  editingAchievement = { rewardType, seq: Number(seq) };
+  achievementRewardTypeInput.value = target.rewardType;
+  achievementRewardTypeInput.setAttribute('readonly', 'readonly');
+  achievementSeqInput.value = target.seq;
+  achievementSeqInput.setAttribute('readonly', 'readonly');
+  achievementLocationInput.value = target.locationId ?? '';
+  achievementAmountInput.value = target.rewardAmount ?? '';
+  achievementItemInput.value = target.itemId ?? '';
+  achievementCountInput.value = target.countGif ?? '';
+  achievementIsUsedSelect.value = target.isUsed ? 'true' : 'false';
+  achievementDateInput.value = toDateTimeLocalValue(target.achievedAt);
+  achievementSubmitButton.textContent = 'Lưu thay đổi';
+  achievementFormTitle.textContent = 'Chỉnh sửa PlayerAchievement';
+  achievementFormMode.textContent = 'Chỉnh sửa';
+  achievementFormMode.className = 'pill warm';
+  achievementCancelEdit.classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+const submitAchievement = async (event) => {
+  event.preventDefault();
+  const payload = buildAchievementPayload();
+
+  if ('error' in payload) {
+    showToast(payload.error, 'error');
+    return;
+  }
+
+  const isEditing = Boolean(editingAchievement);
+  const endpoint = isEditing
+    ? `player-achievements/${encodeURIComponent(editingAchievement.rewardType)}/${encodeURIComponent(
+        editingAchievement.seq
+      )}`
+    : 'player-achievements';
+  const method = isEditing ? 'PUT' : 'POST';
+  const loadingLabel = isEditing ? 'Đang lưu PlayerAchievement...' : 'Đang thêm PlayerAchievement...';
+
+  setLoading(true, loadingLabel);
+  try {
+    const result = await apiFetch(endpoint, {
+      method,
+      body: JSON.stringify(payload),
+    });
+    showToast(result?.message || 'Thao tác thành công.', 'success');
+    await fetchAchievements();
+    resetAchievementForm();
+  } catch (error) {
+    showToast(error.message || 'Không thể lưu PlayerAchievement.', 'error');
+  } finally {
+    setLoading(false);
+  }
+};
+
+const deleteAchievement = async (rewardType, seq) => {
+  if (!confirm(`Bạn chắc chắn muốn xóa rewardType "${rewardType}" seq ${seq}?`)) return;
+  setLoading(true, 'Đang xóa PlayerAchievement...');
+  try {
+    const result = await apiFetch(
+      `player-achievements/${encodeURIComponent(rewardType)}/${encodeURIComponent(seq)}`,
+      { method: 'DELETE' }
+    );
+    showToast(result?.message || 'Đã xóa PlayerAchievement.', 'success');
+    await fetchAchievements();
+    if (editingAchievement && editingAchievement.rewardType === rewardType && editingAchievement.seq === Number(seq)) {
+      resetAchievementForm();
+    }
+  } catch (error) {
+    showToast(error.message || 'Không thể xóa PlayerAchievement.', 'error');
+  } finally {
+    setLoading(false);
+  }
 };
 
 const submitItem = async (event) => {
@@ -849,13 +1117,31 @@ itemGrid.addEventListener('click', (event) => {
   }
 });
 
+achievementGrid.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-action]');
+  if (!button) return;
+  const rewardType = button.getAttribute('data-reward-type');
+  const seq = button.getAttribute('data-seq');
+  const action = button.getAttribute('data-action');
+
+  if (action === 'edit-achievement') {
+    startAchievementEdit(rewardType, seq);
+  }
+
+  if (action === 'delete-achievement') {
+    deleteAchievement(rewardType, seq);
+  }
+});
+
 languageForm.addEventListener('submit', submitLanguage);
 itemForm.addEventListener('submit', submitItem);
 generalForm.addEventListener('submit', submitGeneral);
+achievementForm.addEventListener('submit', submitAchievement);
 
 cancelEditButton.addEventListener('click', resetForm);
 generalCancelEdit.addEventListener('click', resetGeneralForm);
 itemCancelEdit.addEventListener('click', resetItemForm);
+achievementCancelEdit.addEventListener('click', resetAchievementForm);
 
 logoutButton.addEventListener('click', () => {
   clearToken();
@@ -882,6 +1168,12 @@ itemSearchInput.addEventListener('input', (event) => {
   itemSearchTerm = event.target.value;
   itemPage = 1;
   renderItems();
+});
+
+achievementSearchInput.addEventListener('input', (event) => {
+  achievementSearchTerm = event.target.value;
+  achievementPage = 1;
+  renderAchievements();
 });
 
 prevPageButton.addEventListener('click', () => {
@@ -926,6 +1218,20 @@ itemNextButton.addEventListener('click', () => {
   renderItems();
 });
 
+achievementPrevButton.addEventListener('click', () => {
+  if (achievementPage === 1) return;
+  achievementPage -= 1;
+  renderAchievements();
+});
+
+achievementNextButton.addEventListener('click', () => {
+  const filtered = getFilteredAchievements();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  if (achievementPage >= totalPages) return;
+  achievementPage += 1;
+  renderAchievements();
+});
+
 Array.from(tabButtons).forEach((button) => {
   button.addEventListener('click', () => {
     const targetTab = button.dataset.tab;
@@ -938,5 +1244,6 @@ ensureSession()
     await fetchLanguages();
     await fetchGenerals();
     await fetchItems();
+    await fetchAchievements();
   })
   .catch(() => {});

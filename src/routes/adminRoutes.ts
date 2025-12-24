@@ -29,6 +29,12 @@ import {
   updateItem as updateAdminItem,
 } from '../controllers/adminItemController';
 import {
+  createPlayerAchievement,
+  deletePlayerAchievement,
+  getPlayerAchievements,
+  updatePlayerAchievement,
+} from '../controllers/adminPlayerAchievementController';
+import {
   getBalanceHistories,
   getItemTradeHistories,
   getPlayerDetail,
@@ -61,6 +67,10 @@ router.get('/admin/items', requireAdminAuth, getAdminItems);
 router.post('/admin/items', requireAdminAuth, createAdminItem);
 router.put('/admin/items/:id', requireAdminAuth, updateAdminItem);
 router.delete('/admin/items/:id', requireAdminAuth, deleteAdminItem);
+router.get('/admin/player-achievements', requireAdminAuth, getPlayerAchievements);
+router.post('/admin/player-achievements', requireAdminAuth, createPlayerAchievement);
+router.put('/admin/player-achievements/:rewardType/:seq', requireAdminAuth, updatePlayerAchievement);
+router.delete('/admin/player-achievements/:rewardType/:seq', requireAdminAuth, deletePlayerAchievement);
 router.get('/admin/players', requireAdminAuth, getPlayers);
 router.get('/admin/players/:id', requireAdminAuth, getPlayerDetail);
 router.get('/admin/players/:id/histories', requireAdminAuth, getPlayerHistories);
