@@ -27,7 +27,7 @@ export const getPlayers = async (req: Request, res: Response): Promise<void> => 
     ? {
         friendCode: {
           contains: friendCode,
-          mode: 'insensitive',
+          mode: 'insensitive' as const,
         },
       }
     : undefined;
