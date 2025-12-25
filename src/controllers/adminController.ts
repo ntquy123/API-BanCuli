@@ -170,13 +170,36 @@ export const shutdownTestServerController: RequestHandler = async (_req, res) =>
 export const getActiveContainers: RequestHandler = async (_req, res) => {
   try {
     const containers = await listRunningContainers();
-    const containerIds = containers.map((container) => container.id).filter(Boolean);
+    const parseUdpPorts = (ports: string): number[] => {
+      if (!ports) return [];
+      return ports
+        .split(',')
+        .map((segment) => segment.trim())
+        .filter((segment) => segment.includes('/udp'))
+        .map((segment) => {
+          const arrowMatch = segment.match(/->(\d+)\/udp/);
+          const directMatch = segment.match(/(\d+)\/udp$/);
+          const portStr = arrowMatch?.[1] ?? directMatch?.[1];
+          const portNo = portStr ? Number(portStr) : Number.NaN;
+          return Number.isFinite(portNo) ? portNo : null;
+        })
+        .filter((portNo): portNo is number => portNo !== null);
+    };
 
-    const portPools = containerIds.length
+    const containerUdpPorts = containers.map((container) => ({
+      container,
+      udpPorts: parseUdpPorts(container.ports),
+    }));
+
+    const portNos = [
+      ...new Set(containerUdpPorts.flatMap(({ udpPorts }) => udpPorts).filter((portNo) => portNo)),
+    ];
+
+    const portPools = portNos.length
       ? await prisma.serverPortPool.findMany({
-          where: { containerId: { in: containerIds } },
+          where: { portNo: { in: portNos } },
           select: {
-            containerId: true,
+            portNo: true,
             isBusy: true,
             roomNameRef: true,
             typeMatchGid: true,
@@ -202,19 +225,16 @@ export const getActiveContainers: RequestHandler = async (_req, res) => {
         : Promise.resolve([]),
     ]);
 
-    const portPoolMap = new Map<string, (typeof portPools)[number]>();
+    const portPoolMap = new Map<number, (typeof portPools)[number]>();
     portPools.forEach((pool) => {
-      if (!pool.containerId) return;
-      if (!portPoolMap.has(pool.containerId)) {
-        portPoolMap.set(pool.containerId, pool);
-      }
+      portPoolMap.set(pool.portNo, pool);
     });
 
     const typeMap = new Map(generalTypes.map((type) => [type.GenCode, type.GenName]));
     const roomNameSet = new Set(rooms.map((room) => room.roomName));
 
-    const enhancedContainers = containers.map((container) => {
-      const pool = portPoolMap.get(container.id);
+    const enhancedContainers = containerUdpPorts.map(({ container, udpPorts }) => {
+      const pool = udpPorts.map((portNo) => portPoolMap.get(portNo)).find(Boolean);
       const roomTypeName = pool ? typeMap.get(pool.typeMatchGid) ?? 'Không có trong config' : 'Không có data pool';
       const isBusy = pool ? pool.isBusy === 1 : null;
       const hasStarted = pool?.roomNameRef ? roomNameSet.has(pool.roomNameRef) : false;
