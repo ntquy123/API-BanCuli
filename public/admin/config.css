@@ -4,7 +4,23 @@
   align-items: flex-start;
 }
 
+.config-page #language-grid .data-row,
+.config-page #general-grid .data-row,
+.config-page #achievement-grid .data-row {
+  min-width: 100%;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
 .config-page #item-grid .row-main {
+  width: 100%;
+  grid-template-columns: 140px repeat(auto-fit, minmax(160px, 1fr));
+  align-items: start;
+}
+
+.config-page #language-grid .row-main,
+.config-page #general-grid .row-main,
+.config-page #achievement-grid .row-main {
   width: 100%;
   grid-template-columns: 140px repeat(auto-fit, minmax(160px, 1fr));
   align-items: start;
@@ -14,7 +30,19 @@
   min-width: 140px;
 }
 
+.config-page #language-grid .row-text,
+.config-page #general-grid .row-text,
+.config-page #achievement-grid .row-text {
+  min-width: 140px;
+}
+
 .config-page #item-grid .row-label {
+  font-size: 11px;
+}
+
+.config-page #language-grid .row-label,
+.config-page #general-grid .row-label,
+.config-page #achievement-grid .row-label {
   font-size: 11px;
 }
 
@@ -23,7 +51,27 @@
   font-weight: 600;
 }
 
+.config-page #language-grid .row-value,
+.config-page #general-grid .row-value,
+.config-page #achievement-grid .row-value {
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .config-page #item-grid .row-actions {
   width: 100%;
   justify-content: flex-end;
+}
+
+.config-page #language-grid .row-actions,
+.config-page #general-grid .row-actions,
+.config-page #achievement-grid .row-actions {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.config-page .item-filter-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }

@@ -63,6 +63,8 @@ const itemSubmitButton = document.getElementById('submit-item');
 const itemFormTitle = document.getElementById('item-form-title');
 const itemFormMode = document.getElementById('item-form-mode');
 const itemSearchInput = document.getElementById('item-search');
+const itemTypeFilterSelect = document.getElementById('item-type-filter');
+const itemLocationFilterSelect = document.getElementById('item-location-filter');
 const itemPaginationInfo = document.getElementById('item-pagination');
 const itemPrevButton = document.getElementById('item-prev');
 const itemNextButton = document.getElementById('item-next');
@@ -107,6 +109,8 @@ let generalPage = 1;
 let items = [];
 let editingItem = null;
 let itemSearchTerm = '';
+let itemTypeFilter = 'all';
+let itemLocationFilter = 'all';
 let itemPage = 1;
 
 let achievements = [];
@@ -616,11 +620,28 @@ const updateItemCount = (filteredLength = items.length) => {
     filteredLength !== items.length ? `${filteredLength}/${items.length} bản ghi` : `${items.length} bản ghi`;
 };
 
+const parseItemFilterValue = (value) => {
+  if (!value || value === 'all') return null;
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
 const getFilteredItems = () => {
   const keyword = itemSearchTerm.trim().toLowerCase();
-  if (!keyword) return [...items];
+  const typeFilterValue = parseItemFilterValue(itemTypeFilter);
+  const locationFilterValue = parseItemFilterValue(itemLocationFilter);
 
   return items.filter((item) => {
+    if (typeFilterValue !== null && Number(item.typeGid) !== typeFilterValue) {
+      return false;
+    }
+
+    if (locationFilterValue !== null && Number(item.locationGid) !== locationFilterValue) {
+      return false;
+    }
+
+    if (!keyword) return true;
+
     const fields = [item.id, item.name || '', item.description || ''];
     return fields
       .map((value) => value?.toString().toLowerCase())
@@ -1200,6 +1221,18 @@ generalSearchInput.addEventListener('input', (event) => {
 
 itemSearchInput.addEventListener('input', (event) => {
   itemSearchTerm = event.target.value;
+  itemPage = 1;
+  renderItems();
+});
+
+itemTypeFilterSelect.addEventListener('change', (event) => {
+  itemTypeFilter = event.target.value;
+  itemPage = 1;
+  renderItems();
+});
+
+itemLocationFilterSelect.addEventListener('change', (event) => {
+  itemLocationFilter = event.target.value;
   itemPage = 1;
   renderItems();
 });

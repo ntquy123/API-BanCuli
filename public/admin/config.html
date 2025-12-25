@@ -235,11 +235,28 @@
                 </label>
                 <label class="field">
                   <span>TypeGid</span>
-                  <input id="item-type" name="typeGid" type="number" placeholder="Phân loại" required />
+                  <select id="item-type" name="typeGid" required>
+                    <option value="0">All (0)</option>
+                    <option value="1">Culi (1)</option>
+                    <option value="2">Gem (2)</option>
+                    <option value="3">Clother (3)</option>
+                    <option value="4">Hair (4)</option>
+                    <option value="5">Other (5)</option>
+                    <option value="6">Sale (6)</option>
+                    <option value="7">PackageMoney (7)</option>
+                    <option value="8">PackageBall (8)</option>
+                  </select>
                 </label>
                 <label class="field">
                   <span>LocationGid</span>
-                  <input id="item-location" name="locationGid" type="number" placeholder="Vị trí" required />
+                  <select id="item-location" name="locationGid" required>
+                    <option value="0">Equipped (0)</option>
+                    <option value="1">Inventory (1)</option>
+                    <option value="2">Shop (2)</option>
+                    <option value="3">Gif (3)</option>
+                    <option value="4">Vip (4)</option>
+                    <option value="5">CompanionBall (5)</option>
+                  </select>
                 </label>
                 <label class="field">
                   <span>Giá</span>
@@ -326,6 +343,35 @@
                     autocomplete="off"
                   />
                 </label>
+                <div class="item-filter-group">
+                  <label class="field compact">
+                    <span>TypeGid</span>
+                    <select id="item-type-filter">
+                      <option value="all">Tất cả</option>
+                      <option value="0">All (0)</option>
+                      <option value="1">Culi (1)</option>
+                      <option value="2">Gem (2)</option>
+                      <option value="3">Clother (3)</option>
+                      <option value="4">Hair (4)</option>
+                      <option value="5">Other (5)</option>
+                      <option value="6">Sale (6)</option>
+                      <option value="7">PackageMoney (7)</option>
+                      <option value="8">PackageBall (8)</option>
+                    </select>
+                  </label>
+                  <label class="field compact">
+                    <span>LocationGid</span>
+                    <select id="item-location-filter">
+                      <option value="all">Tất cả</option>
+                      <option value="0">Equipped (0)</option>
+                      <option value="1">Inventory (1)</option>
+                      <option value="2">Shop (2)</option>
+                      <option value="3">Gif (3)</option>
+                      <option value="4">Vip (4)</option>
+                      <option value="5">CompanionBall (5)</option>
+                    </select>
+                  </label>
+                </div>
                 <div class="pagination-controls">
                   <button id="item-prev" class="chip-action chip-button" type="button">← Trang trước</button>
                   <div class="pagination-info" id="item-pagination">Trang 1/1</div>
