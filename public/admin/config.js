@@ -122,7 +122,35 @@ const HTML_ESCAPE_MAP = {
   "'": '&#39;',
 };
 
+const ITEM_LOCATION_LABELS = {
+  0: 'Equipped',
+  1: 'Inventory',
+  2: 'Shop',
+  3: 'Gif',
+  4: 'Vip',
+  5: 'CompanionBall',
+};
+
+const ITEM_TYPE_LABELS = {
+  0: 'All',
+  1: 'Culi',
+  2: 'Gem',
+  3: 'Clother',
+  4: 'Hair',
+  5: 'Other',
+  6: 'Sale',
+  7: 'PackageMoney',
+  8: 'PackageBall',
+};
+
 const escapeHtml = (value = '') => value.toString().replace(/[&<>"']/g, (char) => HTML_ESCAPE_MAP[char] || char);
+const getItemLabel = (mapping, value) => {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return '—';
+  }
+  const label = mapping[Number(value)];
+  return label ? `${label} (${value})` : `${value}`;
+};
 
 const setLoading = (isLoading, message = 'Đang xử lý...') => {
   if (isLoading) {
@@ -632,7 +660,7 @@ const renderItems = () => {
   itemGrid.innerHTML = pageItems
     .map(
       (item) => `
-        <article class="data-row">
+        <article class="data-row item-row">
           <div class="row-main">
             <div class="code-badge">#${escapeHtml(item.id)}</div>
             <div class="row-text">
@@ -641,7 +669,13 @@ const renderItems = () => {
             </div>
             <div class="row-text">
               <p class="row-label">Loại · Level</p>
-              <p class="row-value">Type ${escapeHtml(item.typeGid)} · Level ${escapeHtml(item.level)}</p>
+              <p class="row-value">${escapeHtml(getItemLabel(ITEM_TYPE_LABELS, item.typeGid))} · Level ${escapeHtml(
+                item.level
+              )}</p>
+            </div>
+            <div class="row-text">
+              <p class="row-label">Vị trí</p>
+              <p class="row-value">${escapeHtml(getItemLabel(ITEM_LOCATION_LABELS, item.locationGid))}</p>
             </div>
             <div class="row-text">
               <p class="row-label">Giá</p>

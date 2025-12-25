@@ -1,0 +1,29 @@
+.config-page #item-grid .data-row {
+  min-width: 100%;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.config-page #item-grid .row-main {
+  width: 100%;
+  grid-template-columns: 140px repeat(auto-fit, minmax(160px, 1fr));
+  align-items: start;
+}
+
+.config-page #item-grid .row-text {
+  min-width: 140px;
+}
+
+.config-page #item-grid .row-label {
+  font-size: 11px;
+}
+
+.config-page #item-grid .row-value {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.config-page #item-grid .row-actions {
+  width: 100%;
+  justify-content: flex-end;
+}
