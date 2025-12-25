@@ -134,7 +134,16 @@ const getFilteredContainers = () => {
   if (!keyword) return [...containers];
 
   return containers.filter((container) => {
-    const values = [container.name, container.id, container.image, container.ports, container.status];
+    const values = [
+      container.name,
+      container.id,
+      container.image,
+      container.ports,
+      container.status,
+      container.roomTypeName,
+      container.isBusy === true ? 'bận' : container.isBusy === false ? 'trống' : '',
+      container.hasStarted === true ? 'đã bắt đầu' : container.hasStarted === false ? 'chưa bắt đầu' : '',
+    ];
     return values.some((value) => value?.toString().toLowerCase().includes(keyword));
   });
 };
@@ -188,6 +197,27 @@ const renderContainers = () => {
               <p class="row-label">Tài nguyên</p>
               <p class="row-value">CPU: ${escapeHtml(container.cpu || '—')}</p>
               <p class="row-note">RAM: ${escapeHtml(container.memory || '—')}</p>
+            </div>
+            <div class="row-text">
+              <p class="row-label">Loại phòng</p>
+              <p class="row-value">${escapeHtml(container.roomTypeName || 'Không rõ')}</p>
+              <p class="row-note">TypeMatchGid: ${escapeHtml(container.typeMatchGid ?? '—')}</p>
+            </div>
+            <div class="row-text">
+              <p class="row-label">Trạng thái phòng</p>
+              <p class="row-value">${
+                container.isBusy === true
+                  ? 'Đang bận'
+                  : container.isBusy === false
+                    ? 'Đang trống'
+                    : 'Không rõ'
+              }</p>
+              <p class="row-note">isBusy: ${escapeHtml(container.isBusy ?? '—')}</p>
+            </div>
+            <div class="row-text">
+              <p class="row-label">Bắt đầu game</p>
+              <p class="row-value">${container.hasStarted ? 'Đã bắt đầu' : 'Chưa bắt đầu'}</p>
+              <p class="row-note">Room: ${escapeHtml(container.roomNameRef || '—')}</p>
             </div>
           </div>
           <div class="row-actions">

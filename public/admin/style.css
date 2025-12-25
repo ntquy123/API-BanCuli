@@ -739,7 +739,7 @@ h3 {
 }
 
 .docker-row {
-  grid-template-columns: 200px 1fr 1fr 1fr;
+  grid-template-columns: 200px repeat(6, minmax(140px, 1fr));
 }
 
 .player-row {

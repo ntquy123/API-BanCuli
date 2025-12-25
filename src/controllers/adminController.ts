@@ -170,7 +170,66 @@ export const shutdownTestServerController: RequestHandler = async (_req, res) =>
 export const getActiveContainers: RequestHandler = async (_req, res) => {
   try {
     const containers = await listRunningContainers();
-    res.json({ containers });
+    const containerIds = containers.map((container) => container.id).filter(Boolean);
+
+    const portPools = containerIds.length
+      ? await prisma.serverPortPool.findMany({
+          where: { containerId: { in: containerIds } },
+          select: {
+            containerId: true,
+            isBusy: true,
+            roomNameRef: true,
+            typeMatchGid: true,
+          },
+        })
+      : [];
+
+    const typeMatchGids = [...new Set(portPools.map((pool) => pool.typeMatchGid))];
+    const roomNameRefs = [...new Set(portPools.map((pool) => pool.roomNameRef).filter(Boolean))];
+
+    const [generalTypes, rooms] = await Promise.all([
+      typeMatchGids.length
+        ? prisma.sysMasGeneral.findMany({
+            where: { GenCode: { in: typeMatchGids } },
+            select: { GenCode: true, GenName: true },
+          })
+        : Promise.resolve([]),
+      roomNameRefs.length
+        ? prisma.room.findMany({
+            where: { roomName: { in: roomNameRefs } },
+            select: { roomName: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const portPoolMap = new Map<string, (typeof portPools)[number]>();
+    portPools.forEach((pool) => {
+      if (!pool.containerId) return;
+      if (!portPoolMap.has(pool.containerId)) {
+        portPoolMap.set(pool.containerId, pool);
+      }
+    });
+
+    const typeMap = new Map(generalTypes.map((type) => [type.GenCode, type.GenName]));
+    const roomNameSet = new Set(rooms.map((room) => room.roomName));
+
+    const enhancedContainers = containers.map((container) => {
+      const pool = portPoolMap.get(container.id);
+      const roomTypeName = pool ? typeMap.get(pool.typeMatchGid) ?? 'Không rõ' : 'Không rõ';
+      const isBusy = pool ? pool.isBusy === 1 : null;
+      const hasStarted = pool?.roomNameRef ? roomNameSet.has(pool.roomNameRef) : false;
+
+      return {
+        ...container,
+        roomTypeName,
+        isBusy,
+        hasStarted,
+        typeMatchGid: pool?.typeMatchGid ?? null,
+        roomNameRef: pool?.roomNameRef ?? null,
+      };
+    });
+
+    res.json({ containers: enhancedContainers });
   } catch (error) {
     console.error('Lỗi khi lấy danh sách docker đang chạy:', error);
     const detail = error instanceof Error ? error.message : 'Unknown error';
