@@ -544,6 +544,7 @@ h3 {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .config-layout {
@@ -681,6 +682,7 @@ h3 {
   margin-top: 14px;
   display: grid;
   gap: 12px;
+  overflow-x: auto;
 }
 
 .data-row {
@@ -692,6 +694,7 @@ h3 {
   border: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.22);
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+  min-width: 960px;
 }
 
 .row-main {
@@ -712,12 +715,15 @@ h3 {
   border: 1px solid rgba(245, 159, 69, 0.4);
   justify-content: center;
   text-align: center;
+  min-width: 0;
+  word-break: break-word;
 }
 
 .row-text {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .row-label {
@@ -730,12 +736,16 @@ h3 {
 .row-value {
   margin: 0;
   font-weight: 700;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .row-note {
   margin: 2px 0 0;
   color: var(--muted);
   font-size: 13px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .docker-row {
@@ -1114,6 +1124,12 @@ h3 {
 
 .row-actions .chip-button {
   padding: 10px 12px;
+}
+
+@media (max-width: 1200px) {
+  .docker-row {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
 }
 
 @media (max-width: 700px) {
