@@ -68,12 +68,12 @@ export const getPlayerByAccountId = async (accountId: string) => {
   });
 };
 
-export const updatePlayerName = async (playerId: number, playerName: string) => {
-  return prisma.player.update({
-    where: { id: playerId },
-    data: { PlayerName: playerName },
-  });
-};
+// export const updatePlayerName = async (playerId: number, playerName: string) => {
+//   return prisma.player.update({
+//     where: { id: playerId },
+//     data: { PlayerName: playerName },
+//   });
+// };
 
 export const confirmPlayerName = async (
   playerId: number,
