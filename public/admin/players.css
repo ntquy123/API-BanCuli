@@ -4,7 +4,7 @@
   }
 
   .data-grid {
-    overflow-x: visible;
+    overflow-x: auto;
   }
 
   .data-row {

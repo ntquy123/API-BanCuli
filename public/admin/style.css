@@ -571,6 +571,10 @@ h3 {
   margin-top: 18px;
 }
 
+.player-layout > * {
+  min-width: 0;
+}
+
 .player-column {
   display: flex;
   flex-direction: column;
@@ -683,6 +687,7 @@ h3 {
   display: grid;
   gap: 12px;
   overflow-x: auto;
+  max-width: 100%;
 }
 
 .data-row {
