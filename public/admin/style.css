@@ -1127,10 +1127,23 @@ h3 {
 }
 
 @media (max-width: 1200px) {
+  .data-row {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .row-main,
+  .player-row-main {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
   .docker-row {
- 
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
- 
+  }
+
+  .row-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 
