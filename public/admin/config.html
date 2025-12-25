@@ -312,6 +312,78 @@
                   <span>ImpactResistance (tùy chọn)</span>
                   <input id="item-impact" name="ImpactResistance" type="number" step="0.01" placeholder="Chống va chạm" />
                 </label>
+                <div id="culi-stat-sliders" class="culi-stat-sliders hidden">
+                  <div class="culi-stat-header">
+                    <div>
+                      <p class="eyebrow">Culi slider</p>
+                      <h4>Thiết lập nhanh các chỉ số</h4>
+                      <p class="subtitle">Kéo thanh để chỉnh % và tự suy ra giá trị phù hợp với công thức trong game.</p>
+                    </div>
+                    <span class="pill cool">0 - 100%</span>
+                  </div>
+                  <div class="culi-stat-grid">
+                    <label class="slider-field">
+                      <span>Mass</span>
+                      <div class="slider-input">
+                        <input id="item-mass-slider" type="range" min="0" max="100" step="1" />
+                        <div class="slider-meta">
+                          <span id="item-mass-slider-percent">0%</span>
+                          <span id="item-mass-slider-value">—</span>
+                        </div>
+                      </div>
+                    </label>
+                    <label class="slider-field">
+                      <span>GravityScale</span>
+                      <div class="slider-input">
+                        <input id="item-gravity-slider" type="range" min="0" max="100" step="1" />
+                        <div class="slider-meta">
+                          <span id="item-gravity-slider-percent">0%</span>
+                          <span id="item-gravity-slider-value">—</span>
+                        </div>
+                      </div>
+                    </label>
+                    <label class="slider-field">
+                      <span>Drag</span>
+                      <div class="slider-input">
+                        <input id="item-drag-slider" type="range" min="0" max="100" step="1" />
+                        <div class="slider-meta">
+                          <span id="item-drag-slider-percent">0%</span>
+                          <span id="item-drag-slider-value">—</span>
+                        </div>
+                      </div>
+                    </label>
+                    <label class="slider-field">
+                      <span>Bounciness</span>
+                      <div class="slider-input">
+                        <input id="item-bounciness-slider" type="range" min="0" max="100" step="1" />
+                        <div class="slider-meta">
+                          <span id="item-bounciness-slider-percent">0%</span>
+                          <span id="item-bounciness-slider-value">—</span>
+                        </div>
+                      </div>
+                    </label>
+                    <label class="slider-field">
+                      <span>Elasticity</span>
+                      <div class="slider-input">
+                        <input id="item-elasticity-slider" type="range" min="0" max="100" step="1" />
+                        <div class="slider-meta">
+                          <span id="item-elasticity-slider-percent">0%</span>
+                          <span id="item-elasticity-slider-value">—</span>
+                        </div>
+                      </div>
+                    </label>
+                    <label class="slider-field">
+                      <span>ImpactResistance</span>
+                      <div class="slider-input">
+                        <input id="item-impact-slider" type="range" min="0" max="100" step="1" />
+                        <div class="slider-meta">
+                          <span id="item-impact-slider-percent">0%</span>
+                          <span id="item-impact-slider-value">—</span>
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
                 <div class="form-actions">
                   <button id="submit-item" class="cta" type="submit">
                     <span>Thêm Item</span>

@@ -58,6 +58,25 @@ const itemDragInput = document.getElementById('item-drag');
 const itemBouncinessInput = document.getElementById('item-bounciness');
 const itemElasticityInput = document.getElementById('item-elasticity');
 const itemImpactInput = document.getElementById('item-impact');
+const itemCuliSliderSection = document.getElementById('culi-stat-sliders');
+const itemMassSlider = document.getElementById('item-mass-slider');
+const itemMassSliderPercent = document.getElementById('item-mass-slider-percent');
+const itemMassSliderValue = document.getElementById('item-mass-slider-value');
+const itemGravitySlider = document.getElementById('item-gravity-slider');
+const itemGravitySliderPercent = document.getElementById('item-gravity-slider-percent');
+const itemGravitySliderValue = document.getElementById('item-gravity-slider-value');
+const itemDragSlider = document.getElementById('item-drag-slider');
+const itemDragSliderPercent = document.getElementById('item-drag-slider-percent');
+const itemDragSliderValue = document.getElementById('item-drag-slider-value');
+const itemBouncinessSlider = document.getElementById('item-bounciness-slider');
+const itemBouncinessSliderPercent = document.getElementById('item-bounciness-slider-percent');
+const itemBouncinessSliderValue = document.getElementById('item-bounciness-slider-value');
+const itemElasticitySlider = document.getElementById('item-elasticity-slider');
+const itemElasticitySliderPercent = document.getElementById('item-elasticity-slider-percent');
+const itemElasticitySliderValue = document.getElementById('item-elasticity-slider-value');
+const itemImpactSlider = document.getElementById('item-impact-slider');
+const itemImpactSliderPercent = document.getElementById('item-impact-slider-percent');
+const itemImpactSliderValue = document.getElementById('item-impact-slider-value');
 const itemCancelEdit = document.getElementById('cancel-item-edit');
 const itemSubmitButton = document.getElementById('submit-item');
 const itemFormTitle = document.getElementById('item-form-title');
@@ -736,6 +755,117 @@ const fetchItems = async () => {
   }
 };
 
+const CULI_STAT_SLIDERS = [
+  {
+    key: 'Mass',
+    input: itemMassInput,
+    slider: itemMassSlider,
+    percentLabel: itemMassSliderPercent,
+    valueLabel: itemMassSliderValue,
+    min: 0.1,
+    max: 2,
+    decimals: 2,
+  },
+  {
+    key: 'GravityScale',
+    input: itemGravityInput,
+    slider: itemGravitySlider,
+    percentLabel: itemGravitySliderPercent,
+    valueLabel: itemGravitySliderValue,
+    min: 0.5,
+    max: 2,
+    decimals: 2,
+  },
+  {
+    key: 'Drag',
+    input: itemDragInput,
+    slider: itemDragSlider,
+    percentLabel: itemDragSliderPercent,
+    valueLabel: itemDragSliderValue,
+    min: 0.05,
+    max: 0.4,
+    decimals: 2,
+  },
+  {
+    key: 'Bounciness',
+    input: itemBouncinessInput,
+    slider: itemBouncinessSlider,
+    percentLabel: itemBouncinessSliderPercent,
+    valueLabel: itemBouncinessSliderValue,
+    min: 0.1,
+    max: 1,
+    decimals: 2,
+  },
+  {
+    key: 'Elasticity',
+    input: itemElasticityInput,
+    slider: itemElasticitySlider,
+    percentLabel: itemElasticitySliderPercent,
+    valueLabel: itemElasticitySliderValue,
+    min: 0.1,
+    max: 1,
+    decimals: 2,
+  },
+  {
+    key: 'ImpactResistance',
+    input: itemImpactInput,
+    slider: itemImpactSlider,
+    percentLabel: itemImpactSliderPercent,
+    valueLabel: itemImpactSliderValue,
+    min: 0.1,
+    max: 2,
+    decimals: 2,
+  },
+];
+
+const clampValue = (value, min, max) => Math.min(Math.max(value, min), max);
+const percentToValue = (percent, min, max) => min + (max - min) * (percent / 100);
+const valueToPercent = (value, min, max) => ((value - min) / (max - min)) * 100;
+const isCuliType = () => Number(itemTypeInput.value) === 1;
+
+const formatStatValue = (value, decimals = 2) => {
+  if (!Number.isFinite(value)) return '';
+  return value.toFixed(decimals);
+};
+
+const updateStatLabels = (config, percent, value) => {
+  config.percentLabel.textContent = `${Math.round(percent)}%`;
+  config.valueLabel.textContent = Number.isFinite(value) ? value.toFixed(config.decimals) : '—';
+};
+
+const syncStatSliderFromInput = (config) => {
+  const rawValue = parseFloat(config.input.value);
+  if (!Number.isFinite(rawValue)) {
+    config.slider.value = 0;
+    updateStatLabels(config, 0, null);
+    return;
+  }
+  const clamped = clampValue(rawValue, config.min, config.max);
+  const percent = clampValue(valueToPercent(clamped, config.min, config.max), 0, 100);
+  config.slider.value = percent;
+  config.input.value = formatStatValue(clamped, config.decimals);
+  updateStatLabels(config, percent, clamped);
+};
+
+const syncStatInputFromSlider = (config) => {
+  const percent = Number(config.slider.value) || 0;
+  const value = percentToValue(percent, config.min, config.max);
+  config.input.value = formatStatValue(value, config.decimals);
+  updateStatLabels(config, percent, value);
+};
+
+const syncAllCuliSliders = () => {
+  CULI_STAT_SLIDERS.forEach((config) => syncStatSliderFromInput(config));
+};
+
+const updateCuliSliderVisibility = () => {
+  const shouldShow = isCuliType();
+  itemCuliSliderSection.classList.toggle('hidden', !shouldShow);
+  if (shouldShow) {
+    syncAllCuliSliders();
+  }
+};
+
 const parseOptionalNumber = (value) => {
   if (value === '' || value === undefined || value === null) return null;
   const parsed = Number(value);
@@ -810,6 +940,7 @@ const resetItemForm = () => {
   itemFormMode.className = 'pill neutral';
   itemCancelEdit.classList.add('hidden');
   itemIdInput.removeAttribute('readonly');
+  updateCuliSliderVisibility();
 };
 
 const startItemEdit = (id) => {
@@ -841,6 +972,7 @@ const startItemEdit = (id) => {
   itemFormMode.textContent = 'Chỉnh sửa';
   itemFormMode.className = 'pill warm';
   itemCancelEdit.classList.remove('hidden');
+  updateCuliSliderVisibility();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
@@ -1198,6 +1330,18 @@ generalCancelEdit.addEventListener('click', resetGeneralForm);
 itemCancelEdit.addEventListener('click', resetItemForm);
 achievementCancelEdit.addEventListener('click', resetAchievementForm);
 
+itemTypeInput.addEventListener('change', updateCuliSliderVisibility);
+CULI_STAT_SLIDERS.forEach((config) => {
+  config.slider.addEventListener('input', () => {
+    if (!isCuliType()) return;
+    syncStatInputFromSlider(config);
+  });
+  config.input.addEventListener('input', () => {
+    if (!isCuliType()) return;
+    syncStatSliderFromInput(config);
+  });
+});
+
 logoutButton.addEventListener('click', () => {
   clearToken();
   window.location.href = './index.html';
@@ -1305,6 +1449,8 @@ Array.from(tabButtons).forEach((button) => {
     activateTab(targetTab);
   });
 });
+
+updateCuliSliderVisibility();
 
 ensureSession()
   .then(async () => {
