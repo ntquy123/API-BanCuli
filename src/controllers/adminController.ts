@@ -215,7 +215,7 @@ export const getActiveContainers: RequestHandler = async (_req, res) => {
 
     const enhancedContainers = containers.map((container) => {
       const pool = portPoolMap.get(container.id);
-      const roomTypeName = pool ? typeMap.get(pool.typeMatchGid) ?? 'Không rõ' : 'Không rõ';
+      const roomTypeName = pool ? typeMap.get(pool.typeMatchGid) ?? 'Không có trong config' : 'Không có data pool';
       const isBusy = pool ? pool.isBusy === 1 : null;
       const hasStarted = pool?.roomNameRef ? roomNameSet.has(pool.roomNameRef) : false;
 
