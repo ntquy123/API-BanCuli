@@ -1,0 +1,24 @@
+@media (max-width: 1200px) {
+  .player-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .data-grid {
+    overflow-x: visible;
+  }
+
+  .data-row {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .row-main,
+  .player-row-main {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .row-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
