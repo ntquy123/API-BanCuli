@@ -52,6 +52,7 @@ const itemElementInput = document.getElementById('item-element');
 const itemLevelRequiredInput = document.getElementById('item-level-required');
 const itemIsLevelUpSelect = document.getElementById('item-is-level-up');
 const itemIsOpenSelect = document.getElementById('item-is-open');
+const itemIsCateyeSelect = document.getElementById('item-is-cateye');
 const itemMassInput = document.getElementById('item-mass');
 const itemGravityInput = document.getElementById('item-gravity');
 const itemDragInput = document.getElementById('item-drag');
@@ -725,7 +726,7 @@ const renderItems = () => {
               <p class="row-label">Trạng thái</p>
               <p class="row-value">${item.isOpen ? 'Đang mở' : 'Đóng'} · ${
                 item.isLevelUp ? 'Nâng cấp' : 'Không nâng cấp'
-              }</p>
+              } · ${item.isCateye ? 'Cateye' : 'Không Cateye'}</p>
             </div>
           </div>
           <div class="row-actions">
@@ -893,6 +894,7 @@ const buildItemPayload = () => {
   const Levelrequired = parseOptionalNumber(itemLevelRequiredInput.value);
   const isLevelUp = itemIsLevelUpSelect.value === 'true';
   const isOpen = itemIsOpenSelect.value === 'true';
+  const isCateye = itemIsCateyeSelect.value === 'true';
   const Mass = parseOptionalNumber(itemMassInput.value);
   const GravityScale = parseOptionalNumber(itemGravityInput.value);
   const Drag = parseOptionalNumber(itemDragInput.value);
@@ -920,6 +922,7 @@ const buildItemPayload = () => {
     locationGid,
     isLevelUp,
     isOpen,
+    isCateye,
     ElementType,
     Levelrequired,
     Mass,
@@ -961,6 +964,7 @@ const startItemEdit = (id) => {
   itemLevelRequiredInput.value = target.Levelrequired ?? '';
   itemIsLevelUpSelect.value = target.isLevelUp ? 'true' : 'false';
   itemIsOpenSelect.value = target.isOpen ? 'true' : 'false';
+  itemIsCateyeSelect.value = target.isCateye ? 'true' : 'false';
   itemMassInput.value = target.Mass ?? '';
   itemGravityInput.value = target.GravityScale ?? '';
   itemDragInput.value = target.Drag ?? '';

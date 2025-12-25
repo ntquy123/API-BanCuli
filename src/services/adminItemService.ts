@@ -11,6 +11,7 @@ export interface ItemPayload {
   priceByBall?: number | null;
   isLevelUp: boolean;
   isOpen: boolean;
+  isCateye: boolean;
   locationGid: number;
   Levelrequired?: number | null;
   Mass?: number | null;

@@ -130,6 +130,7 @@ model Item {
   Bounciness       Float?
   Elasticity       Float?
   ImpactResistance Float?
+  isCateye         Boolean       @default(true)
   playerItems      PlayerItem[]
   equipPlayers     EquipPlayer[]
 
@@ -140,6 +141,7 @@ model Item {
   @@index([isOpen])
   @@index([locationGid])
   @@index([Levelrequired])
+  @@index([isCateye])
 }
 
 model PlayerItem {

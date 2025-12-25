@@ -59,6 +59,13 @@ const parseItemPayload = (req: Request) => {
   const isOpen = parseBoolean(req.body?.isOpen, 'isOpen');
   if (typeof isOpen === 'object' && 'error' in isOpen) return isOpen;
 
+  let isCateye = true;
+  if (req.body?.isCateye !== undefined && req.body?.isCateye !== null && req.body?.isCateye !== '') {
+    const parsedIsCateye = parseBoolean(req.body?.isCateye, 'isCateye');
+    if (typeof parsedIsCateye === 'object' && 'error' in parsedIsCateye) return parsedIsCateye;
+    isCateye = parsedIsCateye;
+  }
+
   const ElementType = parseNumber(req.body?.ElementType, 'ElementType', true);
   if (typeof ElementType === 'object' && 'error' in ElementType) return ElementType;
 
@@ -97,6 +104,7 @@ const parseItemPayload = (req: Request) => {
     priceByBall,
     isLevelUp,
     isOpen,
+    isCateye,
     locationGid,
     Levelrequired,
     Mass,
@@ -156,6 +164,7 @@ export const updateItem = async (req: Request, res: Response): Promise<void> => 
       priceByBall: payload.priceByBall,
       isLevelUp: payload.isLevelUp,
       isOpen: payload.isOpen,
+      isCateye: payload.isCateye,
       locationGid: payload.locationGid,
       Levelrequired: payload.Levelrequired,
       Mass: payload.Mass,
