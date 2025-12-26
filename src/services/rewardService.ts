@@ -566,11 +566,18 @@ export const confirmAdWatch = async (
     }
 
     if (resolvedItemId !== null && resolvedItemId > 0) {
-      await addItemToInventory(playerId, resolvedItemId, tx, {
-        level: 1,
-        price: 0,
-        isSolded: 3,
-      });
+      if (resolvedItemId === 88000001) {
+        await tx.player.update({
+          where: { id: playerId },
+          data: { RingBall: { increment: 10 } },
+        });
+      } else {
+        await addItemToInventory(playerId, resolvedItemId, tx, {
+          level: 1,
+          price: 0,
+          isSolded: 3,
+        });
+      }
     }
 
     const relatedAchievement =
