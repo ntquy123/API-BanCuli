@@ -200,7 +200,7 @@ model BalanceHistory {
 
 model SysMasGeneral {
   GenCode     Int     @id
-  GenCate     Int
+  GenCate     Int     @default(0)
   GenName     String
   ParentCode  Int?
   description String?

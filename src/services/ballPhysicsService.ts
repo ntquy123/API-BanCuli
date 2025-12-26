@@ -56,6 +56,7 @@ export interface BallPhysics {
           Bounciness: true,
           Elasticity: true,
           ImpactResistance: true,
+          isCateye: true,
         },
       });
 
@@ -77,6 +78,7 @@ export interface BallPhysics {
         Elasticity: item.Elasticity !== null ? item.Elasticity : null,
         ImpactResistance: item.ImpactResistance !== null ? item.ImpactResistance * factor : null,
         level,
+        isCateye: item.isCateye
       };
     })
   );
