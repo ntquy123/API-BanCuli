@@ -34,7 +34,6 @@ model Player {
   histories              History[]
   balanceHistories       BalanceHistory[]
   effectPlayers          EffectPlayer[]
-  playerAchievements     PlayerAchievement[]
   achievementStatuses    PlayerAchievementStatus[]
   dailyRareItem          DailyRareItem[]
   equipPlayers           EquipPlayer[]
