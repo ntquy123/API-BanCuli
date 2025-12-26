@@ -177,10 +177,15 @@ export const getActiveContainers: RequestHandler = async (_req, res) => {
         .map((segment) => segment.trim())
         .filter((segment) => segment.includes('/udp'))
         .map((segment) => {
-          const arrowMatch = segment.match(/->(\d+)\/udp/);
+          if (segment.includes('->')) {
+            const [hostPart] = segment.split('->');
+            const hostPortMatch = hostPart.trim().match(/:(\d+)$/);
+            const portNo = hostPortMatch ? Number(hostPortMatch[1]) : Number.NaN;
+            return Number.isFinite(portNo) ? portNo : null;
+          }
+
           const directMatch = segment.match(/(\d+)\/udp$/);
-          const portStr = arrowMatch?.[1] ?? directMatch?.[1];
-          const portNo = portStr ? Number(portStr) : Number.NaN;
+          const portNo = directMatch ? Number(directMatch[1]) : Number.NaN;
           return Number.isFinite(portNo) ? portNo : null;
         })
         .filter((portNo): portNo is number => portNo !== null);
