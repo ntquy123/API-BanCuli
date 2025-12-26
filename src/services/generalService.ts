@@ -2,6 +2,7 @@ import prisma from '../models/prismaClient';
 
 export interface GeneralPayload {
   GenCode: number;
+  GenCate: number;
   GenName: string;
   ParentCode?: number | null;
   description?: string | null;
@@ -27,5 +28,13 @@ export const updateGeneral = async (GenCode: number, payload: Omit<GeneralPayloa
 export const deleteGeneral = async (GenCode: number) => {
   return prisma.sysMasGeneral.delete({
     where: { GenCode },
+  });
+};
+
+export const getGeneralSelectOptions = async (GenCate: number) => {
+  return prisma.sysMasGeneral.findMany({
+    where: { GenCate },
+    select: { GenCode: true, GenName: true },
+    orderBy: { GenCode: 'asc' },
   });
 };

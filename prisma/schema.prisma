@@ -200,11 +200,14 @@ model BalanceHistory {
 
 model SysMasGeneral {
   GenCode     Int     @id
+  GenCate     Int
   GenName     String
   ParentCode  Int?
   description String?
 
   effectPlayers EffectPlayer[]
+
+  @@index([GenCate])
 }
 
 model SysMasLanguage {

@@ -40,3 +40,10 @@ export const updateItem = async (id: number, payload: Partial<ItemPayload>) => {
 export const deleteItem = async (id: number) => {
   return prisma.item.delete({ where: { id } });
 };
+
+export const getItemSelectOptions = async () => {
+  return prisma.item.findMany({
+    select: { id: true, name: true },
+    orderBy: { id: 'asc' },
+  });
+};

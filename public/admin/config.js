@@ -25,6 +25,7 @@ const generalGrid = document.getElementById('general-grid');
 const generalCount = document.getElementById('general-count');
 const generalForm = document.getElementById('general-form');
 const generalCodeInput = document.getElementById('general-code');
+const generalCateInput = document.getElementById('general-cate');
 const generalNameInput = document.getElementById('general-name');
 const generalParentInput = document.getElementById('general-parent');
 const generalDescriptionInput = document.getElementById('general-description');
@@ -137,6 +138,8 @@ let achievements = [];
 let editingAchievement = null;
 let achievementSearchTerm = '';
 let achievementPage = 1;
+let rewardTypeOptions = [];
+let itemSelectOptions = [];
 
 const HTML_ESCAPE_MAP = {
   '&': '&amp;',
@@ -174,6 +177,11 @@ const getItemLabel = (mapping, value) => {
   }
   const label = mapping[Number(value)];
   return label ? `${label} (${value})` : `${value}`;
+};
+const deriveGenCate = (GenCode) => {
+  if (!Number.isInteger(GenCode)) return '';
+  const normalized = Math.abs(GenCode).toString();
+  return Number.parseInt(normalized.slice(0, 3), 10);
 };
 
 const setLoading = (isLoading, message = 'Đang xử lý...') => {
@@ -233,6 +241,43 @@ const apiFetch = async (endpoint, options = {}) => {
   }
 
   return body;
+};
+
+const buildSelectOption = (value, label) => {
+  const option = document.createElement('option');
+  option.value = value;
+  option.textContent = label;
+  return option;
+};
+
+const populateSelectOptions = (select, options, { placeholder = '', allowEmpty = false } = {}) => {
+  const currentValue = select.value;
+  select.innerHTML = '';
+
+  if (allowEmpty) {
+    select.appendChild(buildSelectOption('', placeholder || '—'));
+  } else if (placeholder) {
+    const placeholderOption = buildSelectOption('', placeholder);
+    placeholderOption.disabled = true;
+    placeholderOption.selected = true;
+    select.appendChild(placeholderOption);
+  }
+
+  options.forEach((option) => {
+    select.appendChild(buildSelectOption(option.value, option.label));
+  });
+
+  if (currentValue) {
+    select.value = currentValue;
+  }
+};
+
+const ensureSelectOption = (select, value, label) => {
+  const normalizedValue = value === null || value === undefined ? '' : String(value);
+  if (!normalizedValue) return;
+  const exists = Array.from(select.options).some((option) => option.value === normalizedValue);
+  if (exists) return;
+  select.appendChild(buildSelectOption(normalizedValue, label || normalizedValue));
 };
 
 const setSessionState = (admin) => {
@@ -457,8 +502,8 @@ const getFilteredGenerals = () => {
   if (!keyword) return [...generals];
 
   return generals.filter((item) => {
-    const { GenCode = '', GenName = '', description = '' } = item;
-    return [GenCode, GenName, description || '']
+    const { GenCode = '', GenCate = '', GenName = '', description = '' } = item;
+    return [GenCode, GenCate, GenName, description || '']
       .map((value) => value?.toString().toLowerCase())
       .some((value) => value.includes(keyword));
   });
@@ -502,6 +547,10 @@ const renderGenerals = () => {
             <div class="row-text">
               <p class="row-label">GenName</p>
               <p class="row-value">${escapeHtml(item.GenName)}</p>
+            </div>
+            <div class="row-text">
+              <p class="row-label">GenCate</p>
+              <p class="row-value">${item.GenCate ?? deriveGenCate(Number(item.GenCode)) ?? '—'}</p>
             </div>
             <div class="row-text">
               <p class="row-label">ParentCode</p>
@@ -550,6 +599,13 @@ const resetGeneralForm = () => {
   generalFormMode.className = 'pill neutral';
   generalCancelEdit.classList.add('hidden');
   generalCodeInput.removeAttribute('readonly');
+  generalCateInput.value = '';
+};
+
+const syncGeneralCate = () => {
+  const GenCode = Number(generalCodeInput.value);
+  const GenCate = deriveGenCate(GenCode);
+  generalCateInput.value = Number.isInteger(GenCate) ? GenCate : '';
 };
 
 const startGeneralEdit = (GenCode) => {
@@ -559,6 +615,7 @@ const startGeneralEdit = (GenCode) => {
   editingGeneral = target.GenCode;
   generalCodeInput.value = target.GenCode;
   generalCodeInput.setAttribute('readonly', 'readonly');
+  generalCateInput.value = target.GenCate ?? deriveGenCate(Number(target.GenCode));
   generalNameInput.value = target.GenName;
   generalParentInput.value = target.ParentCode ?? '';
   generalDescriptionInput.value = target.description ?? '';
@@ -1094,6 +1151,29 @@ const fetchAchievements = async () => {
   }
 };
 
+const fetchRewardTypeOptions = async () => {
+  try {
+    const data = await apiFetch('generals/reward-type-options');
+    rewardTypeOptions = Array.isArray(data?.options) ? data.options : [];
+    populateSelectOptions(achievementRewardTypeInput, rewardTypeOptions, { placeholder: 'Chọn reward type' });
+  } catch (error) {
+    showToast(error.message || 'Không thể tải RewardType.', 'error');
+  }
+};
+
+const fetchItemOptions = async () => {
+  try {
+    const data = await apiFetch('items/options');
+    itemSelectOptions = Array.isArray(data?.options) ? data.options : [];
+    populateSelectOptions(achievementItemInput, itemSelectOptions, {
+      placeholder: '— Không chọn item —',
+      allowEmpty: true,
+    });
+  } catch (error) {
+    showToast(error.message || 'Không thể tải danh sách item.', 'error');
+  }
+};
+
 const buildAchievementPayload = () => {
   const rewardType = achievementRewardTypeInput.value.trim();
   const seq = Number(achievementSeqInput.value);
@@ -1132,7 +1212,14 @@ const resetAchievementForm = () => {
   achievementFormMode.textContent = 'Thêm mới';
   achievementFormMode.className = 'pill neutral';
   achievementCancelEdit.classList.add('hidden');
-  achievementRewardTypeInput.removeAttribute('readonly');
+  achievementRewardTypeInput.removeAttribute('disabled');
+  achievementRewardTypeInput.value = '';
+  achievementItemInput.value = '';
+  populateSelectOptions(achievementRewardTypeInput, rewardTypeOptions, { placeholder: 'Chọn reward type' });
+  populateSelectOptions(achievementItemInput, itemSelectOptions, {
+    placeholder: '— Không chọn item —',
+    allowEmpty: true,
+  });
   achievementSeqInput.removeAttribute('readonly');
 };
 
@@ -1143,12 +1230,24 @@ const startAchievementEdit = (rewardType, seq) => {
   if (!target) return;
 
   editingAchievement = { rewardType, seq: Number(seq) };
+  ensureSelectOption(
+    achievementRewardTypeInput,
+    target.rewardType,
+    target.rewardTypeName ? `${target.rewardType} · ${target.rewardTypeName}` : target.rewardType,
+  );
   achievementRewardTypeInput.value = target.rewardType;
-  achievementRewardTypeInput.setAttribute('readonly', 'readonly');
+  achievementRewardTypeInput.setAttribute('disabled', 'disabled');
   achievementSeqInput.value = target.seq;
   achievementSeqInput.setAttribute('readonly', 'readonly');
   achievementLocationInput.value = target.locationId ?? '';
   achievementAmountInput.value = target.rewardAmount ?? '';
+  if (Number.isInteger(target.itemId)) {
+    ensureSelectOption(
+      achievementItemInput,
+      target.itemId,
+      target.itemName ? `${target.itemId} · ${target.itemName}` : target.itemId,
+    );
+  }
   achievementItemInput.value = target.itemId ?? '';
   achievementCountInput.value = target.countGif ?? '';
   achievementIsUsedSelect.value = target.isUsed ? 'true' : 'false';
@@ -1334,6 +1433,8 @@ generalCancelEdit.addEventListener('click', resetGeneralForm);
 itemCancelEdit.addEventListener('click', resetItemForm);
 achievementCancelEdit.addEventListener('click', resetAchievementForm);
 
+generalCodeInput.addEventListener('input', syncGeneralCate);
+
 itemTypeInput.addEventListener('change', updateCuliSliderVisibility);
 CULI_STAT_SLIDERS.forEach((config) => {
   config.slider.addEventListener('input', () => {
@@ -1461,6 +1562,8 @@ ensureSession()
     await fetchLanguages();
     await fetchGenerals();
     await fetchItems();
+    await fetchRewardTypeOptions();
+    await fetchItemOptions();
     await fetchAchievements();
   })
   .catch(() => {});

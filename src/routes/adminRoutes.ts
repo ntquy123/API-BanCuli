@@ -20,12 +20,14 @@ import {
   createGeneral,
   deleteGeneral,
   getGenerals,
+  getRewardTypeOptions,
   updateGeneral,
 } from '../controllers/generalController';
 import {
   createItem as createAdminItem,
   deleteItem as deleteAdminItem,
   getItems as getAdminItems,
+  getItemOptions,
   updateItem as updateAdminItem,
 } from '../controllers/adminItemController';
 import {
@@ -63,7 +65,9 @@ router.get('/admin/generals', requireAdminAuth, getGenerals);
 router.post('/admin/generals', requireAdminAuth, createGeneral);
 router.put('/admin/generals/:GenCode', requireAdminAuth, updateGeneral);
 router.delete('/admin/generals/:GenCode', requireAdminAuth, deleteGeneral);
+router.get('/admin/generals/reward-type-options', requireAdminAuth, getRewardTypeOptions);
 router.get('/admin/items', requireAdminAuth, getAdminItems);
+router.get('/admin/items/options', requireAdminAuth, getItemOptions);
 router.post('/admin/items', requireAdminAuth, createAdminItem);
 router.put('/admin/items/:id', requireAdminAuth, updateAdminItem);
 router.delete('/admin/items/:id', requireAdminAuth, deleteAdminItem);

@@ -142,6 +142,10 @@
                   <input id="general-code" name="GenCode" type="number" placeholder="VD: 1001" required />
                 </label>
                 <label class="field">
+                  <span>GenCate (tự lấy 3 số đầu)</span>
+                  <input id="general-cate" name="GenCate" type="number" placeholder="VD: 100" readonly />
+                </label>
+                <label class="field">
                   <span>GenName</span>
                   <input id="general-name" name="GenName" type="text" placeholder="Tên config" required />
                 </label>
@@ -486,7 +490,7 @@
               <form id="achievement-form" class="form vertical">
                 <label class="field">
                   <span>RewardType (GenCode)</span>
-                  <input id="achievement-reward-type" name="rewardType" type="number" placeholder="VD: 2001" required />
+                  <select id="achievement-reward-type" name="rewardType" required></select>
                 </label>
                 <label class="field">
                   <span>Seq</span>
@@ -502,7 +506,7 @@
                 </label>
                 <label class="field">
                   <span>ItemId (tùy chọn)</span>
-                  <input id="achievement-item" name="itemId" type="number" placeholder="ID item" />
+                  <select id="achievement-item" name="itemId"></select>
                 </label>
                 <label class="field">
                   <span>CountGif (tùy chọn)</span>

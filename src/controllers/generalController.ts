@@ -3,8 +3,15 @@ import {
   createGeneral as createGeneralService,
   deleteGeneral as deleteGeneralService,
   getAllGenerals,
+  getGeneralSelectOptions,
   updateGeneral as updateGeneralService,
 } from '../services/generalService';
+import { SysMasGeneralCate } from '../config/generalCategory';
+
+const deriveGenCate = (GenCode: number) => {
+  const normalized = Math.abs(GenCode).toString();
+  return Number.parseInt(normalized.slice(0, 3), 10);
+};
 
 const parseGeneralPayload = (req: Request) => {
   const GenCode = Number(req.body?.GenCode);
@@ -30,8 +37,9 @@ const parseGeneralPayload = (req: Request) => {
   }
 
   const description = descriptionRaw === undefined ? null : String(descriptionRaw);
+  const GenCate = deriveGenCate(GenCode);
 
-  return { GenCode, GenName, ParentCode, description } as const;
+  return { GenCode, GenCate, GenName, ParentCode, description } as const;
 };
 
 export const getGenerals = async (_req: Request, res: Response): Promise<void> => {
@@ -75,6 +83,7 @@ export const updateGeneral = async (req: Request, res: Response): Promise<void> 
 
   try {
     const general = await updateGeneralService(targetCode, {
+      GenCate: payload.GenCate,
       GenName: payload.GenName,
       ParentCode: payload.ParentCode,
       description: payload.description,
@@ -85,6 +94,20 @@ export const updateGeneral = async (req: Request, res: Response): Promise<void> 
       res.status(404).json({ message: 'Không tìm thấy cấu hình hệ thống cần cập nhật.' });
       return;
     }
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getRewardTypeOptions = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const options = await getGeneralSelectOptions(SysMasGeneralCate.PlayerAchievementRewardType);
+    res.json({
+      options: options.map((option) => ({
+        value: option.GenCode,
+        label: option.GenName,
+      })),
+    });
+  } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
 };

@@ -3,6 +3,7 @@ import {
   createItem as createItemService,
   deleteItem as deleteItemService,
   getAllItems,
+  getItemSelectOptions,
   updateItem as updateItemService,
 } from '../services/adminItemService';
 
@@ -199,6 +200,20 @@ export const deleteItem = async (req: Request, res: Response): Promise<void> => 
       res.status(404).json({ message: 'Không tìm thấy item cần xóa.' });
       return;
     }
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getItemOptions = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const options = await getItemSelectOptions();
+    res.json({
+      options: options.map((option) => ({
+        value: option.id,
+        label: option.name,
+      })),
+    });
+  } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
 };
