@@ -179,10 +179,20 @@ const ITEM_TYPE_LABELS = {
 const escapeHtml = (value = '') => value.toString().replace(/[&<>"']/g, (char) => HTML_ESCAPE_MAP[char] || char);
 const stripHtml = (value = '') => value.toString().replace(/<[^>]*>/g, '');
 const normalizeWhitespace = (value = '') => value.replace(/\s+/g, ' ').trim();
-const ALLOWED_RICH_TAGS = new Set(['BR', 'B', 'STRONG', 'I', 'EM', 'U', 'SPAN', 'DIV', 'P']);
+const ALLOWED_RICH_TAGS = new Set(['BR', 'B', 'STRONG', 'I', 'EM', 'U', 'SPAN', 'DIV', 'P', 'FONT']);
 const ALLOWED_COLOR_NAMES = new Set(['red', 'blue', 'green', 'black']);
 
 const hasRichMarkup = (value = '') => /<\/?[a-z][\s\S]*>/i.test(value);
+
+const isAllowedColor = (color = '') => {
+  const normalized = color.trim().toLowerCase();
+  if (!normalized) return false;
+  const isHex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(normalized);
+  const isRgb = /^rgba?\((\s*\d+\s*,){2}\s*\d+\s*(,\s*(0(\.\d+)?|1(\.0+)?)\s*)?\)$/i.test(
+    normalized
+  );
+  return isHex || isRgb || ALLOWED_COLOR_NAMES.has(normalized);
+};
 
 const sanitizeRichText = (html = '') => {
   const parser = new DOMParser();
@@ -202,13 +212,24 @@ const sanitizeRichText = (html = '') => {
       return;
     }
 
+    if (node.tagName === 'FONT') {
+      const span = doc.createElement('span');
+      const color = node.getAttribute('color') || '';
+      if (isAllowedColor(color)) {
+        span.style.color = color.trim();
+      }
+      while (node.firstChild) {
+        span.appendChild(node.firstChild);
+      }
+      node.replaceWith(span);
+      cleanNode(span);
+      return;
+    }
+
     if (node.tagName === 'SPAN') {
-      const color = node.style.color?.trim().toLowerCase();
-      if (color) {
-        const isHex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(color);
-        if (!isHex && !ALLOWED_COLOR_NAMES.has(color)) {
-          node.style.color = '';
-        }
+      const color = node.style.color || '';
+      if (!isAllowedColor(color)) {
+        node.style.color = '';
       }
       Array.from(node.attributes).forEach((attr) => {
         if (attr.name !== 'style') node.removeAttribute(attr.name);
