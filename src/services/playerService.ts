@@ -61,6 +61,54 @@ const seedNewPlayerData = async (
   });
 };
 
+const createNewPlayerRewards = async (
+  tx: Prisma.TransactionClient,
+  playerId: number
+) => {
+  const lastMessage = await tx.friendMessage.findFirst({
+    where: { senderId: 0 },
+    orderBy: { seqMess: 'desc' },
+    select: { seqMess: true },
+  });
+
+  const baseSeq = lastMessage?.seqMess ?? 0;
+
+  const rewardMessages: Prisma.FriendMessageUncheckedCreateInput[] = [
+    {
+      senderId: 0,
+      receiverId: playerId,
+      seqMess: baseSeq + 1,
+      message: '',
+      ringBallReward: 50,
+    },
+    {
+      senderId: 0,
+      receiverId: playerId,
+      seqMess: baseSeq + 2,
+      message: '',
+      itemRewardId: 98000001,
+    },
+    {
+      senderId: 0,
+      receiverId: playerId,
+      seqMess: baseSeq + 3,
+      message: '',
+      itemRewardId: 98000001,
+    },
+    {
+      senderId: 0,
+      receiverId: playerId,
+      seqMess: baseSeq + 4,
+      message: '',
+      itemRewardId: 98000002,
+    },
+  ];
+
+  await tx.friendMessage.createMany({
+    data: rewardMessages,
+  });
+};
+
 
 export const getPlayerByAccountId = async (accountId: string) => {
   return await prisma.player.findFirst({
@@ -109,6 +157,8 @@ export const confirmPlayerName = async (
         createdDate: new Date(),
       },
     });
+
+    await createNewPlayerRewards(tx, playerId);
 
     return updatedPlayer;
   });
@@ -381,5 +431,4 @@ export const loginOrCreateSocialAccount = async (
 
   throw new Error('Failed to login or create social account');
 };
-
 
