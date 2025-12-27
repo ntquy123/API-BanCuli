@@ -129,3 +129,76 @@
   font-size: 12px;
   color: #475569;
 }
+
+.config-page .field-rich {
+  gap: 12px;
+}
+
+.config-page .rich-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(248, 250, 252, 0.75);
+}
+
+.config-page .rich-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.config-page .rich-button {
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: #fff;
+  color: #0f172a;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.config-page .rich-button:hover {
+  border-color: rgba(37, 99, 235, 0.65);
+  color: #2563eb;
+}
+
+.config-page .rich-button:focus {
+  outline: 2px solid rgba(37, 99, 235, 0.35);
+  outline-offset: 2px;
+}
+
+.config-page .rich-button .underline {
+  text-decoration: underline;
+}
+
+.config-page .rich-input {
+  min-height: 140px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px dashed rgba(148, 163, 184, 0.6);
+  background: #fff;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #0f172a;
+  white-space: pre-wrap;
+}
+
+.config-page .rich-input:focus {
+  outline: 2px solid rgba(37, 99, 235, 0.35);
+  outline-offset: 2px;
+}
+
+.config-page .rich-input:empty::before {
+  content: attr(data-placeholder);
+  color: #94a3b8;
+}
+
+.config-page .row-value.rich-text {
+  white-space: pre-wrap;
+  line-height: 1.4;
+}

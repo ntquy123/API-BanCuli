@@ -67,13 +67,71 @@
                   <span>Code</span>
                   <input id="lang-code" name="code" type="text" placeholder="VD: HOME_TITLE" required />
                 </label>
-                <label class="field">
+                <label class="field field-rich">
                   <span>Nội dung tiếng Việt</span>
-                  <input id="lang-vi" name="vietnamText" type="text" placeholder="Xin chào" required />
+                  <div class="rich-editor">
+                    <div class="rich-toolbar" role="toolbar" aria-label="Định dạng tiếng Việt">
+                      <button class="rich-button" type="button" data-command="bold" title="Đậm">
+                        <strong>B</strong>
+                      </button>
+                      <button class="rich-button" type="button" data-command="italic" title="Nghiêng">
+                        <em>I</em>
+                      </button>
+                      <button class="rich-button" type="button" data-command="underline" title="Gạch chân">
+                        <span class="underline">U</span>
+                      </button>
+                      <button class="rich-button" type="button" data-command="foreColor" data-value="#ef4444" title="Chữ đỏ">
+                        Đỏ
+                      </button>
+                      <button class="rich-button" type="button" data-command="foreColor" data-value="#2563eb" title="Chữ xanh">
+                        Xanh
+                      </button>
+                      <button class="rich-button" type="button" data-command="removeFormat" title="Xóa định dạng">
+                        Xóa định dạng
+                      </button>
+                    </div>
+                    <div
+                      id="lang-vi"
+                      class="rich-input"
+                      contenteditable="true"
+                      role="textbox"
+                      aria-multiline="true"
+                      data-placeholder="Nhập nội dung tiếng Việt"
+                    ></div>
+                  </div>
                 </label>
-                <label class="field">
+                <label class="field field-rich">
                   <span>Nội dung tiếng Anh</span>
-                  <input id="lang-en" name="englishText" type="text" placeholder="Hello" required />
+                  <div class="rich-editor">
+                    <div class="rich-toolbar" role="toolbar" aria-label="Định dạng tiếng Anh">
+                      <button class="rich-button" type="button" data-command="bold" title="Đậm">
+                        <strong>B</strong>
+                      </button>
+                      <button class="rich-button" type="button" data-command="italic" title="Nghiêng">
+                        <em>I</em>
+                      </button>
+                      <button class="rich-button" type="button" data-command="underline" title="Gạch chân">
+                        <span class="underline">U</span>
+                      </button>
+                      <button class="rich-button" type="button" data-command="foreColor" data-value="#ef4444" title="Chữ đỏ">
+                        Đỏ
+                      </button>
+                      <button class="rich-button" type="button" data-command="foreColor" data-value="#2563eb" title="Chữ xanh">
+                        Xanh
+                      </button>
+                      <button class="rich-button" type="button" data-command="removeFormat" title="Xóa định dạng">
+                        Xóa định dạng
+                      </button>
+                    </div>
+                    <div
+                      id="lang-en"
+                      class="rich-input"
+                      contenteditable="true"
+                      role="textbox"
+                      aria-multiline="true"
+                      data-placeholder="Enter English content"
+                    ></div>
+                  </div>
                 </label>
                 <div class="form-actions">
                   <button id="submit-language" class="cta" type="submit">
