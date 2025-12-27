@@ -10,6 +10,11 @@ const languageGrid = document.getElementById('language-grid');
 const languageCount = document.getElementById('language-count');
 const languageForm = document.getElementById('language-form');
 const codeInput = document.getElementById('lang-code');
+const languageFormatSelect = document.getElementById('language-format');
+const languagePlainFields = document.getElementById('language-plain-fields');
+const languageRichFields = document.getElementById('language-rich-fields');
+const viPlainInput = document.getElementById('lang-vi-plain');
+const enPlainInput = document.getElementById('lang-en-plain');
 const viInput = document.getElementById('lang-vi');
 const enInput = document.getElementById('lang-en');
 const richToolbars = document.querySelectorAll('.rich-toolbar');
@@ -177,6 +182,8 @@ const normalizeWhitespace = (value = '') => value.replace(/\s+/g, ' ').trim();
 const ALLOWED_RICH_TAGS = new Set(['BR', 'B', 'STRONG', 'I', 'EM', 'U', 'SPAN', 'DIV', 'P']);
 const ALLOWED_COLOR_NAMES = new Set(['red', 'blue', 'green', 'black']);
 
+const hasRichMarkup = (value = '') => /<\/?[a-z][\s\S]*>/i.test(value);
+
 const sanitizeRichText = (html = '') => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
@@ -219,6 +226,15 @@ const sanitizeRichText = (html = '') => {
 
 const getRichValue = (element) => sanitizeRichText(element.innerHTML);
 const getRichPlain = (element) => normalizeWhitespace(stripHtml(element.innerHTML));
+const getPlainFromRich = (element) => normalizeWhitespace(element.innerText || element.textContent || '');
+const htmlToPlainText = (value = '') => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div>${sanitizeRichText(value)}</div>`, 'text/html');
+  return normalizeWhitespace(doc.body.textContent || '');
+};
+const setRichEditorValue = (editor, value = '') => {
+  editor.innerHTML = escapeHtml(value).replace(/\n/g, '<br>');
+};
 const getItemLabel = (mapping, value) => {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
     return '—';
@@ -380,6 +396,26 @@ richToolbars.forEach((toolbar) => {
   });
 });
 
+let languageFormat = 'plain';
+
+const setLanguageFormat = (mode, { syncValues = false } = {}) => {
+  const nextMode = mode === 'rich' ? 'rich' : 'plain';
+  if (syncValues && nextMode !== languageFormat) {
+    if (nextMode === 'rich') {
+      setRichEditorValue(viInput, viPlainInput.value);
+      setRichEditorValue(enInput, enPlainInput.value);
+    } else {
+      viPlainInput.value = getPlainFromRich(viInput);
+      enPlainInput.value = getPlainFromRich(enInput);
+    }
+  }
+
+  languageFormat = nextMode;
+  languageFormatSelect.value = languageFormat;
+  languageRichFields.classList.toggle('hidden', languageFormat !== 'rich');
+  languagePlainFields.classList.toggle('hidden', languageFormat !== 'plain');
+};
+
 // Language helpers
 const updateLanguageCount = (filteredLength = languages.length) => {
   if (filteredLength !== languages.length) {
@@ -387,6 +423,13 @@ const updateLanguageCount = (filteredLength = languages.length) => {
     return;
   }
   languageCount.textContent = `${languages.length} bản ghi`;
+};
+
+const formatLanguageValue = (value = '') => {
+  if (hasRichMarkup(value)) {
+    return { html: sanitizeRichText(value), isRich: true };
+  }
+  return { html: escapeHtml(value).replace(/\n/g, '<br>'), isRich: false };
 };
 
 const getFilteredLanguages = () => {
@@ -431,18 +474,20 @@ const renderLanguages = () => {
   const pageItems = filtered.slice(startIndex, startIndex + PAGE_SIZE);
 
   languageGrid.innerHTML = pageItems
-    .map(
-      (language) => `
+    .map((language) => {
+      const vietnamDisplay = formatLanguageValue(language.vietnamText);
+      const englishDisplay = formatLanguageValue(language.englishText);
+      return `
         <article class="data-row">
           <div class="row-main">
             <div class="code-badge">${escapeHtml(language.code)}</div>
             <div class="row-text">
               <p class="row-label">Tiếng Việt</p>
-              <div class="row-value rich-text">${sanitizeRichText(language.vietnamText)}</div>
+              <div class="row-value${vietnamDisplay.isRich ? ' rich-text' : ''}">${vietnamDisplay.html}</div>
             </div>
             <div class="row-text">
               <p class="row-label">Tiếng Anh</p>
-              <div class="row-value rich-text">${sanitizeRichText(language.englishText)}</div>
+              <div class="row-value${englishDisplay.isRich ? ' rich-text' : ''}">${englishDisplay.html}</div>
             </div>
           </div>
           <div class="row-actions">
@@ -454,8 +499,8 @@ const renderLanguages = () => {
             )}">Xóa</button>
           </div>
         </article>
-      `
-    )
+      `;
+    })
     .join('');
 };
 
@@ -487,17 +532,34 @@ const resetForm = () => {
   codeInput.removeAttribute('readonly');
   viInput.innerHTML = '';
   enInput.innerHTML = '';
+  viPlainInput.value = '';
+  enPlainInput.value = '';
+  setLanguageFormat('plain');
 };
 
 const startEdit = (code) => {
   const target = languages.find((lang) => lang.code === code);
   if (!target) return;
 
+  const detectedFormat =
+    hasRichMarkup(target.vietnamText) || hasRichMarkup(target.englishText) ? 'rich' : 'plain';
+
   editingCode = target.code;
   codeInput.value = target.code;
   codeInput.setAttribute('readonly', 'readonly');
-  viInput.innerHTML = sanitizeRichText(target.vietnamText);
-  enInput.innerHTML = sanitizeRichText(target.englishText);
+  if (detectedFormat === 'rich') {
+    viInput.innerHTML = sanitizeRichText(target.vietnamText);
+    enInput.innerHTML = sanitizeRichText(target.englishText);
+    viPlainInput.value = htmlToPlainText(target.vietnamText);
+    enPlainInput.value = htmlToPlainText(target.englishText);
+  } else {
+    viPlainInput.value = target.vietnamText || '';
+    enPlainInput.value = target.englishText || '';
+    setRichEditorValue(viInput, viPlainInput.value);
+    setRichEditorValue(enInput, enPlainInput.value);
+  }
+
+  setLanguageFormat(detectedFormat);
   submitButton.textContent = 'Lưu thay đổi';
   formTitle.textContent = 'Chỉnh sửa config';
   formMode.textContent = 'Chỉnh sửa';
@@ -508,13 +570,20 @@ const startEdit = (code) => {
 
 const submitLanguage = async (event) => {
   event.preventDefault();
+  const code = codeInput.value.trim();
+  const isRich = languageFormat === 'rich';
+  const vietnamText = isRich ? getRichValue(viInput).trim() : viPlainInput.value.trim();
+  const englishText = isRich ? getRichValue(enInput).trim() : enPlainInput.value.trim();
+  const vietnamCheck = isRich ? getRichPlain(viInput) : vietnamText;
+  const englishCheck = isRich ? getRichPlain(enInput) : englishText;
+
   const payload = {
-    code: codeInput.value.trim(),
-    vietnamText: getRichValue(viInput).trim(),
-    englishText: getRichValue(enInput).trim(),
+    code,
+    vietnamText,
+    englishText,
   };
 
-  if (!payload.code || !getRichPlain(viInput) || !getRichPlain(enInput)) {
+  if (!payload.code || !vietnamCheck || !englishCheck) {
     showToast('Vui lòng nhập đầy đủ thông tin.', 'error');
     return;
   }
@@ -1496,6 +1565,9 @@ achievementGrid.addEventListener('click', (event) => {
 });
 
 languageForm.addEventListener('submit', submitLanguage);
+languageFormatSelect.addEventListener('change', (event) => {
+  setLanguageFormat(event.target.value, { syncValues: true });
+});
 itemForm.addEventListener('submit', submitItem);
 generalForm.addEventListener('submit', submitGeneral);
 achievementForm.addEventListener('submit', submitAchievement);
@@ -1628,6 +1700,7 @@ Array.from(tabButtons).forEach((button) => {
 });
 
 updateCuliSliderVisibility();
+setLanguageFormat('plain');
 
 ensureSession()
   .then(async () => {

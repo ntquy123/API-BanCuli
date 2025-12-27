@@ -67,72 +67,125 @@
                   <span>Code</span>
                   <input id="lang-code" name="code" type="text" placeholder="VD: HOME_TITLE" required />
                 </label>
-                <label class="field field-rich">
-                  <span>Nội dung tiếng Việt</span>
-                  <div class="rich-editor">
-                    <div class="rich-toolbar" role="toolbar" aria-label="Định dạng tiếng Việt">
-                      <button class="rich-button" type="button" data-command="bold" title="Đậm">
-                        <strong>B</strong>
-                      </button>
-                      <button class="rich-button" type="button" data-command="italic" title="Nghiêng">
-                        <em>I</em>
-                      </button>
-                      <button class="rich-button" type="button" data-command="underline" title="Gạch chân">
-                        <span class="underline">U</span>
-                      </button>
-                      <button class="rich-button" type="button" data-command="foreColor" data-value="#ef4444" title="Chữ đỏ">
-                        Đỏ
-                      </button>
-                      <button class="rich-button" type="button" data-command="foreColor" data-value="#2563eb" title="Chữ xanh">
-                        Xanh
-                      </button>
-                      <button class="rich-button" type="button" data-command="removeFormat" title="Xóa định dạng">
-                        Xóa định dạng
-                      </button>
-                    </div>
-                    <div
-                      id="lang-vi"
-                      class="rich-input"
-                      contenteditable="true"
-                      role="textbox"
-                      aria-multiline="true"
-                      data-placeholder="Nhập nội dung tiếng Việt"
-                    ></div>
-                  </div>
+                <label class="field">
+                  <span>Định dạng nội dung</span>
+                  <select id="language-format" name="languageFormat">
+                    <option value="plain" selected>Text thường</option>
+                    <option value="rich">Text định dạng</option>
+                  </select>
                 </label>
-                <label class="field field-rich">
-                  <span>Nội dung tiếng Anh</span>
-                  <div class="rich-editor">
-                    <div class="rich-toolbar" role="toolbar" aria-label="Định dạng tiếng Anh">
-                      <button class="rich-button" type="button" data-command="bold" title="Đậm">
-                        <strong>B</strong>
-                      </button>
-                      <button class="rich-button" type="button" data-command="italic" title="Nghiêng">
-                        <em>I</em>
-                      </button>
-                      <button class="rich-button" type="button" data-command="underline" title="Gạch chân">
-                        <span class="underline">U</span>
-                      </button>
-                      <button class="rich-button" type="button" data-command="foreColor" data-value="#ef4444" title="Chữ đỏ">
-                        Đỏ
-                      </button>
-                      <button class="rich-button" type="button" data-command="foreColor" data-value="#2563eb" title="Chữ xanh">
-                        Xanh
-                      </button>
-                      <button class="rich-button" type="button" data-command="removeFormat" title="Xóa định dạng">
-                        Xóa định dạng
-                      </button>
+                <div id="language-plain-fields" class="language-format-group">
+                  <label class="field">
+                    <span>Nội dung tiếng Việt</span>
+                    <textarea
+                      id="lang-vi-plain"
+                      class="plain-textarea"
+                      placeholder="Nhập nội dung tiếng Việt"
+                      rows="4"
+                    ></textarea>
+                  </label>
+                  <label class="field">
+                    <span>Nội dung tiếng Anh</span>
+                    <textarea
+                      id="lang-en-plain"
+                      class="plain-textarea"
+                      placeholder="Enter English content"
+                      rows="4"
+                    ></textarea>
+                  </label>
+                </div>
+                <div id="language-rich-fields" class="language-format-group hidden">
+                  <label class="field field-rich">
+                    <span>Nội dung tiếng Việt</span>
+                    <div class="rich-editor">
+                      <div class="rich-toolbar" role="toolbar" aria-label="Định dạng tiếng Việt">
+                        <button class="rich-button" type="button" data-command="bold" title="Đậm">
+                          <strong>B</strong>
+                        </button>
+                        <button class="rich-button" type="button" data-command="italic" title="Nghiêng">
+                          <em>I</em>
+                        </button>
+                        <button class="rich-button" type="button" data-command="underline" title="Gạch chân">
+                          <span class="underline">U</span>
+                        </button>
+                        <button
+                          class="rich-button"
+                          type="button"
+                          data-command="foreColor"
+                          data-value="#ef4444"
+                          title="Chữ đỏ"
+                        >
+                          Đỏ
+                        </button>
+                        <button
+                          class="rich-button"
+                          type="button"
+                          data-command="foreColor"
+                          data-value="#2563eb"
+                          title="Chữ xanh"
+                        >
+                          Xanh
+                        </button>
+                        <button class="rich-button" type="button" data-command="removeFormat" title="Xóa định dạng">
+                          Xóa định dạng
+                        </button>
+                      </div>
+                      <div
+                        id="lang-vi"
+                        class="rich-input"
+                        contenteditable="true"
+                        role="textbox"
+                        aria-multiline="true"
+                        data-placeholder="Nhập nội dung tiếng Việt"
+                      ></div>
                     </div>
-                    <div
-                      id="lang-en"
-                      class="rich-input"
-                      contenteditable="true"
-                      role="textbox"
-                      aria-multiline="true"
-                      data-placeholder="Enter English content"
-                    ></div>
-                  </div>
-                </label>
+                  </label>
+                  <label class="field field-rich">
+                    <span>Nội dung tiếng Anh</span>
+                    <div class="rich-editor">
+                      <div class="rich-toolbar" role="toolbar" aria-label="Định dạng tiếng Anh">
+                        <button class="rich-button" type="button" data-command="bold" title="Đậm">
+                          <strong>B</strong>
+                        </button>
+                        <button class="rich-button" type="button" data-command="italic" title="Nghiêng">
+                          <em>I</em>
+                        </button>
+                        <button class="rich-button" type="button" data-command="underline" title="Gạch chân">
+                          <span class="underline">U</span>
+                        </button>
+                        <button
+                          class="rich-button"
+                          type="button"
+                          data-command="foreColor"
+                          data-value="#ef4444"
+                          title="Chữ đỏ"
+                        >
+                          Đỏ
+                        </button>
+                        <button
+                          class="rich-button"
+                          type="button"
+                          data-command="foreColor"
+                          data-value="#2563eb"
+                          title="Chữ xanh"
+                        >
+                          Xanh
+                        </button>
+                        <button class="rich-button" type="button" data-command="removeFormat" title="Xóa định dạng">
+                          Xóa định dạng
+                        </button>
+                      </div>
+                      <div
+                        id="lang-en"
+                        class="rich-input"
+                        contenteditable="true"
+                        role="textbox"
+                        aria-multiline="true"
+                        data-placeholder="Enter English content"
+                      ></div>
+                    </div>
+                  </label>
+                </div>
                 <div class="form-actions">
                   <button id="submit-language" class="cta" type="submit">
                     <span>Thêm cấu hình</span>

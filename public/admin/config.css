@@ -195,6 +195,18 @@
   white-space: pre-wrap;
 }
 
+.config-page .plain-textarea {
+  min-height: 140px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: #fff;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #0f172a;
+  resize: vertical;
+}
+
 .config-page .rich-input:focus {
   outline: 2px solid rgba(37, 99, 235, 0.35);
   outline-offset: 2px;
