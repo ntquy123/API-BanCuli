@@ -53,9 +53,16 @@
 
 .config-page #language-grid .row-value,
 .config-page #general-grid .row-value,
-.config-page #achievement-grid .row-value {
+.config-page #achievement-grid .row-value,
+.config-page #item-grid .row-value {
   font-size: 13px;
   font-weight: 600;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .config-page #item-grid .row-actions {
@@ -199,6 +206,6 @@
 }
 
 .config-page .row-value.rich-text {
-  white-space: pre-wrap;
+  white-space: normal;
   line-height: 1.4;
 }
