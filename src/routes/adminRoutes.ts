@@ -20,6 +20,7 @@ import {
   createGeneral,
   deleteGeneral,
   getGenerals,
+  getItemRarityOptions,
   getRewardTypeOptions,
   updateGeneral,
 } from '../controllers/generalController';
@@ -66,6 +67,7 @@ router.post('/admin/generals', requireAdminAuth, createGeneral);
 router.put('/admin/generals/:GenCode', requireAdminAuth, updateGeneral);
 router.delete('/admin/generals/:GenCode', requireAdminAuth, deleteGeneral);
 router.get('/admin/generals/reward-type-options', requireAdminAuth, getRewardTypeOptions);
+router.get('/admin/generals/item-rarity-options', requireAdminAuth, getItemRarityOptions);
 router.get('/admin/items', requireAdminAuth, getAdminItems);
 router.get('/admin/items/options', requireAdminAuth, getItemOptions);
 router.post('/admin/items', requireAdminAuth, createAdminItem);

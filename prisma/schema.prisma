@@ -117,6 +117,7 @@ model Item {
   description      String
   level            Int
   typeGid          Int           @map("Type_Gid")
+  rarityGid        Int           @default(11300001) @map("Rarity_Gid")
   price            Int
   priceByBall      Int?
   isLevelUp        Boolean       @map("is_Level_Up")
@@ -134,6 +135,7 @@ model Item {
   equipPlayers     EquipPlayer[]
 
   @@index([typeGid])
+  @@index([rarityGid])
   @@index([level])
   @@index([ElementType])
   @@index([isLevelUp])

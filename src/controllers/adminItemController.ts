@@ -48,6 +48,11 @@ const parseItemPayload = (req: Request) => {
   const typeGid = parseNumber(req.body?.typeGid, 'TypeGid');
   if (typeof typeGid === 'object' && 'error' in typeGid) return typeGid;
 
+  const rarityGidRaw = req.body?.rarityGid;
+  const rarityGidParsed = parseNumber(rarityGidRaw, 'RarityGid', true);
+  if (typeof rarityGidParsed === 'object' && 'error' in rarityGidParsed) return rarityGidParsed;
+  const rarityGid = rarityGidParsed ?? 11300001;
+
   const price = parseNumber(req.body?.price, 'Giá');
   if (typeof price === 'object' && 'error' in price) return price;
 
@@ -101,6 +106,7 @@ const parseItemPayload = (req: Request) => {
     description,
     level,
     typeGid,
+    rarityGid,
     price,
     priceByBall,
     isLevelUp,
@@ -161,6 +167,7 @@ export const updateItem = async (req: Request, res: Response): Promise<void> => 
       description: payload.description,
       level: payload.level,
       typeGid: payload.typeGid,
+      rarityGid: payload.rarityGid,
       price: payload.price,
       priceByBall: payload.priceByBall,
       isLevelUp: payload.isLevelUp,

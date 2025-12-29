@@ -7,6 +7,7 @@ export interface ItemPayload {
   description: string;
   level: number;
   typeGid: number;
+  rarityGid: number;
   price: number;
   priceByBall?: number | null;
   isLevelUp: boolean;

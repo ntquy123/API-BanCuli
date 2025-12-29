@@ -52,6 +52,7 @@ const itemNameInput = document.getElementById('item-name');
 const itemDescriptionInput = document.getElementById('item-description');
 const itemLevelInput = document.getElementById('item-level');
 const itemTypeInput = document.getElementById('item-type');
+const itemRarityInput = document.getElementById('item-rarity');
 const itemLocationInput = document.getElementById('item-location');
 const itemPriceInput = document.getElementById('item-price');
 const itemPriceBallInput = document.getElementById('item-price-ball');
@@ -139,6 +140,7 @@ let itemSearchTerm = '';
 let itemTypeFilter = 'all';
 let itemLocationFilter = 'all';
 let itemPage = 1;
+let itemRarityOptions = [];
 
 let achievements = [];
 let editingAchievement = null;
@@ -175,6 +177,8 @@ const ITEM_TYPE_LABELS = {
   7: 'PackageMoney',
   8: 'PackageBall',
 };
+
+const DEFAULT_ITEM_RARITY = 11300001;
 
 const escapeHtml = (value = '') => value.toString().replace(/[&<>"']/g, (char) => HTML_ESCAPE_MAP[char] || char);
 const stripHtml = (value = '') => value.toString().replace(/<[^>]*>/g, '');
@@ -262,6 +266,13 @@ const getItemLabel = (mapping, value) => {
   }
   const label = mapping[Number(value)];
   return label ? `${label} (${value})` : `${value}`;
+};
+const getOptionLabel = (options, value) => {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return '—';
+  }
+  const found = options.find((option) => Number(option.value) === Number(value));
+  return found ? `${found.label} (${value})` : `${value}`;
 };
 const deriveGenCate = (GenCode) => {
   if (!Number.isInteger(GenCode)) return '';
@@ -363,6 +374,15 @@ const ensureSelectOption = (select, value, label) => {
   const exists = Array.from(select.options).some((option) => option.value === normalizedValue);
   if (exists) return;
   select.appendChild(buildSelectOption(normalizedValue, label || normalizedValue));
+};
+
+const applyItemRarityOptions = (selectedValue) => {
+  populateSelectOptions(itemRarityInput, itemRarityOptions, { placeholder: 'Chọn độ hiếm' });
+  const fallbackValue =
+    itemRarityOptions.find((option) => Number(option.value) === DEFAULT_ITEM_RARITY)?.value ??
+    itemRarityOptions[0]?.value ??
+    DEFAULT_ITEM_RARITY;
+  itemRarityInput.value = selectedValue ?? fallbackValue;
 };
 
 const setSessionState = (admin) => {
@@ -881,7 +901,7 @@ const getFilteredItems = () => {
 
     if (!keyword) return true;
 
-    const fields = [item.id, item.name || '', item.description || ''];
+    const fields = [item.id, item.name || '', item.description || '', item.rarityGid ?? ''];
     return fields
       .map((value) => value?.toString().toLowerCase())
       .some((value) => value.includes(keyword));
@@ -932,6 +952,10 @@ const renderItems = () => {
               <p class="row-value">${escapeHtml(getItemLabel(ITEM_TYPE_LABELS, item.typeGid))} · Level ${escapeHtml(
                 item.level
               )}</p>
+            </div>
+            <div class="row-text">
+              <p class="row-label">Độ hiếm</p>
+              <p class="row-value">${escapeHtml(getOptionLabel(itemRarityOptions, item.rarityGid))}</p>
             </div>
             <div class="row-text">
               <p class="row-label">Vị trí</p>
@@ -1106,6 +1130,7 @@ const buildItemPayload = () => {
   const description = itemDescriptionInput.value.trim();
   const level = Number(itemLevelInput.value);
   const typeGid = Number(itemTypeInput.value);
+  const rarityGid = Number(itemRarityInput.value);
   const locationGid = Number(itemLocationInput.value);
   const price = Number(itemPriceInput.value);
   const priceByBall = parseOptionalNumber(itemPriceBallInput.value);
@@ -1121,9 +1146,9 @@ const buildItemPayload = () => {
   const Elasticity = parseOptionalNumber(itemElasticityInput.value);
   const ImpactResistance = parseOptionalNumber(itemImpactInput.value);
 
-  const requiredNumbers = [id, level, typeGid, price, locationGid];
+  const requiredNumbers = [id, level, typeGid, rarityGid, price, locationGid];
   if (requiredNumbers.some((num) => Number.isNaN(num))) {
-    return { error: 'ID, Level, TypeGid, Giá và LocationGid phải là số.' };
+    return { error: 'ID, Level, TypeGid, Độ hiếm, Giá và LocationGid phải là số.' };
   }
 
   if (!name || !description) {
@@ -1136,6 +1161,7 @@ const buildItemPayload = () => {
     description,
     level,
     typeGid,
+    rarityGid,
     price,
     priceByBall,
     locationGid,
@@ -1162,6 +1188,7 @@ const resetItemForm = () => {
   itemFormMode.className = 'pill neutral';
   itemCancelEdit.classList.add('hidden');
   itemIdInput.removeAttribute('readonly');
+  applyItemRarityOptions();
   updateCuliSliderVisibility();
 };
 
@@ -1176,6 +1203,9 @@ const startItemEdit = (id) => {
   itemDescriptionInput.value = target.description;
   itemLevelInput.value = target.level;
   itemTypeInput.value = target.typeGid;
+  const rarityValue = target.rarityGid ?? DEFAULT_ITEM_RARITY;
+  ensureSelectOption(itemRarityInput, rarityValue, getOptionLabel(itemRarityOptions, rarityValue));
+  itemRarityInput.value = rarityValue;
   itemLocationInput.value = target.locationGid;
   itemPriceInput.value = target.price;
   itemPriceBallInput.value = target.priceByBall ?? '';
@@ -1320,6 +1350,17 @@ const fetchRewardTypeOptions = async () => {
     populateSelectOptions(achievementRewardTypeInput, rewardTypeOptions, { placeholder: 'Chọn reward type' });
   } catch (error) {
     showToast(error.message || 'Không thể tải RewardType.', 'error');
+  }
+};
+
+const fetchItemRarityOptions = async () => {
+  try {
+    const data = await apiFetch('generals/item-rarity-options');
+    itemRarityOptions = Array.isArray(data?.options) ? data.options : [];
+    const selectedValue = itemRarityInput.value ? Number(itemRarityInput.value) : undefined;
+    applyItemRarityOptions(Number.isNaN(selectedValue) ? undefined : selectedValue);
+  } catch (error) {
+    showToast(error.message || 'Không thể tải độ hiếm item.', 'error');
   }
 };
 
@@ -1727,6 +1768,7 @@ ensureSession()
   .then(async () => {
     await fetchLanguages();
     await fetchGenerals();
+    await fetchItemRarityOptions();
     await fetchItems();
     await fetchRewardTypeOptions();
     await fetchItemOptions();
