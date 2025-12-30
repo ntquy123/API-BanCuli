@@ -1,6 +1,11 @@
 // src/controllers/playerController.ts
 import { Request, Response, RequestHandler } from 'express';
-import { getPlayerByAccountId, getPlayerByListId, equipPlayerItem } from '../services/playerService';
+import {
+  getPlayerByAccountId,
+  getPlayerByListId,
+  equipPlayerItem,
+  unequipPlayerItem,
+} from '../services/playerService';
 import { getInventoryByPlayer } from '../services/itemService';
 import {
   countPendingFriendMessages,
@@ -91,3 +96,24 @@ export const equipItemController: RequestHandler = async (req, res): Promise<voi
   }
 };
 
+export const unequipItemController: RequestHandler = async (
+  req,
+  res
+): Promise<void> => {
+  try {
+    const playerId = Number(req.body.playerId);
+    const locationId = Number(req.body.locationId);
+
+    if (isNaN(playerId) || isNaN(locationId)) {
+      res.status(400).json({ message: 'Invalid parameters' });
+      return;
+    }
+
+    const result = await unequipPlayerItem(playerId, locationId);
+    res.json(result);
+    return;
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+    return;
+  }
+};

@@ -6,6 +6,7 @@ const router = Router();
 router.get('/player/:id', PlayerController.getPlayerController);
 router.post('/player/by-list-id', PlayerController.getPlayerByIdsController);
 router.post('/player/equip', PlayerController.equipItemController);
+router.post('/player/unequip', PlayerController.unequipItemController);
  
 
 // router.post('/player/:id/experience', updateExperienceController);

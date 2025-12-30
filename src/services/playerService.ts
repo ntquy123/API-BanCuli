@@ -326,6 +326,15 @@ export const equipPlayerItem = async (
   });
 };
 
+export const unequipPlayerItem = async (
+  playerId: number,
+  locationId: number
+) => {
+  return prisma.equipPlayer.deleteMany({
+    where: { playerId, locationId },
+  });
+};
+
 export const createAccount = async (idToken: string, playerName: string) => {
   const MAX_ATTEMPTS = 5;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -431,4 +440,3 @@ export const loginOrCreateSocialAccount = async (
 
   throw new Error('Failed to login or create social account');
 };
-
