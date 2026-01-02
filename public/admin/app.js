@@ -9,6 +9,7 @@ const startButton = document.getElementById('start-btn');
 const shutdownButton = document.getElementById('shutdown-btn');
 const startTestButton = document.getElementById('start-test-btn');
 const shutdownTestButton = document.getElementById('shutdown-test-btn');
+const testRoomTypeSelect = document.getElementById('test-room-type');
 const resultStatus = document.getElementById('result-status');
 const resultMessage = document.getElementById('result-message');
 const resultDetail = document.getElementById('result-detail');
@@ -77,6 +78,7 @@ const setAuthenticatedUI = (admin) => {
     : admin?.friendCode ?? '';
   updateSessionState(true, admin);
   loginHint.textContent = 'Đăng nhập thành công! Bạn có thể bật/tắt server ngay bên dưới.';
+  loadTestRoomOptions();
 };
 
 const setLoggedOutUI = () => {
@@ -125,11 +127,20 @@ const apiFetch = async (endpoint, options = {}) => {
 };
 
 const formatDetail = (data) => JSON.stringify(data, null, 2);
+const buildQuery = (params) => new URLSearchParams(params).toString();
 
-const handleAction = async (endpoint, method, loadingLabel) => {
+const handleAction = async (endpoint, method, loadingLabel, payload) => {
+  const targetEndpoint =
+    method === 'GET' && payload && Object.keys(payload).length
+      ? `${endpoint}?${buildQuery(payload)}`
+      : endpoint;
+
   setLoading(true, loadingLabel);
   try {
-    const result = await apiFetch(endpoint, { method });
+    const result = await apiFetch(targetEndpoint, {
+      method,
+      body: method !== 'GET' && payload ? JSON.stringify(payload) : undefined,
+    });
     resultStatus.className = 'pill success';
     resultStatus.textContent = 'Thành công';
     resultMessage.textContent = result.message || 'Thao tác hoàn tất.';
@@ -144,6 +155,44 @@ const handleAction = async (endpoint, method, loadingLabel) => {
   } finally {
     setLoading(false);
   }
+};
+
+const loadTestRoomOptions = async () => {
+  if (!testRoomTypeSelect) {
+    return;
+  }
+
+  testRoomTypeSelect.innerHTML = '<option value="">Đang tải loại phòng...</option>';
+  testRoomTypeSelect.disabled = true;
+
+  try {
+    const data = await apiFetch('generals/match-type-options');
+    const options = data.options ?? [];
+    if (!options.length) {
+      testRoomTypeSelect.innerHTML = '<option value="">Chưa có cấu hình loại phòng.</option>';
+      return;
+    }
+
+    testRoomTypeSelect.innerHTML = options
+      .map(
+        (option) =>
+          `<option value="${escapeHtml(option.value)}">${escapeHtml(
+            `${option.label} (${option.value})`,
+          )}</option>`,
+      )
+      .join('');
+  } catch (error) {
+    testRoomTypeSelect.innerHTML = '<option value="">Không tải được loại phòng.</option>';
+    showToast(error.message || 'Không thể tải loại phòng thử nghiệm.', 'error');
+  } finally {
+    testRoomTypeSelect.disabled = false;
+  }
+};
+
+const getSelectedTestRoomType = () => {
+  const value = testRoomTypeSelect?.value ?? '';
+  const typeMatchGid = Number(value);
+  return Number.isInteger(typeMatchGid) ? typeMatchGid : null;
 };
 
 const handleLogin = async (event) => {
@@ -199,12 +248,22 @@ logoutButton.addEventListener('click', () => {
 
 startButton.addEventListener('click', () => handleAction('start', 'GET', 'Đang bật server và phòng chờ...'));
 shutdownButton.addEventListener('click', () => handleAction('shutdown', 'POST', 'Đang tắt server...'));
-startTestButton?.addEventListener('click', () =>
-  handleAction('test-server/start', 'GET', 'Đang bật server test Rank...'),
-);
-shutdownTestButton?.addEventListener('click', () =>
-  handleAction('test-server/shutdown', 'POST', 'Đang tắt server test Rank...'),
-);
+startTestButton?.addEventListener('click', () => {
+  const typeMatchGid = getSelectedTestRoomType();
+  if (!typeMatchGid) {
+    showToast('Vui lòng chọn loại phòng thử nghiệm.', 'error');
+    return;
+  }
+  handleAction('test-server/start', 'GET', 'Đang bật server test...', { typeMatchGid });
+});
+shutdownTestButton?.addEventListener('click', () => {
+  const typeMatchGid = getSelectedTestRoomType();
+  if (!typeMatchGid) {
+    showToast('Vui lòng chọn loại phòng thử nghiệm.', 'error');
+    return;
+  }
+  handleAction('test-server/shutdown', 'POST', 'Đang tắt server test...', { typeMatchGid });
+});
 openLanguageConfigButton?.addEventListener('click', () => {
   const token = getToken();
   if (!token) {

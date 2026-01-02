@@ -92,11 +92,17 @@
                 <div>
                   <p class="eyebrow">Server test</p>
                   <h3>Bật / tắt phòng Rank thử nghiệm</h3>
-                  <p class="subtitle">Tạo đúng 1 docker (TypeMatchGid = 10000002) để test nhanh.</p>
+                  <p class="subtitle">Chọn loại phòng để tạo đúng 1 docker test nhanh.</p>
                 </div>
                 <div class="pill neutral">Chỉ 1 phòng</div>
               </div>
               <div class="actions">
+                <label class="field">
+                  <span>Loại phòng thử nghiệm</span>
+                  <select id="test-room-type" name="test-room-type">
+                    <option value="">Đang tải loại phòng...</option>
+                  </select>
+                </label>
                 <button id="start-test-btn" class="cta" type="button">
                   <div class="icon">🧪</div>
                   <div>

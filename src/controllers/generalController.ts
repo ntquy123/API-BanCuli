@@ -126,6 +126,20 @@ export const getItemRarityOptions = async (_req: Request, res: Response): Promis
   }
 };
 
+export const getMatchTypeOptions = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const options = await getGeneralSelectOptions(SysMasGeneralCate.MatchType);
+    res.json({
+      options: options.map((option) => ({
+        value: option.GenCode,
+        label: option.GenName,
+      })),
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const deleteGeneral = async (req: Request, res: Response): Promise<void> => {
   const targetCode = Number(req.params.GenCode);
 

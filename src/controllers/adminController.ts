@@ -8,7 +8,13 @@ import {
 } from '../services/matchmakingService';
 import { fetchContainerLogs, listRunningContainers } from '../services/dockerService';
 import { AdminTokenPayload, createAdminToken } from '../middleware/adminAuth';
-import { TypeMatchGid } from '../config/typeMatchGid';
+const parseTypeMatchGid = (value: unknown) => {
+  const typeMatchGid = Number(value);
+  if (!Number.isInteger(typeMatchGid)) {
+    return { error: 'TypeMatchGid không hợp lệ.' } as const;
+  }
+  return { typeMatchGid } as const;
+};
 
 export const loginAdmin: RequestHandler = async (req, res) => {
   const { friendCode } = req.body as { friendCode?: unknown };
@@ -92,14 +98,20 @@ export const startServers: RequestHandler = async (_req, res) => {
   }
 };
 
-export const startTestServer: RequestHandler = async (_req, res) => {
+export const startTestServer: RequestHandler = async (req, res) => {
+  const parsed = parseTypeMatchGid(req.query?.typeMatchGid);
+  if ('error' in parsed) {
+    res.status(400).json({ error: parsed.error });
+    return;
+  }
+
   try {
-    const result = await ensureSingleTestServer(TypeMatchGid.MatchRandomRank);
+    const result = await ensureSingleTestServer(parsed.typeMatchGid);
     res.json({
       message: result.created
-        ? 'Đã bật server test Rank (1 phòng trống) với TypeMatchGid = 10000002.'
-        : 'Server test Rank đã sẵn sàng, không cần tạo thêm.',
-      typeMatchGid: TypeMatchGid.MatchRandomRank,
+        ? `Đã bật server test (1 phòng trống) với TypeMatchGid = ${parsed.typeMatchGid}.`
+        : `Server test đã sẵn sàng với TypeMatchGid = ${parsed.typeMatchGid}.`,
+      typeMatchGid: parsed.typeMatchGid,
       ...result,
     });
   } catch (error) {
@@ -144,15 +156,21 @@ export const shutdownServersAdmin: RequestHandler = async (_req, res) => {
   }
 };
 
-export const shutdownTestServerController: RequestHandler = async (_req, res) => {
+export const shutdownTestServerController: RequestHandler = async (req, res) => {
+  const parsed = parseTypeMatchGid(req.body?.typeMatchGid);
+  if ('error' in parsed) {
+    res.status(400).json({ error: parsed.error });
+    return;
+  }
+
   try {
-    const result = await shutdownTestServer(TypeMatchGid.MatchRandomRank);
+    const result = await shutdownTestServer(parsed.typeMatchGid);
     res.json({
       message:
         result.deletedRecords > 0
-          ? 'Đã tắt server test Rank và dọn dẹp phòng.'
-          : 'Không có server test Rank nào đang chạy.',
-      typeMatchGid: TypeMatchGid.MatchRandomRank,
+          ? `Đã tắt server test TypeMatchGid = ${parsed.typeMatchGid} và dọn dẹp phòng.`
+          : `Không có server test TypeMatchGid = ${parsed.typeMatchGid} nào đang chạy.`,
+      typeMatchGid: parsed.typeMatchGid,
       ...result,
     });
   } catch (error) {
