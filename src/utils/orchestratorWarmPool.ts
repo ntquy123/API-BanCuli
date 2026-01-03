@@ -1,5 +1,5 @@
 import { TypeMatchGid } from '../config/typeMatchGid';
-import { DockerOrchestrator, DockerContainerInfo } from './orchestrator';
+import { DockerOrchestrator, DockerContainerInfo } from '../services/orchestrator';
 
 export interface WarmupSummary {
   warmBuffer: Record<number, DockerContainerInfo[]>;
@@ -9,6 +9,13 @@ export interface WarmupSummary {
 }
 
 const MAX_ROOMS = Number(process.env.MAX_ROOMS) || 20;
+const DEFAULT_REGION = process.env.DEFAULT_REGION || 'asia';
+const DEFAULT_MIN_IDLE_PER_TYPE = Number(process.env.MIN_IDLE_DS_PER_TYPE) || 2;
+const DEFAULT_TYPES_TO_WARM: TypeMatchGid[] = [
+  TypeMatchGid.MatchRandomNormal,
+  TypeMatchGid.MatchRandomRank,
+  TypeMatchGid.MatchRoom,
+];
 
 type EnsureWarmParams = {
   region: string;
@@ -77,4 +84,22 @@ export async function getWarmPoolSummary(params: EnsureWarmParams): Promise<Warm
     maxRooms: MAX_ROOMS,
     region,
   };
+}
+
+export async function buildWarmPoolSummary({
+  region = DEFAULT_REGION,
+  types = DEFAULT_TYPES_TO_WARM,
+  minIdlePerType = DEFAULT_MIN_IDLE_PER_TYPE,
+}: Partial<EnsureWarmParams> = {}): Promise<WarmupSummary> {
+  await ensureWarmIdleContainers({
+    region,
+    types,
+    minIdlePerType,
+  });
+
+  return getWarmPoolSummary({
+    region,
+    types,
+    minIdlePerType,
+  });
 }

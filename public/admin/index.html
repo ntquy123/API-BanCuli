@@ -73,15 +73,15 @@
                 <button id="start-btn" class="cta ghost" type="button">
                   <div class="icon">⚡</div>
                   <div>
-                    <div>Bật server &amp; phòng chờ</div>
-                    <small>Gọi API /availableRooms</small>
+                    <div>Bật warm pool server</div>
+                    <small>Gọi API /admin/start</small>
                   </div>
                 </button>
                 <button id="shutdown-btn" class="cta danger" type="button">
                   <div class="icon">🌙</div>
                   <div>
-                    <div>Shutdown server</div>
-                    <small>Gọi API /shutdownServers</small>
+                    <div>Tắt warm pool server</div>
+                    <small>Gọi API /admin/shutdown</small>
                   </div>
                 </button>
               </div>
@@ -92,7 +92,7 @@
                 <div>
                   <p class="eyebrow">Server test</p>
                   <h3>Bật / tắt phòng Rank thử nghiệm</h3>
-                  <p class="subtitle">Chọn loại phòng để tạo đúng 1 docker test nhanh.</p>
+                  <p class="subtitle">Tạo 1 container IDLE để kiểm thử nhanh chế độ Rank.</p>
                 </div>
                 <div class="pill neutral">Chỉ 1 phòng</div>
               </div>
@@ -107,19 +107,19 @@
                   <div class="icon">🧪</div>
                   <div>
                     <div>Bật server test</div>
-                    <small>Giữ sẵn 1 phòng rảnh cho kiểm thử</small>
+                    <small>Giữ sẵn 1 container IDLE cho kiểm thử</small>
                   </div>
                 </button>
                 <button id="shutdown-test-btn" class="cta ghost" type="button">
                   <div class="icon">🧹</div>
                   <div>
                     <div>Tắt server test</div>
-                    <small>Dừng docker test và dọn phòng</small>
+                    <small>Dừng container test và dọn warm pool</small>
                   </div>
                 </button>
               </div>
               <p class="hint">
-                Dùng khi cần kiểm thử nhanh chế độ Rank. Sẽ báo lỗi nếu phòng test đang bận hoặc không còn cổng trống.
+                Dùng khi cần kiểm thử nhanh chế độ Rank. Sẽ báo lỗi nếu phòng test đang bận.
               </p>
             </div>
 

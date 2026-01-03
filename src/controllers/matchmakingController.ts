@@ -1,39 +1,28 @@
 import { RequestHandler } from 'express';
 import {
   assignRoomToPlayer,
-  ensureEmptyRooms,
   getEmptyRooms,
   joinUsersToRoomByName,
   findRoomByPlayerId,
   leaveRoom,
   leaveRoomAndCleanup,
-  shutdownAllServersIfIdle,
 } from '../services/matchmakingService';
 import { TypeMatchGid } from '../config/typeMatchGid';
-import { buildWarmupSummary } from '../utils/matchmakingWarmup';
+import { buildWarmPoolSummary } from '../utils/orchestratorWarmPool';
+import { DockerOrchestrator } from '../services/orchestrator';
 
 export const availableRooms: RequestHandler = async (_req, res) => {
   try {
-    const summary = await buildWarmupSummary();
+    const summary = await buildWarmPoolSummary();
     res.json({ availableRooms: summary.warmBuffer, ...summary });
   } catch (error) {
-    if (error instanceof Error && error.message === 'SERVER_CAPACITY_REACHED') {
-      res.status(503).json({ error: 'Server đang quá tải, vui lòng thử lại sau.' });
-      return;
-    }
-
-    if (error instanceof Error && error.message.startsWith('ROOM_INSERT_FAILED')) {
-      res.status(500).json({ error: `Không thể tạo phòng: ${error.message}` });
-      return;
-    }
-
-    if (error instanceof Error && error.message === 'NO_AVAILABLE_PORT') {
-      res.status(503).json({ error: 'Không còn cổng trống để tạo phòng mới.' });
-      return;
-    }
-
     if (error instanceof Error && error.message.startsWith('Docker start error')) {
       res.status(500).json({ error: 'Không thể khởi động container phòng.', detail: error.message });
+      return;
+    }
+
+    if (error instanceof Error && error.message === 'DOCKER_NOT_AVAILABLE') {
+      res.status(503).json({ error: 'Docker chưa sẵn sàng để khởi động server.' });
       return;
     }
 
@@ -97,31 +86,10 @@ export const joinRoomBatch: RequestHandler = async (req, res) => {
 
     try {
       const result = await joinUsersToRoomByName(roomName.trim(), userIds as number[], parsedMapId);
-      await ensureEmptyRooms(matchType);
       res.json(result);
     } catch (error) {
       if (error instanceof Error && error.message === 'ROOM_NOT_FOUND') {
         res.status(404).json({ error: 'Không tìm thấy phòng' });
-        return;
-      }
-
-      if (error instanceof Error && error.message === 'SERVER_CAPACITY_REACHED') {
-        res.status(503).json({ error: 'Server đang quá tải, vui lòng thử lại sau.' });
-        return;
-      }
-
-      if (error instanceof Error && error.message.startsWith('ROOM_INSERT_FAILED')) {
-        res.status(500).json({ error: `Không thể tạo phòng: ${error.message}` });
-        return;
-      }
-
-      if (error instanceof Error && error.message === 'NO_AVAILABLE_PORT') {
-        res.status(503).json({ error: 'Không còn cổng trống để tạo phòng mới.' });
-        return;
-      }
-
-      if (error instanceof Error && error.message.startsWith('Docker start error')) {
-        res.status(500).json({ error: 'Không thể khởi động container phòng.', detail: error.message });
         return;
       }
 
@@ -204,17 +172,23 @@ export const getEmptyRoomList: RequestHandler = async (_req, res) => {
 
 export const shutdownServers: RequestHandler = async (_req, res) => {
   try {
-    const result = await shutdownAllServersIfIdle();
-    res.json({
-      message: 'Đã dừng toàn bộ docker và làm trống ServerPortPool',
-      ...result,
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message === 'SERVERS_BUSY') {
+    const activeMatches = await DockerOrchestrator.listManagedContainers({ mode: 'MATCH' });
+    if (activeMatches.length > 0) {
       res.status(400).json({ error: 'Không thể tắt server khi vẫn còn phòng đang bận' });
       return;
     }
 
+    const idleContainers = await DockerOrchestrator.listManagedContainers({ mode: 'IDLE' });
+    const stopResults = await Promise.all(
+      idleContainers.map((container) => DockerOrchestrator.stopContainerByNameOrId(container.id)),
+    );
+
+    const stoppedContainers = stopResults.filter(Boolean).length;
+    res.json({
+      message: 'Đã tắt toàn bộ warm pool server',
+      stoppedContainers,
+    });
+  } catch (error) {
     console.error('Lỗi khi tắt server:', error);
     const detail = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: 'Không thể tắt server', detail });

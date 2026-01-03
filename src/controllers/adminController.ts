@@ -1,11 +1,7 @@
 import { RequestHandler } from 'express';
 import prisma from '../models/prismaClient';
-import { buildWarmupSummary } from '../utils/matchmakingWarmup';
-import {
-  ensureSingleTestServer,
-  shutdownAllServersIfIdle,
-  shutdownTestServer,
-} from '../services/matchmakingService';
+import { buildWarmPoolSummary } from '../utils/orchestratorWarmPool';
+import { DockerOrchestrator } from '../services/orchestrator';
 import { fetchContainerLogs, listRunningContainers } from '../services/dockerService';
 import { AdminTokenPayload, createAdminToken } from '../middleware/adminAuth';
 const parseTypeMatchGid = (value: unknown) => {
@@ -15,6 +11,8 @@ const parseTypeMatchGid = (value: unknown) => {
   }
   return { typeMatchGid } as const;
 };
+
+const DEFAULT_REGION = process.env.DEFAULT_REGION || 'asia';
 
 export const loginAdmin: RequestHandler = async (req, res) => {
   const { friendCode } = req.body as { friendCode?: unknown };
@@ -67,29 +65,19 @@ export const getAdminSession: RequestHandler = async (_req, res) => {
 
 export const startServers: RequestHandler = async (_req, res) => {
   try {
-    const summary = await buildWarmupSummary();
+    const summary = await buildWarmPoolSummary();
     res.json({
       message: 'Đã bật/tăng nhiệt server và phòng chờ.',
       ...summary,
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'SERVER_CAPACITY_REACHED') {
-      res.status(503).json({ error: 'Server đang quá tải, vui lòng thử lại sau.' });
-      return;
-    }
-
-    if (error instanceof Error && error.message.startsWith('ROOM_INSERT_FAILED')) {
-      res.status(500).json({ error: `Không thể tạo phòng: ${error.message}` });
-      return;
-    }
-
-    if (error instanceof Error && error.message === 'NO_AVAILABLE_PORT') {
-      res.status(503).json({ error: 'Không còn cổng trống để tạo phòng mới.' });
-      return;
-    }
-
     if (error instanceof Error && error.message.startsWith('Docker start error')) {
       res.status(500).json({ error: 'Không thể khởi động container phòng.', detail: error.message });
+      return;
+    }
+
+    if (error instanceof Error && error.message === 'DOCKER_NOT_AVAILABLE') {
+      res.status(503).json({ error: 'Docker chưa sẵn sàng để khởi động server.' });
       return;
     }
 
@@ -106,29 +94,50 @@ export const startTestServer: RequestHandler = async (req, res) => {
   }
 
   try {
-    const result = await ensureSingleTestServer(parsed.typeMatchGid);
-    res.json({
-      message: result.created
-        ? `Đã bật server test (1 phòng trống) với TypeMatchGid = ${parsed.typeMatchGid}.`
-        : `Server test đã sẵn sàng với TypeMatchGid = ${parsed.typeMatchGid}.`,
-      typeMatchGid: parsed.typeMatchGid,
-      ...result,
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message === 'TEST_SERVER_BUSY') {
+    const region = typeof req.query?.region === 'string' && req.query.region.trim()
+      ? req.query.region.trim()
+      : DEFAULT_REGION;
+
+    const containers = await DockerOrchestrator.listManagedContainers({ region });
+    const sameType = containers.filter(
+      (container) => container.labels.typeMatchGid === String(parsed.typeMatchGid),
+    );
+    const idleContainers = sameType.filter((container) => container.labels.mode === 'IDLE');
+    const busyContainers = sameType.filter((container) => container.labels.mode === 'MATCH');
+
+    if (busyContainers.length > 0 && idleContainers.length === 0) {
       res.status(409).json({ error: 'Phòng test đang bận, vui lòng thử lại sau khi trống.' });
       return;
     }
 
-    if (error instanceof Error && error.message === 'NO_AVAILABLE_PORT') {
-      res.status(503).json({ error: 'Không còn cổng trống để tạo server test.' });
-      return;
+    let created = false;
+    if (idleContainers.length === 0) {
+      await DockerOrchestrator.startDedicatedServer({
+        mode: 'IDLE',
+        region,
+        typeMatchGid: parsed.typeMatchGid,
+      });
+      created = true;
     }
 
+    res.json({
+      message: created
+        ? `Đã bật server test (1 phòng trống) với TypeMatchGid = ${parsed.typeMatchGid}.`
+        : `Server test đã sẵn sàng với TypeMatchGid = ${parsed.typeMatchGid}.`,
+      typeMatchGid: parsed.typeMatchGid,
+      region,
+      created,
+    });
+  } catch (error) {
     if (error instanceof Error && error.message.startsWith('Docker start error')) {
       res
         .status(500)
         .json({ error: 'Không thể khởi động container server test.', detail: error.message });
+      return;
+    }
+
+    if (error instanceof Error && error.message === 'DOCKER_NOT_AVAILABLE') {
+      res.status(503).json({ error: 'Docker chưa sẵn sàng để khởi động server test.' });
       return;
     }
 
@@ -139,17 +148,25 @@ export const startTestServer: RequestHandler = async (req, res) => {
 
 export const shutdownServersAdmin: RequestHandler = async (_req, res) => {
   try {
-    const result = await shutdownAllServersIfIdle();
-    res.json({
-      message: 'Đã dừng toàn bộ docker và làm trống ServerPortPool',
-      ...result,
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message === 'SERVERS_BUSY') {
+    const activeMatches = await DockerOrchestrator.listManagedContainers({ mode: 'MATCH' });
+    if (activeMatches.length > 0) {
       res.status(400).json({ error: 'Không thể tắt server khi vẫn còn phòng đang bận' });
       return;
     }
 
+    const idleContainers = await DockerOrchestrator.listManagedContainers({ mode: 'IDLE' });
+    const stopResults = await Promise.all(
+      idleContainers.map((container) => DockerOrchestrator.stopContainerByNameOrId(container.id)),
+    );
+
+    const result = {
+      stoppedContainers: stopResults.filter(Boolean).length,
+    };
+    res.json({
+      message: 'Đã dừng toàn bộ warm pool server',
+      ...result,
+    });
+  } catch (error) {
     console.error('Lỗi khi tắt server:', error);
     const detail = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: 'Không thể tắt server', detail });
@@ -164,21 +181,38 @@ export const shutdownTestServerController: RequestHandler = async (req, res) => 
   }
 
   try {
-    const result = await shutdownTestServer(parsed.typeMatchGid);
-    res.json({
-      message:
-        result.deletedRecords > 0
-          ? `Đã tắt server test TypeMatchGid = ${parsed.typeMatchGid} và dọn dẹp phòng.`
-          : `Không có server test TypeMatchGid = ${parsed.typeMatchGid} nào đang chạy.`,
-      typeMatchGid: parsed.typeMatchGid,
-      ...result,
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message === 'TEST_SERVER_BUSY') {
+    const region = typeof req.body?.region === 'string' && req.body.region.trim()
+      ? req.body.region.trim()
+      : DEFAULT_REGION;
+
+    const containers = await DockerOrchestrator.listManagedContainers({ region });
+    const sameType = containers.filter(
+      (container) => container.labels.typeMatchGid === String(parsed.typeMatchGid),
+    );
+    const busyContainers = sameType.filter((container) => container.labels.mode === 'MATCH');
+    if (busyContainers.length > 0) {
       res.status(400).json({ error: 'Không thể tắt server test khi phòng đang bận.' });
       return;
     }
 
+    const idleContainers = sameType.filter((container) => container.labels.mode === 'IDLE');
+    const stopResults = await Promise.all(
+      idleContainers.map((container) => DockerOrchestrator.stopContainerByNameOrId(container.id)),
+    );
+    const result = {
+      deletedRecords: stopResults.filter(Boolean).length,
+      stoppedContainers: stopResults.filter(Boolean).length,
+    };
+    res.json({
+      message:
+        result.deletedRecords > 0
+          ? `Đã tắt server test TypeMatchGid = ${parsed.typeMatchGid} (${region}).`
+          : `Không có server test TypeMatchGid = ${parsed.typeMatchGid} nào đang chạy.`,
+      typeMatchGid: parsed.typeMatchGid,
+      region,
+      ...result,
+    });
+  } catch (error) {
     console.error('Lỗi khi tắt server test:', error);
     const detail = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: 'Không thể tắt server test.', detail });
