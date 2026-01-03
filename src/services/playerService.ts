@@ -30,8 +30,8 @@ const BALL_SLOT_LOCATION_ID = 2;
 const STARTING_EFFECTS = [
   { level: 1, effectId: 11000001, power: 0, spin: 0, isPassive: false, IsActive: true, IsEquiped: true, charges: 1 },
   { level: 1, effectId: 11000002, power: 0, spin: 0.5, isPassive: false,IsActive: true ,IsEquiped: true, charges: 1 },
-  { level: 1, effectId: 11000003, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
-  { level: 1, effectId: 11000004, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
+  { level: 1, effectId: 11000003, power: 0, spin: 0, isPassive: false, charges: 1 },
+  { level: 1, effectId: 11000004, power: 0, spin: 0, isPassive: false,IsActive: false, charges: 1 },
   { level: 1, effectId: 11000005, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
   { level: 1, effectId: 11000006, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
   { level: 1, effectId: 11000007, power: 0, spin: 0, isPassive: false, IsActive: true, IsEquiped: true, charges: 1 },
@@ -39,6 +39,7 @@ const STARTING_EFFECTS = [
   { level: 1, effectId: 11000009, power: 0, spin: 0, isPassive: false, charges: 1 },
   { level: 1, effectId: 11000010, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
   { level: 1, effectId: 11000011, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
+  { level: 1, effectId: 11000012, power: 0, spin: 0, isPassive: false,IsActive: true, charges: 1 },
 ];
 
 const seedNewPlayerData = async (
