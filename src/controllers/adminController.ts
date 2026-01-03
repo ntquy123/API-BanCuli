@@ -1,4 +1,6 @@
 import { RequestHandler } from 'express';
+import { promises as fs } from 'fs';
+import path from 'path';
 import prisma from '../models/prismaClient';
 import { buildWarmPoolSummary } from '../services/orchestratorWarmPool';
 import { DockerOrchestrator } from '../services/orchestrator';
@@ -216,6 +218,18 @@ export const shutdownTestServerController: RequestHandler = async (req, res) => 
     console.error('Lỗi khi tắt server test:', error);
     const detail = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: 'Không thể tắt server test.', detail });
+  }
+};
+
+export const getReadmeContent: RequestHandler = async (_req, res) => {
+  const readmePath = path.join(process.cwd(), 'ReadMe');
+
+  try {
+    const content = await fs.readFile(readmePath, 'utf8');
+    res.json({ content });
+  } catch (error) {
+    console.error('Lỗi khi đọc ReadMe:', error);
+    res.status(404).json({ error: 'Không tìm thấy nội dung ReadMe.' });
   }
 };
 

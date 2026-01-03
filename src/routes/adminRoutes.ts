@@ -4,6 +4,7 @@ import {
   getActiveContainers,
   getAdminSession,
   getContainerLogs,
+  getReadmeContent,
   loginAdmin,
   shutdownServersAdmin,
   shutdownTestServerController,
@@ -59,6 +60,7 @@ router.post('/admin/shutdown', requireAdminAuth, shutdownServersAdmin);
 router.post('/admin/test-server/shutdown', requireAdminAuth, shutdownTestServerController);
 router.get('/admin/containers', requireAdminAuth, getActiveContainers);
 router.get('/admin/containers/:id/logs', requireAdminAuth, getContainerLogs);
+router.get('/admin/readme', requireAdminAuth, getReadmeContent);
 router.get('/admin/languages', requireAdminAuth, getLanguages);
 router.post('/admin/languages', requireAdminAuth, createLanguage);
 router.put('/admin/languages/:code', requireAdminAuth, updateLanguage);

@@ -16,6 +16,7 @@ const resultDetail = document.getElementById('result-detail');
 const openLanguageConfigButton = document.getElementById('open-language-config');
 const openDockerManagementButton = document.getElementById('open-docker-management');
 const openPlayerManagementButton = document.getElementById('open-player-management');
+const openReadmeButton = document.getElementById('open-readme');
 const loadingBackdrop = document.getElementById('loading-backdrop');
 const loadingText = document.getElementById('loading-text');
 const toast = document.getElementById('toast');
@@ -292,6 +293,16 @@ openPlayerManagementButton?.addEventListener('click', () => {
   }
 
   window.location.href = './players.html';
+});
+
+openReadmeButton?.addEventListener('click', () => {
+  const token = getToken();
+  if (!token) {
+    showToast('Vui lòng đăng nhập trước khi truy cập ReadMe.', 'error');
+    return;
+  }
+
+  window.location.href = './readme.html';
 });
 
 restoreSession();

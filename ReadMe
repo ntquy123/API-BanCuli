@@ -1,28 +1,54 @@
-1.load lại databse khi thêm table hoặc cột mới chỉ cần 2 lệnh sau:
-1.1 npx prisma generate  chạy cả trên local và server để cập nhật schema
-đồng bộ file data vs database thực tế
-1.2 npx prisma db push
-1.3 đóng ứng dụng và mở lại
-2.xoa het data cu cho case muốn rest tất cả
+# BanCuLi Server
+
+## 1. Tổng quan
+- Backend quản lý phòng chờ, ghép trận và điều phối Dedicated Server theo trận.
+- Hệ thống chạy theo mô hình **Container-per-Match + Warm Pool** để giảm thời gian chờ.
+- Admin UI có sẵn trong `/api` (giao diện quản trị nội bộ).
+
+## 2. Thiết lập môi trường
+### 2.1 Biến môi trường quan trọng
+- `DATABASE_URL` (**required**): Chuỗi kết nối PostgreSQL (tham khảo `.env.example`).
+- `UGS_PROJECT_ID` (**required**): Unity Gaming Services project ID.
+- `FIREBASE_SERVICE_ACCOUNT_KEY` (optional): JSON string cho Firebase Admin SDK.
+- `ACCESS_TOKEN_TTL_SECONDS`: TTL access token (mặc định 900s).
+- `REFRESH_TOKEN_TTL_DAYS`: TTL refresh token (mặc định 14 ngày).
+
+### 2.2 Đồng bộ database khi thay đổi schema
+```bash
+npx prisma generate
+npx prisma db push
+```
+- Khởi động lại ứng dụng sau khi cập nhật.
+
+### 2.3 Reset toàn bộ dữ liệu
+```bash
 npx prisma db push --force-reset
-npx ts-node prisma/seed.ts # thêm dữ liệu mẫu
+npx ts-node prisma/seed.ts
+```
 
-build file js sau đó up lên server thư mục dist và prisma nếu có thay đổi database
-npx tsc 
+### 2.4 Build TypeScript
+```bash
+npx tsc
+```
 
-quản lý pm2
+## 3. Quản lý PM2
+```bash
 pm2 list
 pm2 restart BanCuLi
 pm2 stop BanCuLi
 pm2 delete BanCuLi
+```
 
-API:
-GET /api/items - Danh sách vật phẩm
-GET /api/players/:id/inventory - Túi đồ người chơi
-POST /api/players/ball-physics - Chỉ số vật lý viên bi đang trang bị (danh sách id)
-POST /api/player/equip - Trang bị vật phẩm cho người chơi
-POST /api/effect-player/item-level-up - Nâng cấp level của vật phẩm
-Body JSON /effect-player/item-level-up:
+## 4. API nhanh
+### 4.1 Gameplay & vật phẩm
+- `GET /api/items` — Danh sách vật phẩm.
+- `GET /api/players/:id/inventory` — Túi đồ người chơi.
+- `POST /api/players/ball-physics` — Chỉ số vật lý viên bi đang trang bị.
+- `POST /api/player/equip` — Trang bị vật phẩm.
+- `POST /api/effect-player/item-level-up` — Nâng cấp level vật phẩm.
+
+**Body mẫu: `/api/effect-player/item-level-up`**
+```json
 {
   "playerId": 1,
   "itemId": 5,
@@ -32,39 +58,41 @@ Body JSON /effect-player/item-level-up:
     { "id": 11, "seq": 1 }
   ]
 }
+```
 
-GET /api/histories?page=1&pageSize=10 - Lịch sử trận đấu (mặc định 10 bản ghi gần nhất, hỗ trợ phân trang)
-POST /api/draw-reward - Bốc thăm trúng thưởng (body: {"playerId": number})
-POST /api/friend-request - Gửi lời mời kết bạn (body: {"senderId": number, "friendCode": string})
-GET /api/messages/conversation/:playerId/:friendId - Lịch sử trò chuyện giữa hai người chơi
-GET /api/market/items?page=1&itemName=X&level=1&priceOrder=asc&levelOrder=desc - Danh sách vật phẩm bán trên chợ, hỗ trợ lọc và phân trang (mặc định 10 bản ghi mỗi trang)
-POST /api/rewards/confirm-ad - Xác nhận người chơi đã xem quảng cáo (phải gọi trước khi nhận quà)
-POST /api/rewards/claim - Nhận quà sau khi xác nhận quảng cáo thành công
-
-Body JSON /players/ball-physics:
+**Body mẫu: `/api/players/ball-physics`**
+```json
 {
   "ids": [1, 2]
 }
+```
 
-Body JSON:
+**Body mẫu: `/api/player/equip`**
+```json
 {
   "playerId": 1,
   "typeGid": 1,
   "itemId": 5
 }
+```
 
-## Environment configuration for Firebase authentication bridge
+### 4.2 Lịch sử & thưởng
+- `GET /api/histories?page=1&pageSize=10` — Lịch sử trận đấu (phân trang).
+- `POST /api/draw-reward` — Bốc thăm trúng thưởng.
+- `POST /api/rewards/confirm-ad` — Xác nhận đã xem quảng cáo.
+- `POST /api/rewards/claim` — Nhận quà sau khi xác nhận.
 
-- `UGS_PROJECT_ID` (**required**): Unity Gaming Services project identifier used as the JWT audience when verifying UGS player tokens.
-- `FIREBASE_SERVICE_ACCOUNT_KEY` (optional): JSON string representation of a Firebase service account. When omitted, the Firebase Admin SDK will use the default application credentials available in the environment.
-- `DATABASE_URL` (**required**): PostgreSQL connection string used by Prisma (e.g. `postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public`). See `.env.example` for the expected format.
+### 4.3 Bạn bè & chat
+- `POST /api/friend-request` — Gửi lời mời kết bạn.
+- `GET /api/messages/conversation/:playerId/:friendId` — Lịch sử trò chuyện.
 
-The `/auth/ugs-to-firebase` endpoint exchanges a valid UGS player token for a Firebase custom token. Ensure both the Unity and Firebase credentials above are configured before calling this endpoint.
+### 4.4 Chợ
+- `GET /api/market/items?page=1&itemName=X&level=1&priceOrder=asc&levelOrder=desc`
 
-### Manual verification
+## 5. Firebase Authentication Bridge
+Endpoint `/auth/ugs-to-firebase` dùng để đổi UGS token thành Firebase custom token.
 
-After setting the environment variables, start the API and exchange a Unity Gaming Services token for a Firebase custom token:
-
+**Test nhanh:**
 ```bash
 curl -X POST \
   http://localhost:3000/auth/ugs-to-firebase \
@@ -72,375 +100,50 @@ curl -X POST \
   -d '{"ugsToken":"<UNITY_PLAYER_TOKEN>"}'
 ```
 
-The response should be a JSON payload containing the minted Firebase `customToken` that can be supplied to your client applications.
+## 6. Đăng nhập & quản lý token (accountRoutes)
+### 6.1 Đăng nhập
+- `POST /api/check-account`: kiểm tra tài khoản dựa trên `idToken`.
+- `POST /api/social-login`: đăng nhập/đăng ký bằng tài khoản mạng xã hội.
+- `POST /api/social-login/confirm-name`: đặt tên + chọn Companion Ball.
+- `POST /api/auth/login`: luồng đăng nhập thông thường.
 
-## Đăng nhập & quản lý token (accountRoutes)
+### 6.2 Refresh & logout
+- `POST /api/auth/refresh`: nhận cặp token mới.
+- `POST /api/auth/logout`: thu hồi refresh token hiện tại.
+- `POST /api/auth/logout-all`: thu hồi mọi refresh token.
 
-Các endpoint trong `accountRoutes.ts` đều được mount dưới tiền tố `/api`:
-
-- `POST /api/check-account`: Kiểm tra tài khoản dựa trên `idToken` (Firebase UID). Body:
-
-  ```json
-  { "idToken": "<firebase_uid>" }
-  ```
-
-  - Trả về thông tin người chơi nếu đã tồn tại, hoặc `{ "player": null, "message": "Chưa có tài khoản" }` nếu chưa có.【F:src/controllers/accountController.ts†L24-L44】
-
-- `POST /api/social-login`: Đăng nhập/đăng ký bằng tài khoản mạng xã hội. Body yêu cầu `firebaseUid`, `email`, `providerType` (ví dụ: `Google`, `Facebook`, `Apple`, ...), và `deviceId`.
-  - Server sẽ thu hồi token của các thiết bị khác cùng user và trả về `{ player, tokens }` trong đó `tokens` gồm `accessToken`, `accessTokenExpiresAt`, `refreshToken`, `refreshTokenExpiresAt`.【F:src/controllers/accountController.ts†L55-L85】【F:src/services/authTokenService.ts†L52-L105】
-
-- `POST /api/social-login/confirm-name`: Hoàn tất bước đặt tên và chọn Companion Ball cho tài khoản mới. Body tối thiểu:
-
-  ```json
-  {
-    "id": 1,                      // id người chơi vừa tạo
-    "PlayerName": "Tên muốn đặt",
-    "CompanionBallItemId": 3     // id vật phẩm Companion Ball
-  }
-  ```
-
-  - Chấp nhận key viết hoa/thường (`playerName`, `companionBallItemId`), và trả về bản ghi player đã cập nhật.【F:src/controllers/accountController.ts†L87-L135】
-
-- `POST /api/auth/login`: Chức năng tương tự `social-login`, nhận `firebaseUid`, `email`, `providerType`, `deviceId` và trả về `{ player, tokens }`. Thích hợp cho luồng đăng nhập thông thường với thông tin Firebase đã có sẵn.【F:src/controllers/accountController.ts†L137-L175】
-
-- `POST /api/auth/refresh`: Nhận `refreshToken` và `deviceId`, trả về cặp token mới khi refresh token hợp lệ và đúng thiết bị. Nếu refresh token thuộc thiết bị khác sẽ bị thu hồi và trả 403/401 tương ứng.【F:src/controllers/accountController.ts†L177-L207】【F:src/services/authTokenService.ts†L107-L190】
-
-- `POST /api/auth/logout`: Thu hồi một refresh token, đăng xuất phiên tương ứng. Body: `{ "refreshToken": "..." }`.【F:src/controllers/accountController.ts†L209-L226】
-
-- `POST /api/auth/logout-all`: Thu hồi toàn bộ refresh token của người dùng dựa trên refresh token hiện tại (đăng xuất khỏi mọi thiết bị). Body: `{ "refreshToken": "..." }`.【F:src/controllers/accountController.ts†L228-L240】【F:src/services/authTokenService.ts†L192-L204】
-
-### Sử dụng token
-
-- Mỗi lần đăng nhập thành công (`/social-login` hoặc `/auth/login`), server trả về cặp token:
-  - `accessToken`: JWT ngắn hạn (mặc định 900 giây, cấu hình qua biến môi trường `ACCESS_TOKEN_TTL_SECONDS`).【F:src/services/authTokenService.ts†L5-L40】
-  - `refreshToken`: JWT dài hạn (mặc định 14 ngày, cấu hình qua `REFRESH_TOKEN_TTL_DAYS`) và được lưu trong DB dưới dạng hash để có thể thu hồi theo thiết bị.【F:src/services/authTokenService.ts†L5-L52】【F:src/services/authTokenService.ts†L62-L96】
-
-- Gọi các API yêu cầu bảo vệ bằng access token thì gửi header:
-
+### 6.3 Dùng token
+- Gọi API bảo vệ bằng header:
   ```http
   Authorization: Bearer <accessToken>
   ```
-
-  Middleware `authMiddleware` sẽ kiểm tra chữ ký, hạn sử dụng và `deviceId` trong token; yêu cầu không hợp lệ sẽ nhận 401 Unauthorized.【F:src/middleware/authMiddleware.ts†L1-L25】【F:src/services/authTokenService.ts†L196-L226】
-
-- Khi access token hết hạn, dùng `POST /api/auth/refresh` với `refreshToken` và `deviceId` gốc để nhận cặp token mới. Refresh token bị dùng sai thiết bị sẽ bị thu hồi và không thể tiếp tục sử dụng.【F:src/controllers/accountController.ts†L177-L207】【F:src/services/authTokenService.ts†L107-L190】
-
-- Muốn đăng xuất chỉ một thiết bị: gọi `/api/auth/logout` với refresh token tương ứng. Muốn đăng xuất mọi nơi: gọi `/api/auth/logout-all` với refresh token đang giữ; server sẽ thu hồi toàn bộ refresh token của user đó.【F:src/controllers/accountController.ts†L209-L240】【F:src/services/authTokenService.ts†L136-L190】
-🧠 Kiến trúc Backend-Driven Matchmaking với Dedicated Server theo Match (Container-per-Match + Warm Pool)
-1. Tổng quan
-
-Hệ thống sử dụng kiến trúc backend điều phối ghép trận, trong đó:
-
-Mỗi trận đấu chạy trên một Dedicated Server riêng biệt (Unity + Photon Fusion).
-
-Dedicated Server được đóng gói dưới dạng Docker container, tạo theo nhu cầu và tự hủy sau khi trận kết thúc.
-
-Backend giữ toàn bộ quyền kiểm soát:
-
-Hàng chờ (queue)
-
-Ghép trận
-
-Cấp quyền vào trận (ticket)
-
-Kiểm soát CCU Photon Fusion
-
-Để giảm thời gian chờ, hệ thống sử dụng Warm Pool:
-
-Một số container Dedicated Server được khởi động sẵn ở trạng thái IDLE
-
-Khi có trận mới, backend assign trực tiếp vào container IDLE thay vì phải khởi động container mới.
-
-👉 Kiến trúc này cho phép:
-
-100+ người online nhưng chỉ 20 người kết nối Photon Fusion
-
-Tránh lãng phí CCU
-
-Tránh server treo lâu dài
-
-Mở rộng tốt theo số trận, không theo số người online
-
-2. Thành phần hệ thống
-2.1 Client (Unity)
-
-Người chơi không kết nối Photon Fusion khi vào game
-
-Client chỉ:
-
-Kết nối backend
-
-Vào hàng chờ (Quick Match)
-
-Nhận ticket khi match sẵn sàng
-
-Chỉ khi nhận được match:ticket:
-
-Client mới kết nối Photon Fusion
-
-Join đúng session được cấp phép
-
-➡️ Điều này giúp tiết kiệm CCU Photon Fusion tối đa.
-
-2.2 Backend (Node.js – Express + Socket.IO)
-
-Backend là control plane của toàn hệ thống:
-
-Quản lý hàng chờ (queue)
-
-Ghép trận theo:
-
-Region
-
-TypeMatchGid
-
-Mức cược (bet)
-
-Kiểm soát CCU (ví dụ tối đa 20 người cùng kết nối Fusion)
-
-Điều phối Dedicated Server thông qua Docker Orchestrator
-
-Phát sự kiện realtime cho client:
-
-queue:update
-
-match:found
-
-match:loading
-
-match:ticket
-
-match:failed
-
-match:finished
-
-2.3 Docker Orchestrator
-
-Orchestrator chịu trách nhiệm:
-
-Khởi động Dedicated Server container:
-
-MODE=MATCH → tạo server cho trận
-
-MODE=IDLE → warm pool
-
-Assign match vào container IDLE (warm pool)
-
-Stop container khi cần (timeout / lỗi)
-
-List container theo:
-
-Region
-
-Mode (IDLE / MATCH)
-
-TypeMatchGid
-
-Backend và DS container chạy cùng Docker network để giao tiếp nội bộ.
-
-2.4 Dedicated Server (Unity + Photon Fusion)
-
-Mỗi container Dedicated Server:
-
-Chỉ chạy đúng 1 trận
-
-Không pool room
-
-Không giữ server lâu dài
-
-Có 2 chế độ:
-
-MODE=IDLE: khởi động sẵn, chưa tạo session Fusion
-
-MODE=MATCH: tạo session Fusion ngay khi boot hoặc khi được assign
-
-Dedicated Server:
-
-Callback READY khi Fusion session sẵn sàng
-
-Callback RESULT khi trận kết thúc
-
-Tự shutdown container sau khi xong trận
-
-3. Luồng hoạt động chi tiết
-3.1 Người chơi vào hàng chờ
-
-Client bấm Quick Match
-
-Gửi yêu cầu lên backend
-
-Backend đưa user vào queue
-
-Backend emit queue:update để cập nhật UI
-
-📌 Lúc này client chưa kết nối Photon Fusion.
-
-3.2 Ghép trận thành công (3/3)
-
-Backend đủ người → lock match
-
-Tạo:
-
-matchId
-
-sessionName
-
-Emit match:found → client chuyển sang màn hình Loading
-
-Backend bắt đầu chuẩn bị Dedicated Server
-
-3.3 Chuẩn bị Dedicated Server (Warm Pool)
-
-Backend ưu tiên:
-
-Bước 1: Assign vào container IDLE (Warm Pool)
-
-Nếu có container IDLE phù hợp:
-
-Gửi POST /internal/assign
-
-Container IDLE → StartGame Fusion
-
-Thời gian: ~1–2s
-
-Bước 2: Fallback tạo container mới
-
-Nếu không có IDLE:
-
-docker run container mới (MODE=MATCH)
-
-Thời gian: ~4s
-
-3.4 Server sẵn sàng → phát ticket
-
-Dedicated Server callback:
-
-POST /internal/match/ready
-
-
-Backend phát match:ticket cho từng client:
-
-sessionName
-
-region
-
-joinToken
-
-deadline
-
-Client:
-
-Mới bắt đầu connect Photon Fusion
-
-Join session đúng quyền
-
-3.5 Trận đấu & kết thúc
-
-Game diễn ra bình thường
-
-Khi EndGame:
-
-DS build kết quả
-
-Callback:
-
-POST /internal/match/result
-
-
-Backend:
-
-Settle thưởng
-
-Emit match:finished
-
-Dedicated Server:
-
-Shutdown Fusion
-
-Exit container
-
-4. Warm Pool (giảm thời gian chờ)
-Mục tiêu
-
-Giảm thời gian chờ từ ~4s xuống ~1–2s
-
-Tránh người chơi nghĩ game bị lag
-
-Cách làm
-
-Giữ sẵn 1–2 container IDLE
-
-Container IDLE:
-
-Không tạo session Fusion
-
-Chỉ chờ nhận lệnh assign
-
-Khi container IDLE được dùng:
-
-Backend spawn bù container IDLE mới
-
-Cấu hình gợi ý
+- Access token hết hạn → dùng `/api/auth/refresh` với refresh token tương ứng.
+
+## 7. Kiến trúc Dedicated Server (Warm Pool)
+### 7.1 Tổng quan
+- Mỗi trận chạy một Dedicated Server riêng (Unity + Photon Fusion).
+- Container được tạo theo nhu cầu và tự hủy sau trận.
+- Backend điều phối hàng chờ, ghép trận, cấp ticket và kiểm soát CCU.
+
+### 7.2 Thành phần
+- **Client (Unity)**: chỉ connect Fusion khi nhận ticket.
+- **Backend**: ghép trận, cấp quyền, quản lý CCU.
+- **Docker Orchestrator**: tạo container `IDLE`/`MATCH`.
+- **Dedicated Server**: chạy 1 trận, callback READY/RESULT.
+
+### 7.3 Luồng chính
+1. Người chơi vào hàng chờ → backend emit `queue:update`.
+2. Đủ người → emit `match:found`.
+3. Assign container IDLE (warm pool) → giảm thời gian chờ.
+4. DS callback READY → backend phát ticket.
+5. Kết thúc trận → DS callback RESULT và tự shutdown.
+
+### 7.4 Warm Pool gợi ý
+```
 MIN_IDLE_DS_PER_TYPE=1
 MAX_IDLE_DS_TOTAL=2
+```
 
-5. Kiểm soát CCU Photon Fusion
-
-Backend giữ biến reservedCCUSlots
-
-Chỉ phát ticket khi:
-
-reservedCCUSlots + matchSize <= MAX_CCU
-
-
-Người chơi không connect Fusion khi:
-
-Ở shop
-
-Ở kho đồ
-
-Ở hàng chờ
-
-➡️ Đảm bảo CCU không bị vượt, đúng với gói miễn phí.
-
-6. Ưu điểm của kiến trúc
-
-Không lãng phí CCU Photon Fusion
-
-Không giữ server treo lâu dài
-
-Mỗi trận độc lập, dễ scale
-
-Dễ debug và monitor
-
-Phù hợp cho game online nhỏ → trung bình
-
-7. Tên kiến trúc (tham khảo)
-
-Backend-Driven Matchmaking
-
-Container-per-Match Dedicated Server
-
-Ephemeral Game Server Architecture
-
-Warm Pool Dedicated Server
-
-8. Kết luận
-
-Đây là kiến trúc chuẩn sản xuất cho game online sử dụng Dedicated Server, đặc biệt phù hợp với:
-
-Game bắn bi / casual competitive
-
-Số CCU giới hạn
-
-Muốn tối ưu chi phí và trải nghiệm người chơi
-
-Nếu sau này bạn cần:
-
-scale lên Kubernetes
-
-chuyển sang auto-scaling
-
-thêm rank/MMR phức tạp
-
-→ kiến trúc này không cần đổi lõi, chỉ mở rộng thêm.
+## 8. Ghi chú vận hành
+- Ưu tiên đảm bảo CCU Photon Fusion không vượt giới hạn gói.
+- Hệ thống dễ mở rộng lên Kubernetes/auto-scaling mà không đổi lõi.
