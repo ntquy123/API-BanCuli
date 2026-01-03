@@ -18,6 +18,7 @@ import achievementRoutes from './routes/achievementRoutes';
 import authRoutes from './routes/authRoutes';
 import matchmakingRoutes from './routes/matchmakingRoutes';
 import adminRoutes from './routes/adminRoutes';
+import matchQueueRoutes from './routes/matchQueueRoutes';
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use('/api', rewardRoutes);
 app.use('/api', achievementRoutes);
 app.use('/api', authRoutes);
 app.use('/api', matchmakingRoutes);
+app.use('/api', matchQueueRoutes);
 app.use('/api', adminRoutes);
 app.use('/api', express.static(path.join(__dirname, '../public/admin')));
 
