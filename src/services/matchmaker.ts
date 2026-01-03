@@ -75,6 +75,16 @@ export class Matchmaker {
   // CCU approximation: reserve slots khi match allocated
   private reservedCCUSlots = 0;
 
+  // track DS register (warm pool DS báo về)
+  private dsRegistry = new Map<
+    string,
+    {
+      region: string;
+      status: "IDLE" | "BUSY";
+      registeredAt: number;
+    }
+  >();
+
   async enqueue(p: EnqueueParams, ctx: EnqueueCtx) {
     const { io } = ctx;
 
@@ -165,6 +175,20 @@ export class Matchmaker {
 
     this.matches.set(m.matchId, m);
     return true;
+  }
+
+  registerDs(args: { dsId: string; region: string; status: "IDLE" | "BUSY" }) {
+    this.dsRegistry.set(args.dsId, {
+      region: args.region,
+      status: args.status,
+      registeredAt: Date.now(),
+    });
+
+    if (args.status === "IDLE") {
+      this.lockedIdleContainers.delete(args.dsId);
+    }
+
+    return { status: "REGISTERED", dsId: args.dsId, region: args.region };
   }
 
   onMatchResult(args: { matchId: string; result: unknown; io: any }) {
