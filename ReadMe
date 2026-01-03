@@ -126,3 +126,321 @@ Các endpoint trong `accountRoutes.ts` đều được mount dưới tiền tố
 - Khi access token hết hạn, dùng `POST /api/auth/refresh` với `refreshToken` và `deviceId` gốc để nhận cặp token mới. Refresh token bị dùng sai thiết bị sẽ bị thu hồi và không thể tiếp tục sử dụng.【F:src/controllers/accountController.ts†L177-L207】【F:src/services/authTokenService.ts†L107-L190】
 
 - Muốn đăng xuất chỉ một thiết bị: gọi `/api/auth/logout` với refresh token tương ứng. Muốn đăng xuất mọi nơi: gọi `/api/auth/logout-all` với refresh token đang giữ; server sẽ thu hồi toàn bộ refresh token của user đó.【F:src/controllers/accountController.ts†L209-L240】【F:src/services/authTokenService.ts†L136-L190】
+🧠 Kiến trúc Backend-Driven Matchmaking với Dedicated Server theo Match (Container-per-Match + Warm Pool)
+1. Tổng quan
+
+Hệ thống sử dụng kiến trúc backend điều phối ghép trận, trong đó:
+
+Mỗi trận đấu chạy trên một Dedicated Server riêng biệt (Unity + Photon Fusion).
+
+Dedicated Server được đóng gói dưới dạng Docker container, tạo theo nhu cầu và tự hủy sau khi trận kết thúc.
+
+Backend giữ toàn bộ quyền kiểm soát:
+
+Hàng chờ (queue)
+
+Ghép trận
+
+Cấp quyền vào trận (ticket)
+
+Kiểm soát CCU Photon Fusion
+
+Để giảm thời gian chờ, hệ thống sử dụng Warm Pool:
+
+Một số container Dedicated Server được khởi động sẵn ở trạng thái IDLE
+
+Khi có trận mới, backend assign trực tiếp vào container IDLE thay vì phải khởi động container mới.
+
+👉 Kiến trúc này cho phép:
+
+100+ người online nhưng chỉ 20 người kết nối Photon Fusion
+
+Tránh lãng phí CCU
+
+Tránh server treo lâu dài
+
+Mở rộng tốt theo số trận, không theo số người online
+
+2. Thành phần hệ thống
+2.1 Client (Unity)
+
+Người chơi không kết nối Photon Fusion khi vào game
+
+Client chỉ:
+
+Kết nối backend
+
+Vào hàng chờ (Quick Match)
+
+Nhận ticket khi match sẵn sàng
+
+Chỉ khi nhận được match:ticket:
+
+Client mới kết nối Photon Fusion
+
+Join đúng session được cấp phép
+
+➡️ Điều này giúp tiết kiệm CCU Photon Fusion tối đa.
+
+2.2 Backend (Node.js – Express + Socket.IO)
+
+Backend là control plane của toàn hệ thống:
+
+Quản lý hàng chờ (queue)
+
+Ghép trận theo:
+
+Region
+
+TypeMatchGid
+
+Mức cược (bet)
+
+Kiểm soát CCU (ví dụ tối đa 20 người cùng kết nối Fusion)
+
+Điều phối Dedicated Server thông qua Docker Orchestrator
+
+Phát sự kiện realtime cho client:
+
+queue:update
+
+match:found
+
+match:loading
+
+match:ticket
+
+match:failed
+
+match:finished
+
+2.3 Docker Orchestrator
+
+Orchestrator chịu trách nhiệm:
+
+Khởi động Dedicated Server container:
+
+MODE=MATCH → tạo server cho trận
+
+MODE=IDLE → warm pool
+
+Assign match vào container IDLE (warm pool)
+
+Stop container khi cần (timeout / lỗi)
+
+List container theo:
+
+Region
+
+Mode (IDLE / MATCH)
+
+TypeMatchGid
+
+Backend và DS container chạy cùng Docker network để giao tiếp nội bộ.
+
+2.4 Dedicated Server (Unity + Photon Fusion)
+
+Mỗi container Dedicated Server:
+
+Chỉ chạy đúng 1 trận
+
+Không pool room
+
+Không giữ server lâu dài
+
+Có 2 chế độ:
+
+MODE=IDLE: khởi động sẵn, chưa tạo session Fusion
+
+MODE=MATCH: tạo session Fusion ngay khi boot hoặc khi được assign
+
+Dedicated Server:
+
+Callback READY khi Fusion session sẵn sàng
+
+Callback RESULT khi trận kết thúc
+
+Tự shutdown container sau khi xong trận
+
+3. Luồng hoạt động chi tiết
+3.1 Người chơi vào hàng chờ
+
+Client bấm Quick Match
+
+Gửi yêu cầu lên backend
+
+Backend đưa user vào queue
+
+Backend emit queue:update để cập nhật UI
+
+📌 Lúc này client chưa kết nối Photon Fusion.
+
+3.2 Ghép trận thành công (3/3)
+
+Backend đủ người → lock match
+
+Tạo:
+
+matchId
+
+sessionName
+
+Emit match:found → client chuyển sang màn hình Loading
+
+Backend bắt đầu chuẩn bị Dedicated Server
+
+3.3 Chuẩn bị Dedicated Server (Warm Pool)
+
+Backend ưu tiên:
+
+Bước 1: Assign vào container IDLE (Warm Pool)
+
+Nếu có container IDLE phù hợp:
+
+Gửi POST /internal/assign
+
+Container IDLE → StartGame Fusion
+
+Thời gian: ~1–2s
+
+Bước 2: Fallback tạo container mới
+
+Nếu không có IDLE:
+
+docker run container mới (MODE=MATCH)
+
+Thời gian: ~4s
+
+3.4 Server sẵn sàng → phát ticket
+
+Dedicated Server callback:
+
+POST /internal/match/ready
+
+
+Backend phát match:ticket cho từng client:
+
+sessionName
+
+region
+
+joinToken
+
+deadline
+
+Client:
+
+Mới bắt đầu connect Photon Fusion
+
+Join session đúng quyền
+
+3.5 Trận đấu & kết thúc
+
+Game diễn ra bình thường
+
+Khi EndGame:
+
+DS build kết quả
+
+Callback:
+
+POST /internal/match/result
+
+
+Backend:
+
+Settle thưởng
+
+Emit match:finished
+
+Dedicated Server:
+
+Shutdown Fusion
+
+Exit container
+
+4. Warm Pool (giảm thời gian chờ)
+Mục tiêu
+
+Giảm thời gian chờ từ ~4s xuống ~1–2s
+
+Tránh người chơi nghĩ game bị lag
+
+Cách làm
+
+Giữ sẵn 1–2 container IDLE
+
+Container IDLE:
+
+Không tạo session Fusion
+
+Chỉ chờ nhận lệnh assign
+
+Khi container IDLE được dùng:
+
+Backend spawn bù container IDLE mới
+
+Cấu hình gợi ý
+MIN_IDLE_DS_PER_TYPE=1
+MAX_IDLE_DS_TOTAL=2
+
+5. Kiểm soát CCU Photon Fusion
+
+Backend giữ biến reservedCCUSlots
+
+Chỉ phát ticket khi:
+
+reservedCCUSlots + matchSize <= MAX_CCU
+
+
+Người chơi không connect Fusion khi:
+
+Ở shop
+
+Ở kho đồ
+
+Ở hàng chờ
+
+➡️ Đảm bảo CCU không bị vượt, đúng với gói miễn phí.
+
+6. Ưu điểm của kiến trúc
+
+Không lãng phí CCU Photon Fusion
+
+Không giữ server treo lâu dài
+
+Mỗi trận độc lập, dễ scale
+
+Dễ debug và monitor
+
+Phù hợp cho game online nhỏ → trung bình
+
+7. Tên kiến trúc (tham khảo)
+
+Backend-Driven Matchmaking
+
+Container-per-Match Dedicated Server
+
+Ephemeral Game Server Architecture
+
+Warm Pool Dedicated Server
+
+8. Kết luận
+
+Đây là kiến trúc chuẩn sản xuất cho game online sử dụng Dedicated Server, đặc biệt phù hợp với:
+
+Game bắn bi / casual competitive
+
+Số CCU giới hạn
+
+Muốn tối ưu chi phí và trải nghiệm người chơi
+
+Nếu sau này bạn cần:
+
+scale lên Kubernetes
+
+chuyển sang auto-scaling
+
+thêm rank/MMR phức tạp
+
+→ kiến trúc này không cần đổi lõi, chỉ mở rộng thêm.
