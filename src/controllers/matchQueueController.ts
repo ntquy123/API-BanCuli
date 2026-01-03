@@ -1,6 +1,6 @@
 import { RequestHandler } from "express";
 import crypto from "crypto";
-import { Matchmaker } from "/services/matchmaker";
+import { Matchmaker } from "../services/matchmaker";
 
 type QueueJoinBody = {
   userId?: number;
@@ -109,7 +109,6 @@ export const matchReady: RequestHandler = async (req, res) => {
     matchId,
     sessionName,
     region,
-    dsId: dsId ?? null,
     io,
     signJoinToken,
     playerJoinDeadlineMs: PLAYER_JOIN_DEADLINE_MS,

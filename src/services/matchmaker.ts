@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { DockerOrchestrator } from "./orchestrator";
+import { ensureWarmIdleContainers } from "./orchestratorWarmPool";
 
 type EnqueueParams = {
   userId: number;
@@ -15,13 +16,6 @@ type EnqueueCtx = {
   playerJoinDeadlineMs: number;
   io: any;
   signJoinToken: (payload: object) => string;
-};
-
-type DsInfo = {
-  dsId: string;
-  region: string;
-  status: "IDLE" | "BUSY";
-  lastSeenAt: number;
 };
 
 type MatchState =
@@ -40,10 +34,12 @@ type MatchRecord = {
   region: string;
   bet: number;
   typeMatchGid: number;
-  players: number[];          // userIds
+  players: number[];
   createdAt: number;
   state: MatchState;
-  dsId: string | null;
+
+  // nếu assign từ warm pool: đây là container name idle được assign
+  dsContainerName: string | null;
 
   serverReadyTimer?: NodeJS.Timeout;
   playerJoinTimer?: NodeJS.Timeout;
@@ -54,7 +50,6 @@ function makeMatchId() {
 }
 
 function makeSessionName(region: string) {
-  // mã phòng ngắn: 7 ký tự base32-like, tránh O/0 I/1
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let s = "";
   for (let i = 0; i < 7; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)];
@@ -68,63 +63,45 @@ function userRoom(userId: number) {
 export class Matchmaker {
   static instance = new Matchmaker();
 
-  // Queue theo bucket: region + typeMatchGid + bet
-  private queue = new Map<string, number[]>(); // key -> userIds
+  // queue per bucket
+  private queue = new Map<string, number[]>();
   private queuedUsers = new Set<number>();
 
-  // Match records
   private matches = new Map<string, MatchRecord>();
 
-  // DS warm pool (optional)
-  private dsPool = new Map<string, DsInfo>(); // dsId -> info
+  // tránh double-assign 1 container IDLE
+  private lockedIdleContainers = new Set<string>();
 
-  // CCU tracking (approx): chỉ tính khi đã phát ticket (vì lúc đó client sẽ connect)
+  // CCU approximation: reserve slots khi match allocated
   private reservedCCUSlots = 0;
 
   async enqueue(p: EnqueueParams, ctx: EnqueueCtx) {
     const { io } = ctx;
 
     if (this.queuedUsers.has(p.userId)) {
-      return {
-        http: {
-          status: "ALREADY_QUEUED",
-          message: "Bạn đang ở trong hàng chờ",
-        },
-      };
+      return { http: { status: "ALREADY_QUEUED", message: "Bạn đang ở trong hàng chờ" } };
     }
 
     const key = this.bucketKey(p);
-
     const arr = this.queue.get(key) ?? [];
     arr.push(p.userId);
     this.queue.set(key, arr);
     this.queuedUsers.add(p.userId);
 
-    // Push queue:update riêng cho user
     io.to(userRoom(p.userId)).emit("queue:update", {
       bucket: key,
       current: Math.min(arr.length, ctx.matchSize),
       required: ctx.matchSize,
     });
 
-    // Try allocate match if đủ người
     await this.tryAllocate(key, p, ctx);
 
-    return {
-      http: {
-        status: "QUEUED",
-        bucket: key,
-        message: "Đã vào hàng chờ",
-      },
-    };
+    return { http: { status: "QUEUED", bucket: key, message: "Đã vào hàng chờ" } };
   }
 
   cancel(userId: number, io: any) {
-    if (!this.queuedUsers.has(userId)) {
-      return { status: "NOT_IN_QUEUE" };
-    }
+    if (!this.queuedUsers.has(userId)) return { status: "NOT_IN_QUEUE" };
 
-    // remove from all buckets (đơn giản)
     for (const [k, arr] of this.queue.entries()) {
       const idx = arr.indexOf(userId);
       if (idx >= 0) {
@@ -139,20 +116,10 @@ export class Matchmaker {
     return { status: "CANCELLED" };
   }
 
-  registerDs(ds: { dsId: string; region: string; status: "IDLE" | "BUSY" }) {
-    this.dsPool.set(ds.dsId, {
-      dsId: ds.dsId,
-      region: ds.region,
-      status: ds.status,
-      lastSeenAt: Date.now(),
-    });
-  }
-
   onServerReady(args: {
     matchId: string;
     sessionName: string;
     region: string;
-    dsId: string | null;
     io: any;
     signJoinToken: (payload: object) => string;
     playerJoinDeadlineMs: number;
@@ -160,19 +127,15 @@ export class Matchmaker {
     const m = this.matches.get(args.matchId);
     if (!m) return false;
 
-    if (m.state === "FAILED" || m.state === "CANCELLED" || m.state === "FINISHED") {
-      return false;
-    }
+    if (m.state === "FAILED" || m.state === "CANCELLED" || m.state === "FINISHED") return false;
 
-    // Cancel server-ready timeout
     if (m.serverReadyTimer) clearTimeout(m.serverReadyTimer);
 
     m.state = "READY";
     m.sessionName = args.sessionName;
     m.region = args.region;
-    m.dsId = args.dsId ?? m.dsId;
 
-    // Issue join tickets
+    // phát ticket
     for (const uid of m.players) {
       const token = args.signJoinToken({
         matchId: m.matchId,
@@ -191,10 +154,8 @@ export class Matchmaker {
       });
     }
 
-    // Start join deadline timer (nếu bạn muốn, có thể require client ACK)
+    // fail-safe join deadline (nếu bạn chưa có ACK join)
     m.playerJoinTimer = setTimeout(() => {
-      // Nếu bạn không có ACK join, thì timer này dùng để fail-safe:
-      // Sau deadline, nếu match chưa IN_PROGRESS thì fail.
       const mm = this.matches.get(m.matchId);
       if (!mm) return;
       if (mm.state === "READY" || mm.state === "SERVER_CREATING" || mm.state === "MATCH_ALLOCATED") {
@@ -213,16 +174,22 @@ export class Matchmaker {
     m.state = "FINISHED";
     this.matches.set(m.matchId, m);
 
-    // Free CCU slots (approx)
+    // free CCU slots
     this.reservedCCUSlots = Math.max(0, this.reservedCCUSlots - m.players.length);
 
-    // notify players
+    // unlock warm DS (container sẽ exit, nhưng unlock để tránh leak)
+    if (m.dsContainerName) this.lockedIdleContainers.delete(m.dsContainerName);
+
     for (const uid of m.players) {
-      args.io.to(userRoom(uid)).emit("match:finished", {
-        matchId: m.matchId,
-        result: args.result,
-      });
+      args.io.to(userRoom(uid)).emit("match:finished", { matchId: m.matchId, result: args.result });
     }
+
+    // Bù warm pool ngay sau khi match dùng xong (best-effort)
+    ensureWarmIdleContainers({
+      region: m.region,
+      types: [m.typeMatchGid],
+      minIdlePerType: Number(process.env.MIN_IDLE_DS_PER_TYPE) || 1,
+    }).catch(() => {});
 
     return { status: "RESULT_RECEIVED", matchId: m.matchId };
   }
@@ -230,38 +197,21 @@ export class Matchmaker {
   // ---------------- Internals ----------------
 
   private bucketKey(p: EnqueueParams) {
-    // Bạn có thể “bucket hóa bet” theo khoảng để dễ ghép
-    // ví dụ: bet 100/200/500...
     return `${p.region}|type:${p.typeMatchGid}|bet:${p.bet}`;
   }
 
   private async tryAllocate(bucketKey: string, p: EnqueueParams, ctx: EnqueueCtx) {
     const arr = this.queue.get(bucketKey) ?? [];
-    if (arr.length < ctx.matchSize) {
-      // update counts for everyone in bucket (optional)
-      for (const uid of arr) {
-        ctx.io.to(userRoom(uid)).emit("queue:update", {
-          bucket: bucketKey,
-          current: arr.length,
-          required: ctx.matchSize,
-        });
-      }
-      return;
-    }
+    if (arr.length < ctx.matchSize) return;
 
-    // CCU gate: chỉ cấp match nếu còn đủ slot để phát ticket cho match này
+    // CCU gate: chỉ allocate nếu còn đủ slot (matchSize)
     if (this.reservedCCUSlots + ctx.matchSize > ctx.maxCCU) {
-      // queue vẫn giữ, nhưng không allocate
       for (const uid of arr.slice(0, ctx.matchSize)) {
-        ctx.io.to(userRoom(uid)).emit("queue:blocked", {
-          reason: "CCU_FULL",
-          maxCCU: ctx.maxCCU,
-        });
+        ctx.io.to(userRoom(uid)).emit("queue:blocked", { reason: "CCU_FULL", maxCCU: ctx.maxCCU });
       }
       return;
     }
 
-    // lock players
     const players = arr.splice(0, ctx.matchSize);
     this.queue.set(bucketKey, arr);
     for (const uid of players) this.queuedUsers.delete(uid);
@@ -278,31 +228,22 @@ export class Matchmaker {
       players,
       createdAt: Date.now(),
       state: "MATCH_ALLOCATED",
-      dsId: null,
+      dsContainerName: null,
     };
     this.matches.set(matchId, match);
 
-    // Reserve CCU slots now (vì sắp phát ticket)
+    // reserve CCU slots
     this.reservedCCUSlots += players.length;
 
-    // Notify match found -> client chuyển Loading ngay
+    // UI: match found -> loading
     for (const uid of players) {
-      ctx.io.to(userRoom(uid)).emit("match:found", {
-        matchId,
-        required: ctx.matchSize,
-        players: ctx.matchSize,
-      });
-
-      ctx.io.to(userRoom(uid)).emit("match:loading", {
-        matchId,
-        stage: "SERVER_CREATING",
-      });
+      ctx.io.to(userRoom(uid)).emit("match:found", { matchId, required: ctx.matchSize, players: ctx.matchSize });
+      ctx.io.to(userRoom(uid)).emit("match:loading", { matchId, stage: "SERVER_CREATING" });
     }
 
-    // Spawn DS container (or take warm pool)
+    // Start DS (ưu tiên warm pool assign)
     await this.startDedicatedServerForMatch(match, ctx);
 
-    // Server READY timeout
     match.state = "SERVER_CREATING";
     match.serverReadyTimer = setTimeout(() => {
       this.failMatch(matchId, ctx.io, "SERVER_READY_TIMEOUT");
@@ -312,76 +253,78 @@ export class Matchmaker {
   }
 
   private async startDedicatedServerForMatch(match: MatchRecord, ctx: EnqueueCtx) {
-    // Option A: nếu bạn có warm DS idle containers, chọn 1 idle cùng region
-    const warm = this.pickWarmDs(match.region);
-    if (warm) {
-      // Mark BUSY
-      warm.status = "BUSY";
-      warm.lastSeenAt = Date.now();
-      this.dsPool.set(warm.dsId, warm);
+    // 1) Try pick IDLE container from warm pool
+    try {
+      const idle = await DockerOrchestrator.listManagedContainers({ region: match.region, mode: "IDLE" });
+      const candidates = idle.filter(
+        (c) => c.labels.typeMatchGid === String(match.typeMatchGid) && !this.lockedIdleContainers.has(c.name),
+      );
 
-      match.dsId = warm.dsId;
+      if (candidates.length > 0) {
+        const picked = candidates[0];
+        this.lockedIdleContainers.add(picked.name);
+        match.dsContainerName = picked.name;
 
-      // Gửi assign cho DS idle (DS container phải có endpoint internal)
-      // Ở đây minh họa: DockerOrchestrator có thể gọi HTTP tới DS nếu bạn expose network nội bộ.
-      // Nếu chưa có, bỏ warm pool và dùng spawn container on-demand.
-      await DockerOrchestrator.assignToIdleDs({
-        dsId: warm.dsId,
-        matchId: match.matchId,
-        sessionName: match.sessionName,
-        maxPlayers: ctx.matchSize,
-        bet: match.bet,
-        region: match.region,
-      });
+        // assign to idle DS (this should be fast)
+        await DockerOrchestrator.assignToIdleDs({
+          dsContainerName: picked.name,
+          matchId: match.matchId,
+          sessionName: match.sessionName,
+          maxPlayers: ctx.matchSize,
+          bet: match.bet,
+          region: match.region,
+          typeMatchGid: match.typeMatchGid,
+        });
 
-      return;
+        // bù warm pool ngay sau khi consume 1 idle (best-effort)
+        ensureWarmIdleContainers({
+          region: match.region,
+          types: [match.typeMatchGid],
+          minIdlePerType: Number(process.env.MIN_IDLE_DS_PER_TYPE) || 1,
+        }).catch(() => {});
+
+        return;
+      }
+    } catch {
+      // ignore, fallback spawn below
     }
 
-    // Option B: spawn container mới on-demand
+    // 2) Fallback: spawn match container on-demand
     await DockerOrchestrator.spawnMatchContainer({
+      region: match.region,
+      typeMatchGid: match.typeMatchGid,
       matchId: match.matchId,
       sessionName: match.sessionName,
       maxPlayers: ctx.matchSize,
       bet: match.bet,
-      region: match.region,
     });
   }
 
-  private pickWarmDs(region: string): DsInfo | null {
-    const now = Date.now();
-
-    // dọn DS stale (optional)
-    for (const [id, ds] of this.dsPool.entries()) {
-      if (now - ds.lastSeenAt > 60_000) this.dsPool.delete(id);
-    }
-
-    for (const ds of this.dsPool.values()) {
-      if (ds.region === region && ds.status === "IDLE") return ds;
-    }
-    return null;
-  }
-
-  private failMatch(matchId: string, io: any, reason: string) {
+  private async failMatch(matchId: string, io: any, reason: string) {
     const m = this.matches.get(matchId);
     if (!m) return;
 
     m.state = "FAILED";
     this.matches.set(matchId, m);
 
-    // Free CCU slots (approx)
+    // free CCU slots
     this.reservedCCUSlots = Math.max(0, this.reservedCCUSlots - m.players.length);
 
-    // notify players
+    // unlock warm ds if assigned
+    if (m.dsContainerName) this.lockedIdleContainers.delete(m.dsContainerName);
+
     for (const uid of m.players) {
-      io.to(userRoom(uid)).emit("match:failed", {
-        matchId,
-        reason,
-      });
+      io.to(userRoom(uid)).emit("match:failed", { matchId: m.matchId, reason });
     }
 
-    // kill container nếu bạn spawn on-demand (optional)
-    if (m.dsId) {
-      DockerOrchestrator.tryStopContainerById(m.dsId).catch(() => {});
+    // best-effort stop: nếu là match container theo on-demand, tên thường ds_match_<matchId>... không cố định.
+    // Nếu bạn muốn stop chắc chắn, hãy truyền DS_ID/ContainerName từ DS callback READY/RESULT (optional).
+    // Ở giai đoạn này, fail-safe chính là DS tự exit hoặc orchestrator cleanup theo TTL.
+    try {
+      // Nếu match dùng warm pool (idle container assigned), nên stop nó để tránh stuck
+      if (m.dsContainerName) await DockerOrchestrator.tryStopContainerById(m.dsContainerName);
+    } catch {
+      // ignore
     }
   }
 }

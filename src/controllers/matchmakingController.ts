@@ -8,7 +8,7 @@ import {
   leaveRoomAndCleanup,
 } from '../services/matchmakingService';
 import { TypeMatchGid } from '../config/typeMatchGid';
-import { buildWarmPoolSummary } from '../utils/orchestratorWarmPool';
+import { buildWarmPoolSummary } from '../services/orchestratorWarmPool';
 import { DockerOrchestrator } from '../services/orchestrator';
 
 export const availableRooms: RequestHandler = async (_req, res) => {
@@ -180,7 +180,7 @@ export const shutdownServers: RequestHandler = async (_req, res) => {
 
     const idleContainers = await DockerOrchestrator.listManagedContainers({ mode: 'IDLE' });
     const stopResults = await Promise.all(
-      idleContainers.map((container) => DockerOrchestrator.stopContainerByNameOrId(container.id)),
+      idleContainers.map((container) => DockerOrchestrator.tryStopContainerById(container.id)),
     );
 
     const stoppedContainers = stopResults.filter(Boolean).length;

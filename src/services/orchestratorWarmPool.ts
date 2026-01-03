@@ -1,5 +1,5 @@
-import { TypeMatchGid } from '../config/typeMatchGid';
-import { DockerOrchestrator, DockerContainerInfo } from '../services/orchestrator';
+import { TypeMatchGid } from "../config/typeMatchGid";
+import { DockerOrchestrator, DockerContainerInfo } from "./orchestrator";
 
 export interface WarmupSummary {
   warmBuffer: Record<number, DockerContainerInfo[]>;
@@ -9,8 +9,8 @@ export interface WarmupSummary {
 }
 
 const MAX_ROOMS = Number(process.env.MAX_ROOMS) || 20;
-const DEFAULT_REGION = process.env.DEFAULT_REGION || 'asia';
-const DEFAULT_MIN_IDLE_PER_TYPE = Number(process.env.MIN_IDLE_DS_PER_TYPE) || 2;
+const DEFAULT_REGION = process.env.DEFAULT_REGION || "asia";
+const DEFAULT_MIN_IDLE_PER_TYPE = Number(process.env.MIN_IDLE_DS_PER_TYPE) || 1;
 const DEFAULT_TYPES_TO_WARM: TypeMatchGid[] = [
   TypeMatchGid.MatchRandomNormal,
   TypeMatchGid.MatchRandomRank,
@@ -26,41 +26,37 @@ type EnsureWarmParams = {
 export async function ensureWarmIdleContainers(params: EnsureWarmParams) {
   const { region, types, minIdlePerType } = params;
 
-  // chống bùng nổ container: max warm pool tổng
-  const maxIdleTotal = Number(process.env.MAX_IDLE_DS_TOTAL) || 4;
+  // Với CCU=20, warm pool tổng 2 là hợp lý
+  const maxIdleTotal = Number(process.env.MAX_IDLE_DS_TOTAL) || 2;
 
-  // list hiện tại
-  const current = await DockerOrchestrator.listManagedContainers({
+  const currentIdle = await DockerOrchestrator.listManagedContainers({
     region,
-    mode: 'IDLE',
+    mode: "IDLE",
   });
 
-  if (current.length >= maxIdleTotal) {
-    // đã đạt ngưỡng warm tổng, không spawn thêm
-    return;
-  }
+  if (currentIdle.length >= maxIdleTotal) return;
+
+  let remainingBudget = maxIdleTotal - currentIdle.length;
 
   for (const type of types) {
-    const idleOfType = current.filter((c) => c.labels.typeMatchGid === String(type));
+    if (remainingBudget <= 0) break;
 
+    const idleOfType = currentIdle.filter((c) => c.labels.typeMatchGid === String(type));
     const need = Math.max(0, minIdlePerType - idleOfType.length);
+    if (need <= 0) continue;
 
-    // spawn bổ sung nhưng không vượt quá maxIdleTotal
-    const remainingBudget = Math.max(0, maxIdleTotal - (await DockerOrchestrator.listManagedContainers({ region, mode: 'IDLE' })).length);
     const spawnCount = Math.min(need, remainingBudget);
 
     for (let i = 0; i < spawnCount; i += 1) {
-      // MODE=IDLE: container chỉ boot + register về backend, chưa StartGame
-      // DS của bạn cần implement MODE=IDLE và POST /internal/ds/register
-      // Nếu DS chưa có, vẫn spawn được nhưng DS sẽ tự tạo match -> không đúng warm pool.
-      // Vì vậy hãy cập nhật DS sớm.
       // eslint-disable-next-line no-await-in-loop
       await DockerOrchestrator.startDedicatedServer({
-        mode: 'IDLE',
+        mode: "IDLE",
         region,
         typeMatchGid: type,
       });
     }
+
+    remainingBudget -= spawnCount;
   }
 }
 
@@ -71,7 +67,7 @@ export async function getWarmPoolSummary(params: EnsureWarmParams): Promise<Warm
 
   const current = await DockerOrchestrator.listManagedContainers({
     region,
-    mode: 'IDLE',
+    mode: "IDLE",
   });
 
   for (const type of types) {
@@ -80,7 +76,7 @@ export async function getWarmPoolSummary(params: EnsureWarmParams): Promise<Warm
 
   return {
     warmBuffer,
-    minEmptyRooms: minIdlePerType, // giữ key cũ
+    minEmptyRooms: minIdlePerType,
     maxRooms: MAX_ROOMS,
     region,
   };
@@ -91,15 +87,6 @@ export async function buildWarmPoolSummary({
   types = DEFAULT_TYPES_TO_WARM,
   minIdlePerType = DEFAULT_MIN_IDLE_PER_TYPE,
 }: Partial<EnsureWarmParams> = {}): Promise<WarmupSummary> {
-  await ensureWarmIdleContainers({
-    region,
-    types,
-    minIdlePerType,
-  });
-
-  return getWarmPoolSummary({
-    region,
-    types,
-    minIdlePerType,
-  });
+  await ensureWarmIdleContainers({ region, types, minIdlePerType });
+  return getWarmPoolSummary({ region, types, minIdlePerType });
 }

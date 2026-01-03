@@ -1,6 +1,6 @@
 import { RequestHandler } from 'express';
 import prisma from '../models/prismaClient';
-import { buildWarmPoolSummary } from '../utils/orchestratorWarmPool';
+import { buildWarmPoolSummary } from '../services/orchestratorWarmPool';
 import { DockerOrchestrator } from '../services/orchestrator';
 import { fetchContainerLogs, listRunningContainers } from '../services/dockerService';
 import { AdminTokenPayload, createAdminToken } from '../middleware/adminAuth';
@@ -156,7 +156,7 @@ export const shutdownServersAdmin: RequestHandler = async (_req, res) => {
 
     const idleContainers = await DockerOrchestrator.listManagedContainers({ mode: 'IDLE' });
     const stopResults = await Promise.all(
-      idleContainers.map((container) => DockerOrchestrator.stopContainerByNameOrId(container.id)),
+      idleContainers.map((container) => DockerOrchestrator.tryStopContainerById(container.id)),
     );
 
     const result = {
@@ -197,7 +197,7 @@ export const shutdownTestServerController: RequestHandler = async (req, res) => 
 
     const idleContainers = sameType.filter((container) => container.labels.mode === 'IDLE');
     const stopResults = await Promise.all(
-      idleContainers.map((container) => DockerOrchestrator.stopContainerByNameOrId(container.id)),
+      idleContainers.map((container) => DockerOrchestrator.tryStopContainerById(container.id)),
     );
     const result = {
       deletedRecords: stopResults.filter(Boolean).length,
